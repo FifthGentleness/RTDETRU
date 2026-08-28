@@ -1,0 +1,66 @@
+# RT-DETR-r18 + DSAWACGA backbone + HybridEncoderP2SPDOKMFSV6 encoder
+# Combination of:
+#   - rtdetr-r18-DSAWACGA.yaml  (backbone: DSAWACGA replaces branch2a of the LAST
+#     BasicBlock in each of the 4 stages, channels unchanged 64/128/256/512)
+#   - rtdetr-r18-P2SPDOKMFSV6.yaml  (encoder: P2 introduced + CCFF redesigned with
+#     SPD downsample + DCFM/OKNet/FreqScale innovation block)
+#
+# Backbone and encoder are independent improvements and compose without conflict:
+#   - DSAWACGA only changes the internal structure of the last BasicBlock per stage;
+#     stage output channels/strides stay 64/128/256/512 at P2/P3/P4/P5 strides
+#   - the V6 encoder consumes P2/P3/P4 raw + projects P5 (512 -> 256)
+#   - CCFFP2V6 inputs [P2 (layer 4, 64ch), P3 (layer 5, 128ch), y4 (layer 14, 256ch)]
+#
+# Hyperparams: CCFFP2V6 defaults match the v6 yml (large_kernel=31, fs_group=16,
+# fs_num_filters=4, fs_base_size=14, split_ratio=0.25, dcfm_theta=0.875,
+# fs_reweight_ratio=0.25, fs_init_scale=1e-5)
+
+nc: 10  # VisDrone-DET classes
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, ConvNormLayer, [32, 3, 2, None, False, 'relu']] # 0-P1/2
+  - [-1, 1, ConvNormLayer, [32, 3, 1, None, False, 'relu']] # 1
+  - [-1, 1, ConvNormLayer, [64, 3, 1, None, False, 'relu']] # 2
+  - [-1, 1, nn.MaxPool2d, [3, 2, 1]] # 3-P2/4
+
+  # [ch_out, block_type, block_nums, stage_num, act, variant]
+  # BlocksDSAWACGA: all blocks vanilla BasicBlock except the LAST one
+  # (DSAWACGA replaces branch2a), same as rtdetr_pytorch PResNet_DSAWACGA._insert_dsawacga
+  - [-1, 1, BlocksDSAWACGA, [64, BasicBlock, 2, 2, 'relu']] # 4  P2/4  (64)  <- consumed by CCFF
+  - [-1, 1, BlocksDSAWACGA, [128, BasicBlock, 2, 3, 'relu']] # 5  P3/8  (128) <- consumed by CCFF
+  - [-1, 1, BlocksDSAWACGA, [256, BasicBlock, 2, 4, 'relu']] # 6  P4/16 (256) <- consumed raw by FPN
+  - [-1, 1, BlocksDSAWACGA, [512, BasicBlock, 2, 5, 'relu']] # 7  P5/32 (512)
+
+head:
+  # input_proj.3: P5 512 -> 256, Conv1x1(bias=False)+BN, no act (v6 input_proj[3])
+  - [-1, 1, ConvNormLayer, [256, 1, 1, None, False]] # 8
+
+  - [-1, 1, AIFI, [1024, 8]] # 9  AIFI on P5 (dim_feedforward=1024, nhead=8)
+
+  # y5 = lateral_convs[0]: ConvNormLayer(256, 256, 1, 1, silu)
+  - [-1, 1, ConvNormLayer, [256, 1, 1, None, False, 'silu']] # 10
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 11  40x40
+  - [[-1, 6], 1, Concat, [1]] # 12  cat[y5_up, P4] = 512
+  - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+
+  # y4 = lateral_convs[1]: ConvNormLayer(256, 256, 1, 1, silu)
+  - [-1, 1, ConvNormLayer, [256, 1, 1, None, False, 'silu']] # 14
+
+  # CCFF P2 fusion: inputs [P2 (layer 4, 64ch), P3 (layer 5, 128ch), y4 (layer 14, 256ch)]
+  # -> f3 (256ch, P3/8). P2/P3 enter RAW (v6 input_proj[0..1] = Identity).
+  - [[4, 5, 14], 1, CCFFP2V6, [256]] # 15  f3
+
+  # PAN: downsample_convs[0] = ConvNormLayer(256, 256, 3, 2, silu)
+  - [-1, 1, ConvNormLayer, [256, 3, 2, None, False, 'silu']] # 16
+  - [[-1, 14], 1, Concat, [1]] # 17  cat[ds, y4] = 512
+  - [-1, 3, CSPRepLayer, [256, 0.5]] # 18  pan_blocks[0] -> f4
+
+  - [-1, 1, ConvNormLayer, [256, 3, 2, None, False, 'silu']] # 19  downsample_convs[1]
+  - [[-1, 10], 1, Concat, [1]] # 20  cat[ds, y5] = 512
+  - [-1, 3, CSPRepLayer, [256, 0.5]] # 21  pan_blocks[1] -> f5
+
+  - [[15, 18, 21], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]] # 22  Detect(P3, P4, P5)
