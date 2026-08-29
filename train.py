@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='ultralytics/cfg/models/rt-detr/rtdetr-r18.yaml', help='model yaml or pt path')
     parser.add_argument('--name', type=str, default='baseline', help='experiment name')
     parser.add_argument('--device', type=str, default='', help='cuda device, e.g. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--resume', type=str, default='', help='path to last.pt to resume training, e.g. runs/train/xxx/weights/last.pt')
     args = parser.parse_args()
 
     model = RTDETR(args.model)
@@ -32,7 +33,7 @@ if __name__ == '__main__':
                 batch=4,
                 workers=4,
                 pretrained=False,
-                resume='True',
+                resume=args.resume,
                 device=args.device,
                 project='runs/train',
                 name=args.name,
