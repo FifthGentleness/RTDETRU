@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 batch=4,
                 workers=4,
                 pretrained=False,
-                resume='',
+                resume='True',
                 device=args.device,
                 project='runs/train',
                 name=args.name,
