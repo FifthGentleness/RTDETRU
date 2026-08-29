@@ -19,3 +19,4 @@ from .dsawacga import *
 from .dsadoc_v10 import *
 from .hybrid_encoder_p2_spd_okm_fs_v6 import *
 from .hybrid_encoder_p2_spd_okm_fs_v5 import *
+from .hybrid_encoder_p2_spd_okm import *

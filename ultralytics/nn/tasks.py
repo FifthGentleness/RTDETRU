@@ -1055,6 +1055,11 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [*c1, *args]
+        elif m is CCFFP2:
+            # multi-input [p2, p3, y4] module: (ch_p2, ch_p3, ch_y4, hidden_dim, ...)
+            c1 = [ch[x] for x in f]
+            c2 = args[0]
+            args = [*c1, *args]
         elif m in {Pzconv, FCM, FCM_1, FCM_2, FCM_3}:
             c2 = ch[f]
             args = [c2]

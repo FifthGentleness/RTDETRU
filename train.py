@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 cache=False,
                 imgsz=640,
                 epochs=350,
-                patience=30,
+                patience=50,
                 batch=4,
                 workers=4,
                 pretrained=False,
