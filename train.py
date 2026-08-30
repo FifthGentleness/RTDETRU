@@ -29,7 +29,7 @@ if __name__ == '__main__':
                 cache=False,
                 imgsz=640,
                 epochs=350,
-                patience=50,
+                patience=0,
                 batch=4,
                 workers=4,
                 pretrained=False,
