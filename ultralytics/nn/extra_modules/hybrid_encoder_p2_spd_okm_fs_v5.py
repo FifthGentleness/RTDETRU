@@ -16,7 +16,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import ConvNormLayer
+from ..modules.block import get_activation
+from ..modules.conv import Conv
 from .hybrid_encoder_p2_spd_okm_fs_v6 import (
     CSPRepLayer,
     OKNetLargeKernel,
@@ -111,7 +112,7 @@ class CCFFBlockV5(nn.Module):
         sc = channels
 
         self.dcfm = DCFMV5(sc, theta=dcfm_theta)
-        self.small_fuse = ConvNormLayer(sc * 2, sc, 1, 1, act='silu')
+        self.small_fuse = Conv(sc * 2, sc, 1, 1)
 
         self.large_kernel_conv = OKNetLargeKernel(sc, large_kernel=large_kernel)
 
@@ -121,9 +122,9 @@ class CCFFBlockV5(nn.Module):
                                     reweight_ratio=fs_reweight_ratio, init_scale=fs_init_scale)
         self.sca = SCA(sc)
         self.fgm = _FGM(sc)
-        self.global_out = ConvNormLayer(sc, sc, 1, 1, act='silu')
+        self.global_out = Conv(sc, sc, 1, 1)
 
-        self.fuse_out = ConvNormLayer(sc, sc, 1, 1, act='silu')
+        self.fuse_out = Conv(sc, sc, 1, 1)
 
     def forward(self, x):
         small_orig = x
@@ -178,7 +179,7 @@ class CCFFP2V5(nn.Module):
         self.split_channels = int(ccff_concat_ch * split_ratio)
         self.remaining_channels = ccff_concat_ch - self.split_channels
 
-        self.ccff_cv1 = ConvNormLayer(ccff_concat_ch, ccff_concat_ch, 1, 1, act=act)
+        self.ccff_cv1 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_innovation = CCFFBlockV5(self.split_channels,
                                             large_kernel=large_kernel,
                                             fs_group=fs_group,
@@ -187,7 +188,7 @@ class CCFFP2V5(nn.Module):
                                             dcfm_theta=dcfm_theta,
                                             fs_reweight_ratio=fs_reweight_ratio,
                                             fs_init_scale=fs_init_scale)
-        self.ccff_cv2 = ConvNormLayer(ccff_concat_ch, ccff_concat_ch, 1, 1, act=act)
+        self.ccff_cv2 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_fuse_block = CSPRepLayer(ccff_concat_ch, hidden_dim,
                                            round(3 * depth_mult), act=act, expansion=expansion)
 

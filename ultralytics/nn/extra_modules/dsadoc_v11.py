@@ -18,7 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import BasicBlock, ConvNormLayer
+from ..modules.block import BasicBlock
+from ..modules.conv import Conv
 
 __all__ = ['DSADOC_v11', 'DSADOCv11BasicBlock', 'BlocksDSADOCv11']
 
@@ -161,10 +162,10 @@ class DSADOC_v11(nn.Module):
 
         # --- DSADOC internal fusion: Concat -> Conv1x1+BN+SiLU ---
         # No cross_gate: fdsa and fdcc are concatenated directly
-        self.dsadoc_fusion = ConvNormLayer(cr * 2, half_dim, 1, 1, act='silu')
+        self.dsadoc_fusion = Conv(cr * 2, half_dim, 1, 1)
 
-        # --- Conv path: aligned with branch2a (ConvNormLayer: Conv+BN+ReLU) ---
-        self.conv_path = ConvNormLayer(half_dim, half_dim, 3, 1, act='relu')
+        # --- Conv path: aligned with branch2a (Conv+BN+ReLU) ---
+        self.conv_path = Conv(half_dim, half_dim, 3, 1, act=nn.ReLU())
 
     def forward(self, x):
         x_dsadoc, x_conv = x.chunk(2, dim=1)

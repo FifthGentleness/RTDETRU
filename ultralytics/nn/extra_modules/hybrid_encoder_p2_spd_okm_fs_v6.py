@@ -25,19 +25,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import ConvNormLayer, get_activation
+from ..modules.block import get_activation
+from ..modules.conv import Conv
 
 __all__ = ['CSPRepLayer', 'CCFFP2V6']
 
 
 # ============================================================
-# SPDConv (internal): space-to-depth + 3x3 ConvNormLayer
+# SPDConv (internal): space-to-depth + 3x3 Conv
 # ============================================================
 
 class _SPDConv(nn.Module):
     def __init__(self, in_channels, out_channels, act='silu'):
         super().__init__()
-        self.conv = ConvNormLayer(in_channels * 4, out_channels, 3, 1, act=act)
+        self.conv = Conv(in_channels * 4, out_channels, 3, 1, act=get_activation(act))
 
     def forward(self, x):
         x1 = x[:, :, 0::2, 0::2]
@@ -296,7 +297,7 @@ class CCFFBlock(nn.Module):
         sc = channels
 
         self.dcfm = DCFM(sc, theta=dcfm_theta)
-        self.small_fuse = ConvNormLayer(sc * 2, sc, 1, 1, act='silu')
+        self.small_fuse = Conv(sc * 2, sc, 1, 1)
 
         self.large_kernel_conv = OKNetLargeKernel(sc, large_kernel=large_kernel)
 
@@ -306,9 +307,9 @@ class CCFFBlock(nn.Module):
                                     reweight_ratio=fs_reweight_ratio, init_scale=fs_init_scale)
         self.sca = SCA(sc)
         self.fgm = _FGM(sc)
-        self.global_out = ConvNormLayer(sc, sc, 1, 1, act='silu')
+        self.global_out = Conv(sc, sc, 1, 1)
 
-        self.fuse_out = ConvNormLayer(sc, sc, 1, 1, act='silu')
+        self.fuse_out = Conv(sc, sc, 1, 1)
 
     def forward(self, x):
         small_orig = x
@@ -339,8 +340,8 @@ class RepVggBlock(nn.Module):
         super().__init__()
         self.ch_in = ch_in
         self.ch_out = ch_out
-        self.conv1 = ConvNormLayer(ch_in, ch_out, 3, 1, padding=1, act=None)
-        self.conv2 = ConvNormLayer(ch_in, ch_out, 1, 1, padding=0, act=None)
+        self.conv1 = Conv(ch_in, ch_out, 3, 1, act=False)
+        self.conv2 = Conv(ch_in, ch_out, 1, 1, act=False)
         self.act = nn.Identity() if act is None else get_activation(act)
 
     def forward(self, x):
@@ -371,15 +372,15 @@ class RepVggBlock(nn.Module):
         else:
             return F.pad(kernel1x1, [1, 1, 1, 1])
 
-    def _fuse_bn_tensor(self, branch: ConvNormLayer):
+    def _fuse_bn_tensor(self, branch: Conv):
         if branch is None:
             return 0, 0
         kernel = branch.conv.weight
-        running_mean = branch.norm.running_mean
-        running_var = branch.norm.running_var
-        gamma = branch.norm.weight
-        beta = branch.norm.bias
-        eps = branch.norm.eps
+        running_mean = branch.bn.running_mean
+        running_var = branch.bn.running_var
+        gamma = branch.bn.weight
+        beta = branch.bn.bias
+        eps = branch.bn.eps
         std = (running_var + eps).sqrt()
         t = (gamma / std).reshape(-1, 1, 1, 1)
         return kernel * t, beta - running_mean * gamma / std
@@ -391,17 +392,16 @@ class CSPRepLayer(nn.Module):
                  out_channels,
                  num_blocks=3,
                  expansion=1.0,
-                 bias=None,
                  act="silu"):
         super(CSPRepLayer, self).__init__()
         hidden_channels = int(out_channels * expansion)
-        self.conv1 = ConvNormLayer(in_channels, hidden_channels, 1, 1, bias=bias, act=act)
-        self.conv2 = ConvNormLayer(in_channels, hidden_channels, 1, 1, bias=bias, act=act)
+        self.conv1 = Conv(in_channels, hidden_channels, 1, 1, act=get_activation(act))
+        self.conv2 = Conv(in_channels, hidden_channels, 1, 1, act=get_activation(act))
         self.bottlenecks = nn.Sequential(*[
             RepVggBlock(hidden_channels, hidden_channels, act=act) for _ in range(num_blocks)
         ])
         if hidden_channels != out_channels:
-            self.conv3 = ConvNormLayer(hidden_channels, out_channels, 1, 1, bias=bias, act=act)
+            self.conv3 = Conv(hidden_channels, out_channels, 1, 1, act=get_activation(act))
         else:
             self.conv3 = nn.Identity()
 
@@ -446,7 +446,7 @@ class CCFFP2V6(nn.Module):
         self.split_channels = int(ccff_concat_ch * split_ratio)
         self.remaining_channels = ccff_concat_ch - self.split_channels
 
-        self.ccff_cv1 = ConvNormLayer(ccff_concat_ch, ccff_concat_ch, 1, 1, act=act)
+        self.ccff_cv1 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_innovation = CCFFBlock(self.split_channels,
                                          large_kernel=large_kernel,
                                          fs_group=fs_group,
@@ -455,7 +455,7 @@ class CCFFP2V6(nn.Module):
                                          dcfm_theta=dcfm_theta,
                                          fs_reweight_ratio=fs_reweight_ratio,
                                          fs_init_scale=fs_init_scale)
-        self.ccff_cv2 = ConvNormLayer(ccff_concat_ch, ccff_concat_ch, 1, 1, act=act)
+        self.ccff_cv2 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_fuse_block = CSPRepLayer(ccff_concat_ch, hidden_dim,
                                            round(3 * depth_mult), act=act, expansion=expansion)
 

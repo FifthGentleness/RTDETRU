@@ -16,6 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..modules.block import BasicBlock
+from ..modules.conv import Conv
 
 __all__ = ['DSAWACGA', 'DSAWACGABasicBlock', 'BlocksDSAWACGA']
 
@@ -266,20 +267,10 @@ class DSAWACGA(nn.Module):
         )
 
         # --- DSAWACGA internal fusion: Concat -> Conv1x1+BN+SiLU ---
-        # (rtdetr_pytorch: ConvNormLayer(cr*2, half_dim, 1, 1, act='silu'))
-        self.dsawacga_fusion = nn.Sequential(
-            nn.Conv2d(cr * 2, half_dim, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(half_dim),
-            nn.SiLU(),
-        )
+        self.dsawacga_fusion = Conv(cr * 2, half_dim, 1, 1)
 
         # --- Conv path: Conv3x3+BN+ReLU ---
-        # (rtdetr_pytorch: ConvNormLayer(half_dim, half_dim, 3, 1, act='relu'))
-        self.conv_path = nn.Sequential(
-            nn.Conv2d(half_dim, half_dim, 3, 1, 1, bias=False),
-            nn.BatchNorm2d(half_dim),
-            nn.ReLU(inplace=True),
-        )
+        self.conv_path = Conv(half_dim, half_dim, 3, 1, act=nn.ReLU())
 
     def forward(self, x):
         x_dsawacga, x_conv = x.chunk(2, dim=1)

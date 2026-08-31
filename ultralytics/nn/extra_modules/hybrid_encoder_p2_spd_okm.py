@@ -28,7 +28,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import ConvNormLayer
+from ..modules.block import get_activation
+from ..modules.conv import Conv
 from .hybrid_encoder_p2_spd_okm_fs_v6 import CSPRepLayer, _SPDConv
 
 __all__ = ['CCFFP2']
@@ -143,9 +144,9 @@ class CCFFP2(nn.Module):
         self.split_channels = int(ccff_concat_ch * split_ratio)
         self.remaining_channels = ccff_concat_ch - self.split_channels
 
-        self.ccff_cv1 = ConvNormLayer(ccff_concat_ch, ccff_concat_ch, 1, 1, act=act)
+        self.ccff_cv1 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_innovation = BottleNect(self.split_channels, large_kernel=large_kernel)
-        self.ccff_cv2 = ConvNormLayer(ccff_concat_ch, ccff_concat_ch, 1, 1, act=act)
+        self.ccff_cv2 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_fuse_block = CSPRepLayer(ccff_concat_ch, hidden_dim,
                                            round(3 * depth_mult), act=act, expansion=expansion)
 

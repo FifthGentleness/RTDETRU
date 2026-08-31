@@ -13,8 +13,8 @@
 #   - PAN: f4 = CSPRep(cat[ds(f3), y4]); f5 = CSPRep(cat[ds(f4), y5])
 #   - CSPRepLayer/RepVggBlock are the VERBATIM ports from rtdetr_pytorch hybrid_encoder.py
 #     (RTDETRU RepC3 is NOT structurally equivalent, so it is NOT used here)
-#   - Head lateral/downsample/input_proj use ConvNormLayer (Conv2d bias=False + BN),
-#     exactly matching rtdetr_pytorch ConvNormLayer semantics
+#   - Head lateral/downsample/input_proj use ultralytics Conv (Conv2d bias=False + BN),
+#     mathematically equivalent to rtdetr_pytorch ConvNormLayer
 #   - Hyperparams from the v6 yml: large_kernel=31, fs_group=16, fs_num_filters=4,
 #     fs_base_size=14, split_ratio=0.25, dcfm_theta=0.875, fs_reweight_ratio=0.25,
 #     fs_init_scale=1e-5 (CCFFP2V6 defaults)
@@ -38,30 +38,30 @@ backbone:
 
 head:
   # input_proj.3: P5 512 -> 256, Conv1x1(bias=False)+BN, no act (v6 input_proj[3])
-  - [-1, 1, ConvNormLayer, [256, 1, 1, None, False]] # 8
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 8
 
   - [-1, 1, AIFI, [1024, 8]] # 9  AIFI on P5 (dim_feedforward=1024, nhead=8)
 
-  # y5 = lateral_convs[0]: ConvNormLayer(256, 256, 1, 1, silu)
-  - [-1, 1, ConvNormLayer, [256, 1, 1, None, False, 'silu']] # 10
+  # y5 = lateral_convs[0]: Conv(256, 256, 1, 1, silu)
+  - [-1, 1, Conv, [256, 1, 1]] # 10
 
   - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 11  40x40
   - [[-1, 6], 1, Concat, [1]] # 12  cat[y5_up, P4] = 512
   - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
 
-  # y4 = lateral_convs[1]: ConvNormLayer(256, 256, 1, 1, silu)
-  - [-1, 1, ConvNormLayer, [256, 1, 1, None, False, 'silu']] # 14
+  # y4 = lateral_convs[1]: Conv(256, 256, 1, 1, silu)
+  - [-1, 1, Conv, [256, 1, 1]] # 14
 
   # CCFF P2 fusion: inputs [P2 (layer 4, 64ch), P3 (layer 5, 128ch), y4 (layer 14, 256ch)]
   # -> f3 (256ch, P3/8). P2/P3 enter RAW (v6 input_proj[0..1] = Identity).
   - [[4, 5, 14], 1, CCFFP2V6, [256]] # 15  f3
 
-  # PAN: downsample_convs[0] = ConvNormLayer(256, 256, 3, 2, silu)
-  - [-1, 1, ConvNormLayer, [256, 3, 2, None, False, 'silu']] # 16
+  # PAN: downsample_convs[0] = Conv(256, 256, 3, 2, silu)
+  - [-1, 1, Conv, [256, 3, 2]] # 16
   - [[-1, 14], 1, Concat, [1]] # 17  cat[ds, y4] = 512
   - [-1, 3, CSPRepLayer, [256, 0.5]] # 18  pan_blocks[0] -> f4
 
-  - [-1, 1, ConvNormLayer, [256, 3, 2, None, False, 'silu']] # 19  downsample_convs[1]
+  - [-1, 1, Conv, [256, 3, 2]] # 19  downsample_convs[1]
   - [[-1, 10], 1, Concat, [1]] # 20  cat[ds, y5] = 512
   - [-1, 3, CSPRepLayer, [256, 0.5]] # 21  pan_blocks[1] -> f5
 
