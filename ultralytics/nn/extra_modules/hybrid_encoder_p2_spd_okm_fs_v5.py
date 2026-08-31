@@ -16,10 +16,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import get_activation
+from ..modules.block import RepC3, get_activation
 from ..modules.conv import Conv
 from .hybrid_encoder_p2_spd_okm_fs_v6 import (
-    CSPRepLayer,
     OKNetLargeKernel,
     FreqScale,
     SCA,
@@ -163,7 +162,7 @@ class CCFFP2V5(nn.Module):
         split -> [innovation 128, identity 384]
         innovation_out = CCFFBlockV5(128)         (PDCBlock WITH residual)
         fused = cat -> 512 -> cv2(512 -> 512)
-        f3 = CSPRepLayer(512 -> 256)
+        f3 = RepC3(512 -> 256, n=3, e=0.5)
     """
 
     def __init__(self, ch_p2, ch_p3, ch_y4, hidden_dim=256,
@@ -189,8 +188,10 @@ class CCFFP2V5(nn.Module):
                                             fs_reweight_ratio=fs_reweight_ratio,
                                             fs_init_scale=fs_init_scale)
         self.ccff_cv2 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
-        self.ccff_fuse_block = CSPRepLayer(ccff_concat_ch, hidden_dim,
-                                           round(3 * depth_mult), act=act, expansion=expansion)
+        # CSPRepLayer(512->256, n=3, expansion=0.5) == RepC3(512->256, n=3, e=0.5)
+        assert act == 'silu'
+        self.ccff_fuse_block = RepC3(ccff_concat_ch, hidden_dim,
+                                      n=round(3 * depth_mult), e=expansion)
 
     def forward(self, x):
         p2, p3, y4 = x

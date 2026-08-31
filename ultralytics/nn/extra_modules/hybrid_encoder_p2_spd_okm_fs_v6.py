@@ -4,20 +4,23 @@
 # Porting rules (structure kept 1:1 with rtdetr_pytorch, no channel changes):
 #   - P2 is consumed raw (input_proj[0..2] = Identity, only P5 gets 1x1+BN proj to 256).
 #   - AIFI (1 layer, dff=1024, 8 heads) is handled by the yaml AIFI module (equivalent port).
-#   - FPN/PAN blocks use CSPRepLayer/RepVggBlock ported VERBATIM from
-#     rtdetr_pytorch hybrid_encoder.py (RTDETRU's RepC3 is NOT equivalent:
-#     additive fusion + RepConv, vs concat + RepVggBlock).
+#   - FPN/PAN blocks use ultralytics RepC3: mathematically equivalent to the
+#     rtdetr_pytorch CSPRepLayer (both are 50/50 CSP split + additive fusion;
+#     RepVggBlock == RepConv with bn=False). RepC3 additionally supports
+#     ultralytics model.fuse() deploy-time reparameterization.
 #   - CCFFP2V6 is the multi-input module replicating the v6 CCFF part:
 #       SPDConv(P2 64->128) -> concat[p2_spd, y4_up, P3] = 512
 #       -> cv1(512->512) -> split[128, 384] -> CCFFBlock(128) on innovation half
-#       -> cat -> cv2(512->512) -> CSPRepLayer(512->256) -> f3
+#       -> cat -> cv2(512->512) -> RepC3(512->256) -> f3
 #   - v6 signature change kept: PDCBlock has NO internal residual at stride=1
 #     (DCFM outputs pure differential features).
 #   - CCFFBlock channels: sc = 128 (int(512 * 0.25)), FreqScale dim=128 group=16.
 #
 # NOTE on names: SPDConv / FGM / StarReLU already exist in RTDETRU
 # extra_modules/block.py, so they are NOT exported (kept module-internal here).
-# Only CSPRepLayer (used in yaml fpn/pan) and CCFFP2V6 (yaml CCFF module) are exported.
+# Only CCFFP2V6 (the yaml CCFF module) is exported; the other classes here
+# (OKNetLargeKernel, FreqScale, SCA, PDCConv, ...) are reused by the
+# v5/base port files via module-level imports.
 
 import math
 
@@ -25,10 +28,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import get_activation
+from ..modules.block import RepC3, get_activation
 from ..modules.conv import Conv
 
-__all__ = ['CSPRepLayer', 'CCFFP2V6']
+__all__ = ['CCFFP2V6']
 
 
 # ============================================================
@@ -331,86 +334,13 @@ class CCFFBlock(nn.Module):
 
 
 # ============================================================
-# RepVggBlock / CSPRepLayer: ported VERBATIM from
-# rtdetr_pytorch/src/zoo/rtdetr/hybrid_encoder.py
+# RepVggBlock / CSPRepLayer: REMOVED.
+# rtdetr_pytorch CSPRepLayer is mathematically equivalent to ultralytics
+# RepC3 (same 50/50 CSP split, additive fusion, RepVggBlock == RepConv
+# with bn=False: 3x3+1x1 Conv/BN branches summed then SiLU). The yaml
+# fpn/pan layers and ccff_fuse_block therefore use ultralytics RepC3,
+# which additionally supports model.fuse() deploy-time reparam.
 # ============================================================
-
-class RepVggBlock(nn.Module):
-    def __init__(self, ch_in, ch_out, act='relu'):
-        super().__init__()
-        self.ch_in = ch_in
-        self.ch_out = ch_out
-        self.conv1 = Conv(ch_in, ch_out, 3, 1, act=False)
-        self.conv2 = Conv(ch_in, ch_out, 1, 1, act=False)
-        self.act = nn.Identity() if act is None else get_activation(act)
-
-    def forward(self, x):
-        if hasattr(self, 'conv'):
-            y = self.conv(x)
-        else:
-            y = self.conv1(x) + self.conv2(x)
-
-        return self.act(y)
-
-    def convert_to_deploy(self):
-        if not hasattr(self, 'conv'):
-            self.conv = nn.Conv2d(self.ch_in, self.ch_out, 3, 1, padding=1)
-
-        kernel, bias = self.get_equivalent_kernel_bias()
-        self.conv.weight.data = kernel
-        self.conv.bias.data = bias
-
-    def get_equivalent_kernel_bias(self):
-        kernel3x3, bias3x3 = self._fuse_bn_tensor(self.conv1)
-        kernel1x1, bias1x1 = self._fuse_bn_tensor(self.conv2)
-
-        return kernel3x3 + self._pad_1x1_to_3x3_tensor(kernel1x1), bias3x3 + bias1x1
-
-    def _pad_1x1_to_3x3_tensor(self, kernel1x1):
-        if kernel1x1 is None:
-            return 0
-        else:
-            return F.pad(kernel1x1, [1, 1, 1, 1])
-
-    def _fuse_bn_tensor(self, branch: Conv):
-        if branch is None:
-            return 0, 0
-        kernel = branch.conv.weight
-        running_mean = branch.bn.running_mean
-        running_var = branch.bn.running_var
-        gamma = branch.bn.weight
-        beta = branch.bn.bias
-        eps = branch.bn.eps
-        std = (running_var + eps).sqrt()
-        t = (gamma / std).reshape(-1, 1, 1, 1)
-        return kernel * t, beta - running_mean * gamma / std
-
-
-class CSPRepLayer(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 num_blocks=3,
-                 expansion=1.0,
-                 act="silu"):
-        super(CSPRepLayer, self).__init__()
-        hidden_channels = int(out_channels * expansion)
-        self.conv1 = Conv(in_channels, hidden_channels, 1, 1, act=get_activation(act))
-        self.conv2 = Conv(in_channels, hidden_channels, 1, 1, act=get_activation(act))
-        self.bottlenecks = nn.Sequential(*[
-            RepVggBlock(hidden_channels, hidden_channels, act=act) for _ in range(num_blocks)
-        ])
-        if hidden_channels != out_channels:
-            self.conv3 = Conv(hidden_channels, out_channels, 1, 1, act=get_activation(act))
-        else:
-            self.conv3 = nn.Identity()
-
-    def forward(self, x):
-        x_1 = self.conv1(x)
-        x_1 = self.bottlenecks(x_1)
-        x_2 = self.conv2(x)
-        return self.conv3(x_1 + x_2)
-
 
 # ============================================================
 # CCFFP2V6: yaml-facing module for the v6 CCFF P2 fusion
@@ -430,7 +360,7 @@ class CCFFP2V6(nn.Module):
         split -> [innovation 128, identity 384]
         innovation_out = CCFFBlock(128)
         fused = cat -> 512 -> cv2(512 -> 512)
-        f3 = CSPRepLayer(512 -> 256)
+        f3 = RepC3(512 -> 256, n=3, e=0.5)
     """
 
     def __init__(self, ch_p2, ch_p3, ch_y4, hidden_dim=256,
@@ -456,8 +386,11 @@ class CCFFP2V6(nn.Module):
                                          fs_reweight_ratio=fs_reweight_ratio,
                                          fs_init_scale=fs_init_scale)
         self.ccff_cv2 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
-        self.ccff_fuse_block = CSPRepLayer(ccff_concat_ch, hidden_dim,
-                                           round(3 * depth_mult), act=act, expansion=expansion)
+        # CSPRepLayer(512->256, n=3, expansion=0.5) == RepC3(512->256, n=3, e=0.5)
+        # (act must be 'silu', the only act used by the ported configs)
+        assert act == 'silu'
+        self.ccff_fuse_block = RepC3(ccff_concat_ch, hidden_dim,
+                                      n=round(3 * depth_mult), e=expansion)
 
     def forward(self, x):
         p2, p3, y4 = x

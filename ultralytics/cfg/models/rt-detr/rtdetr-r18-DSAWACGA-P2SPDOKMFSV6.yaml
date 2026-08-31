@@ -45,7 +45,7 @@ head:
 
   - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 11  40x40
   - [[-1, 6], 1, Concat, [1]] # 12  cat[y5_up, P4] = 512
-  - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+  - [-1, 3, RepC3, [256, 0.5]] # 13  fpn_blocks[0]: RepC3(512 -> 256)
 
   # y4 = lateral_convs[1]: Conv(256, 256, 1, 1, silu)
   - [-1, 1, Conv, [256, 1, 1]] # 14
@@ -57,10 +57,10 @@ head:
   # PAN: downsample_convs[0] = Conv(256, 256, 3, 2, silu)
   - [-1, 1, Conv, [256, 3, 2]] # 16
   - [[-1, 14], 1, Concat, [1]] # 17  cat[ds, y4] = 512
-  - [-1, 3, CSPRepLayer, [256, 0.5]] # 18  pan_blocks[0] -> f4
+  - [-1, 3, RepC3, [256, 0.5]] # 18  pan_blocks[0] -> f4
 
   - [-1, 1, Conv, [256, 3, 2]] # 19  downsample_convs[1]
   - [[-1, 10], 1, Concat, [1]] # 20  cat[ds, y5] = 512
-  - [-1, 3, CSPRepLayer, [256, 0.5]] # 21  pan_blocks[1] -> f5
+  - [-1, 3, RepC3, [256, 0.5]] # 21  pan_blocks[1] -> f5
 
   - [[15, 18, 21], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]] # 22  Detect(P3, P4, P5)

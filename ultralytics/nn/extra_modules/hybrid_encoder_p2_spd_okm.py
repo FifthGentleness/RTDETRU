@@ -5,13 +5,13 @@
 #   - P2/P3/P4 are consumed raw (input_proj[0..2] = Identity, only P5 gets
 #     Conv1x1(bias=False)+BN proj to 256), handled by the yaml layers.
 #   - AIFI (1 layer, dff=1024, 8 heads, dropout=0) is handled by the yaml AIFI module.
-#   - FPN/PAN blocks use CSPRepLayer/RepVggBlock ported VERBATIM from
-#     rtdetr_pytorch hybrid_encoder.py (reused from the v6 port file;
-#     RTDETRU's RepC3 is NOT equivalent, so it is NOT used here).
+#   - FPN/PAN blocks use ultralytics RepC3: mathematically equivalent to the
+#     rtdetr_pytorch CSPRepLayer (50/50 CSP split + additive fusion;
+#     RepVggBlock == RepConv with bn=False) and supports model.fuse().
 #   - CCFFP2 is the multi-input module replicating the base-version CCFF part:
 #       SPDConv(P2 64->128) -> concat[p2_spd, y4_up, P3] = 512
 #       -> cv1(512->512) -> split[128, 384] -> BottleNect(128) on innovation half
-#       -> cat -> cv2(512->512) -> CSPRepLayer(512->256) -> f3
+#       -> cat -> cv2(512->512) -> RepC3(512->256) -> f3
 #   - BottleNect is the VERBATIM port of the OKNet bottleneck (strictly aligned
 #     with OKNet original source): FCA -> SCA -> FGM global branch +
 #     4 depthwise large-kernel convs, residual x + ..., ReLU, out_conv.
@@ -28,9 +28,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..modules.block import get_activation
+from ..modules.block import RepC3, get_activation
 from ..modules.conv import Conv
-from .hybrid_encoder_p2_spd_okm_fs_v6 import CSPRepLayer, _SPDConv
+from .hybrid_encoder_p2_spd_okm_fs_v6 import _SPDConv
 
 __all__ = ['CCFFP2']
 
@@ -130,7 +130,7 @@ class CCFFP2(nn.Module):
         split -> [innovation 128, identity 384]
         innovation_out = BottleNect(128, large_kernel=31)
         fused = cat -> 512 -> cv2(512 -> 512)
-        f3 = CSPRepLayer(512 -> 256, num_blocks=3, expansion=0.5)
+        f3 = RepC3(512 -> 256, n=3, e=0.5)
     """
 
     def __init__(self, ch_p2, ch_p3, ch_y4, hidden_dim=256,
@@ -147,8 +147,10 @@ class CCFFP2(nn.Module):
         self.ccff_cv1 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
         self.ccff_innovation = BottleNect(self.split_channels, large_kernel=large_kernel)
         self.ccff_cv2 = Conv(ccff_concat_ch, ccff_concat_ch, 1, 1, act=get_activation(act))
-        self.ccff_fuse_block = CSPRepLayer(ccff_concat_ch, hidden_dim,
-                                           round(3 * depth_mult), act=act, expansion=expansion)
+        # CSPRepLayer(512->256, n=3, expansion=0.5) == RepC3(512->256, n=3, e=0.5)
+        assert act == 'silu'
+        self.ccff_fuse_block = RepC3(ccff_concat_ch, hidden_dim,
+                                      n=round(3 * depth_mult), e=expansion)
 
     def forward(self, x):
         p2, p3, y4 = x

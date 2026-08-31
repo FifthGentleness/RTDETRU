@@ -1040,11 +1040,6 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             block_type = globals()[args[1]]
             c1, c2 = ch[f], args[0] * block_type.expansion
             args = [c1, args[0], block_type, *args[2:]]
-        elif m is CSPRepLayer:
-            # verbatim port of rtdetr_pytorch CSPRepLayer: (c1, c2, num_blocks, expansion, ...)
-            c1, c2 = ch[f], args[0]
-            args = [c1, c2, n, *args[1:]]
-            n = 1
         elif m is CCFFP2V6:
             # multi-input [p2, p3, y4] module: (ch_p2, ch_p3, ch_y4, hidden_dim, ...)
             c1 = [ch[x] for x in f]

@@ -6,14 +6,13 @@
 #   - in_channels [64, 128, 256, 512]: input_proj[0..2] = Identity (P2/P3/P4 consumed RAW,
 #     no projection), input_proj[3] = Conv1x1(bias=False)+BN (512 -> 256, no act)
 #   - AIFI on P5 only (1 layer, dim_feedforward=1024, nhead=8, gelu, dropout=0)
-#   - FPN: y5 (lateral 1x1 silu) -> upsample -> cat[y5_up, P4] -> CSPRepLayer(512->256, expansion=0.5)
+#   - FPN: y5 (lateral 1x1 silu) -> upsample -> cat[y5_up, P4] -> RepC3(512->256)
 #          -> y4 (lateral 1x1 silu)
 #   - CCFF P2 fusion: CCFFP2([P2, P3, y4]):
 #       SPDConv(P2 64->128) -> cat[p2_spd, y4_up, P3]=512 -> cv1 -> split[128, 384]
-#       -> BottleNect(128, large_kernel=31) -> cat -> cv2 -> CSPRepLayer(512->256, expansion=0.5) -> f3
+#       -> BottleNect(128, large_kernel=31) -> cat -> cv2 -> RepC3(512->256) -> f3
 #   - PAN: f4 = CSPRep(cat[ds(f3), y4]); f5 = CSPRep(cat[ds(f4), y5])
-#   - CSPRepLayer/RepVggBlock are the VERBATIM ports from rtdetr_pytorch hybrid_encoder.py
-#     (RTDETRU RepC3 is NOT structurally equivalent, so it is NOT used here)
+#   - fpn/pan use RepC3 == rtdetr_pytorch CSPRepLayer (mathematically equivalent)
 #   - Head lateral/downsample/input_proj use ultralytics Conv (Conv2d bias=False + BN),
 #     mathematically equivalent to rtdetr_pytorch ConvNormLayer
 #   - Hyperparams from the yml: large_kernel=31, split_ratio=0.25,
@@ -47,7 +46,7 @@ head:
 
   - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 11  40x40
   - [[-1, 6], 1, Concat, [1]] # 12  cat[y5_up, P4] = 512
-  - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+  - [-1, 3, RepC3, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
 
   # y4 = lateral_convs[1]: Conv(256, 256, 1, 1, silu)
   - [-1, 1, Conv, [256, 1, 1]] # 14
@@ -59,10 +58,10 @@ head:
   # PAN: downsample_convs[0] = Conv(256, 256, 3, 2, silu)
   - [-1, 1, Conv, [256, 3, 2]] # 16
   - [[-1, 14], 1, Concat, [1]] # 17  cat[ds, y4] = 512
-  - [-1, 3, CSPRepLayer, [256, 0.5]] # 18  pan_blocks[0] -> f4
+  - [-1, 3, RepC3, [256, 0.5]] # 18  pan_blocks[0] -> f4
 
   - [-1, 1, Conv, [256, 3, 2]] # 19  downsample_convs[1]
   - [[-1, 10], 1, Concat, [1]] # 20  cat[ds, y5] = 512
-  - [-1, 3, CSPRepLayer, [256, 0.5]] # 21  pan_blocks[1] -> f5
+  - [-1, 3, RepC3, [256, 0.5]] # 21  pan_blocks[1] -> f5
 
   - [[15, 18, 21], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]] # 22  Detect(P3, P4, P5)
