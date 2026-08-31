@@ -1,0 +1,497 @@
+================================================================================
+VisDrone 系列配置文件结构图解析
+目录: e:\RT-DETR\rtdetr_pytorch\configs\rtdetr
+约定: 输入尺寸 640x640, B=批大小; 张量标注 [B,C,H,W]
+      ★ = 与原版 RT-DETR-R18vd 的不同之处
+      原版参考: PResNet-r18vd + HybridEncoder + RTDETRTransformer(3层decoder,300queries)
+================================================================================
+
+【 Part 0 】 原版 RT-DETR-R18vd 参考结构（所有改进的对比基准）
+--------------------------------------------------------------------------------
+配置: rtdetr_r18vd_6x_visdrone.yml (backbone=PResNet, encoder=HybridEncoder)
+
+Backbone PResNet-r18vd (return_idx=[1,2,3]):
+  输入 [B,3,640,640]
+  ├─ Stem(d变体): Conv(3→32,s2)→[B,32,320,320] → Conv(32→32)→[B,32,320,320]
+  │              → Conv(32→64)→[B,64,320,320] → MaxPool(s2)→[B,64,160,160]
+  ├─ Stage1 (P2/4):  2×BasicBlock          → [B,64,160,160]   (不输出)
+  ├─ Stage2 (P3/8):  2×BasicBlock          → [B,128,80,80]    ← proj_feats[0]
+  ├─ Stage3 (P4/16): 2×BasicBlock          → [B,256,40,40]    ← proj_feats[1]
+  └─ Stage4 (P5/32): 2×BasicBlock          → [B,512,20,20]    ← proj_feats[2]
+  BasicBlock: x → branch2a(3x3+BN+ReLU) → branch2b(3x3+BN) → (+shortcut) → ReLU
+
+HybridEncoder (hidden_dim=256, expansion=0.5):
+  input_proj: P3/P4/P5 各自 Conv1x1+BN → 256通道
+    P3: [B,128,80,80]→[B,256,80,80];  P4: [B,256,40,40]→[B,256,40,40];
+    P5: [B,512,20,20]→[B,256,20,20]
+  AIFI(仅P5, 1层): flatten 400 token → MHSA(8头) + FFN(1024) → [B,256,20,20]
+  FPN(自顶向下):
+    y5 = lateral1x1(P5')→[B,256,20,20] → up→[B,256,40,40]
+    cat[y5up, P4'] = [B,512,40,40] → CSPRepLayer(512→256) → p4_inner
+    y4 = lateral1x1(p4_inner) → [B,256,40,40] → up→[B,256,80,80]
+    cat[y4up, P3'] = [B,512,80,80] → CSPRepLayer(512→256) → f3 [B,256,80,80]
+  PAN(自底向上):
+    ds(f3)=Conv3x3s2 → [B,256,40,40]; cat[ds,y4]→CSPRep→ f4 [B,256,40,40]
+    ds(f4)=Conv3x3s2 → [B,256,20,20]; cat[ds,y5]→CSPRep→ f5 [B,256,20,20]
+  输出: f3/f4/f5 = [B,256,80/40/20,80/40/20] → RTDETRTransformer
+
+Decoder RTDETRTransformer: 3层decoder(VISDRONE配置), 300 queries, num_denoising=100
+================================================================================
+
+
+##################################################################################
+# Part 1  基线与训练策略变体（结构无创新块）
+##################################################################################
+
+◆ 1. rtdetr_r18vd_6x_visdrone.yml —— VisDrone 基线
+  结构 = Part 0 原版参考结构。
+  epoches=350, batch=4, AdamW(lr=1e-4, backbone lr=1e-5)。
+
+◆ 2. rtdetr_r18vb_6x_visdrone.yml —— R18vb 变体
+  ★ 唯一区别: PResNet variant='b'（标准 ResNet-B stem: 7x7s2卷积+MaxPool），
+    而 vd 为 ResNet-D stem（3个3x3卷积替代7x7，更利于小目标）。
+  Encoder/Decoder 与基线完全一致。
+  数据流: [B,3,640,640] → Conv7x7(3→64,s2)→[B,64,320,320] → MaxPool→[B,64,160,160]
+          → 4个stage 输出同基线 [B,128,80,80]/[B,256,40,40]/[B,512,20,20]
+
+◆ 3. rtdetr_r18vd_6x_visdrone_downlr.yml —— 降学习率基线
+  结构与基线完全一致（PResNet + HybridEncoder）。
+  ★ 仅训练策略差异: 降低学习率（消融实验用）。
+
+◆ 4. rtdetr_r18vd_6x_visdrone_np_alllr.yml —— 统一学习率基线
+  结构与基线完全一致。
+  ★ 仅训练策略差异: 所有参数统一学习率（np=不加载预训练权重或统一分组, alllr=统一lr）。
+
+◆ 5. rtdetr_r18vd_6x_visdrone_dsadoc_v5_np_alllr.yml —— 见 Part 2 DSADOC_v5（同结构+统一lr）
+◆ 6. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v2_np_alllr.yml —— 见 Part 3 FSv2（同结构+统一lr）
+◆ 7. rtdetr_r18vd_6x_visdrone_dsadoc_p2_spd_okm_fs_v2_np_alllr.yml —— 见 Part 4（同结构+统一lr）
+
+
+##################################################################################
+# Part 2  Backbone 改进系列
+##################################################################################
+
+◆ 8. rtdetr_r18vd_6x_visdrone_dsadcc.yml —— DSADCC v1
+  ★ backbone = PResNet_DSADCC（DSA_v2 + DCC 双分支）
+  插入位置: stage2/stage3（即 P3/P4 所在 stage，索引[1,2]）最后一个 BasicBlock，
+           在 branch2b 之后、残差相加之前串联 DSADCC 模块。
+  BasicBlock 数据流(以stage2, ch=128为例, reduction=4 → Cr=32):
+    x [B,128,80,80] → branch2a → branch2b → [B,128,80,80] → DSADCC → [B,128,80,80]
+    → (+x) → ReLU
+
+  DSADCC 结构图 (输入x [B,C,H,W], C=128, Cr=C/4=32):
+    x ──┬─→ channel_reduce(1x1) → xs [B,32,80,80] ─┬────────────────→ DCC分支
+        │                                            │
+        │   【DSA_v2分支: 多尺度空间聚合】            │   【DCC分支: 通道校准】
+        │   xs → DW3x3 ─→ f1 [B,32,80,80] ─┐        │   xs → GAP → favg [B,32,1,1]
+        │   xs → DW5x5 ─→ f2 ──────────────┤        │   xs → GMP → fmax [B,32,1,1]
+        │   xs → DW7x7 ─→ f3 ──────────────┤        │   favg→FC(32→8)+ReLU → favg_r
+        │   xs → DW3x3d2→ f4 ──────────────┤        │   fmax→FC(32→8)+ReLU → fmax_r
+        │        cat[f1..f4] [B,128,80,80] │        │   cat[favg_r,fmax_r]→Conv1x1→softmax
+        │        → GAP → Conv1x1 → softmax │        │   → 标量α,β [B,1,1,1]
+        │        → 全局权重 w1..w4 [B,4,1,1]│        │   α·favg_r+β·fmax_r → FC(8→32)+Sigmoid
+        │        Σ wi·fi → fdsa [B,32,80,80]│        │   → Wc [B,32,1,1] → xs*Wc → fdcc [B,32,80,80]
+        └──────────────────────────────────┴────────┘
+                    cat[fdsa, fdcc] [B,64,80,80] → Conv1x1+BN+SiLU → out [B,128,80,80]
+  ★ 与原版差异: 无Scharr边缘、无小波、无cross_gate；DSA权重为全局标量(GAP后生成)；
+    DCC为标量α/β融合（强正则）。输出通道与原版BasicBlock一致。
+
+◆ 9. rtdetr_r18vd_6x_visdrone_dsadcc_v2.yml —— DSADCC v2（过拟合版本）
+  插入位置同v1（stage[1,2]末block, branch2b后）。
+  ★ v2相对v1的改动:
+    (a) DSA: 分支4改为3x3空洞d4(等效9x9)；逐分支GAP再cat生成权重；★内部残差 fdsa=fdsa+xs
+    (b) DCC: ★逐通道α/β（reshape [B,2,Cr,1,1]后softmax，每通道独立决定avg/max混合）
+    (c) ★fusion输出乘 scale=0.1（可学习, 初始0.1）
+  数据流差异图:
+    DSA: ... Σ wi·fi → (+xs 内部残差) → fdsa
+    DCC: cat→Conv1x1(Cr*2→Cr*2)→reshape[B,2,8,1,1]→softmax→逐通道α/β→混合→Sigmoid→Wc
+    融合: cat[fdsa,fdcc]→Conv1x1+BN+SiLU→ out × scale(0.1) → [B,C,H,W]
+  ★ 教训(项目记忆): 逐通道softmax + 内部残差 + scale=0.1 组合导致过拟合（训练loss降但val AP降）。
+
+◆ 10. rtdetr_r18vd_6x_visdrone_dsadcc_v3.yml —— DSADCC v3
+  插入位置同v1/v2（stage[1,2]末block, branch2b后）。
+  ★ v3相对v2的改动:
+    (a) 共享channel_reduce（DSA/DCC共用一个降维，保证同特征空间）
+    (b) DSA权重改回★空间自适应 [B,4,H,W]（逐像素权重, 而非全局标量）
+    (c) DCC恢复★标量α/β（避免逐通道过拟合）
+    (d) ★新增cross_gate交叉交互: GAP(fdsa)+Wc → cat → Conv1x1+Sigmoid → [B,2Cr,1,1]
+        通道级校准权重，调制cat后的融合特征
+  数据流(以ch=128, Cr=32为例):
+    x [B,128,80,80]
+    ├→ channel_reduce(1x1) → xs [B,32,80,80] (共享)
+    │    ├─ DSA: DW3/5/7/3d4 → cat [B,128,80,80] → Conv1x1 → softmax
+    │    │       → 空间权重 [B,4,80,80] → Σ wi·fi → channel_mix(1x1) → fdsa [B,32,80,80]
+    │    └─ DCC: GAP/GMP→FC(32→8)→标量α/β→混合→FC(8→32)+Sigmoid→Wc
+    │            → xs*Wc → fdcc [B,32,80,80]
+    ├→ cross_gate: cat[GAP(fdsa), Wc] [B,64,1,1] → Conv1x1+Sigmoid → cw [B,64,1,1]
+    └→ cat[fdsa, fdcc] [B,64,80,80] ×cw → Conv1x1+BN+SiLU → out [B,128,80,80]
+
+◆ 11. rtdetr_r18vd_6x_visdrone_dsadcc_v4.yml —— DSADCC v4
+  插入位置同v3。★ v4相对v3的改动 = DSA加Scharr边缘分支(5路) + DCC改小波域校准+FiLM:
+    x [B,128,80,80] → channel_reduce → xs [B,32,80,80]
+    ├─ DSA(5路): DW3/5/7/3d4 + ★ScharrEdge(固定梯度核, 输出减均值去正偏置)
+    │   → cat [B,160,80,80] → Conv1x1 → softmax → [B,5,80,80] → Σ → channel_mix → fdsa
+    └─ DCC(小波域): HaarDWT(xs) → ll,lh,hl,hh 各 [B,32,40,40]
+        GAP/GMP/GAP(ll) → cat [B,96,1,1] → Conv1x1 → softmax → α,β,γ
+        → global_feat = α·favg+β·fmax+γ·gap(ll) [B,32,1,1]
+        高频子带方向感知空间特征: cat[lh,hl,hh]→Conv1x1+ReLU → spatial_lh/hl/hh [B,32,40,40]
+        子带校准: cal_xx = Conv1x1(xx) + global_feat + spatial_xx  (各 [B,32,40,40])
+        HaarIDWT(cal_ll,cal_lh,cal_hl,cal_hh) → cal_map [B,32,80,80] → GroupNorm
+        FiLM: Conv1x1(32→64) → chunk → γ_raw,β_raw
+              film_γ=1+s·tanh(γ_raw), film_β=s·tanh(β_raw) (s初始=0, 恒等启动)
+        → fdcc = xs·film_γ + film_β [B,32,80,80]
+    cross_gate同v3 → cat[fdsa,fdcc]×cw → Conv1x1+BN+SiLU → out [B,128,80,80]
+
+◆ 12. rtdetr_r18vd_6x_visdrone_dsadoc.yml —— DSADOC v1
+  ★ DSADOC = DSADCC_v4 改进版: (a)去掉cross_gate(直接concat融合, 保留分支差异化)
+    (b)LL子带改全向空间特征(cat全部4子带生成, 替代mismatched spatial_lh*0.1)
+  插入位置: stage[1,2]末block, branch2b后（同DSADCC系列）。
+  数据流(以ch=128, reduction=4, Cr=32为例):
+    x [B,128,80,80] → channel_reduce → xs [B,32,80,80]
+    ├─ DSA(5路): DW3/5/7/3d4 + ScharrEdge → softmax空间权重[B,5,80,80]
+    │   → Σ wi·fi → channel_mix → fdsa [B,32,80,80]
+    └─ DCC: HaarDWT(xs)→ll/lh/hl/hh [B,32,40,40]
+        全局描述子: GAP/GMP/GAP(ll)→softmax(α,β,γ)→global_feat
+        ★LL全向空间特征: cat[ll,lh,hl,hh] [B,128,40,40] → Conv1x1+ReLU → spatial_ll
+        高频方向特征: cat[lh,hl,hh] [B,96,40,40] → Conv1x1+ReLU → spatial_lh/hl/hh
+        cal_xx = Conv1x1(xx)+global_feat+spatial_xx → HaarIDWT → GroupNorm
+        → FiLM(s初始0, 恒等启动) → fdcc = xs·film_γ+film_β
+    ★直接融合(无cross_gate): cat[fdsa,fdcc] [B,64,80,80] → Conv1x1+BN+SiLU → out [B,128,80,80]
+
+◆ 13. rtdetr_r18vd_6x_visdrone_dsadoc_v2.yml —— DSADOC v2（恢复cross_gate）
+  ★ 相对v1唯一改动: 融合前恢复DSADCC_v4的交叉交互
+    GAP(fdsa) + GAP(fdcc) → cat [B,64,1,1] → cross_gate(Conv1x1+Sigmoid) → cw
+    cat[fdsa,fdcc] ×cw → Conv1x1+BN+SiLU → out
+  其余(DSA 5路/DCC小波FiLM/LL全向)与v1完全相同。插入位置stage[1,2]末block。
+  reduction=4（Cr=ch/4）。
+
+◆ 14. rtdetr_r18vd_6x_visdrone_dsadoc_v3.yml —— DSADOC v3（全stage插入）
+  ★ 相对v2唯一改动: 插入位置扩展到全部4个stage的最后一个block（stage[0,1,2,3]）。
+    即 P2/P3/P4/P5 每个stage末block都被替换（branch2b后串联）。
+  模块内部结构与v2完全一致。reduction=4。
+
+◆ 15. rtdetr_r18vd_6x_visdrone_dsadoc_v4.yml —— DSADOC v4（跳过P2 stage）
+  ★ 相对v3唯一改动: 插入位置改为 stage[1,2,3]（跳过stage0/P2, 即 P3/P4/P5）。
+  模块内部结构与v2/v3完全一致。reduction=4。
+
+◆ 16. rtdetr_r18vd_6x_visdrone_dsadoc_v5.yml —— DSADOC v5（v2骨干 + reduction=1）
+  ★ backbone = PResNet_DSADOC_v2, reduction=1（Cr=ch, 不降维！）
+  插入位置stage[1,2]末block, 模块结构同v2。
+  以stage2为例: xs [B,128,80,80]（Cr=128, DSA各分支/DWT均在128通道全维计算）。
+  ★ 大Cr带来更强表达能力但参数量显著增加。
+
+◆ 17. rtdetr_r18vd_6x_visdrone_dsadoc_v6.yml —— DSADOC v6（v4骨干 + reduction=1）
+  ★ backbone = PResNet_DSADOC_v4（stage[1,2,3]插入）, reduction=1（Cr=ch全维）。
+  模块结构同v2/v4。
+
+◆ 18. rtdetr_r18vd_6x_visdrone_dsadoc_v7.yml —— DSADOC v7（v4骨干 + reduction=2）
+  ★ backbone = PResNet_DSADOC_v4, reduction=2（Cr=ch/2）。
+  以stage2为例: Cr=64。模块结构同v4。reduction在4和1之间的折中实验。
+
+◆ 19. rtdetr_r18vd_6x_visdrone_dsadoc_v8.yml —— DSADOC v8（reduction=1）
+  ★ backbone = PResNet_DSADOC_v8, reduction=1。
+  结构 = DSADOC_v2（DSA 5路 + DCC小波FiLM + cross_gate），
+  插入位置stage[1,2]末block的branch2b之后。
+  数据流同上v2（Cr=ch, 全维计算）。
+
+◆ 20. rtdetr_r18vd_6x_visdrone_dsadoc_v9.yml —— DSADOC v9（reduction=2）
+  ★ 相对v8唯一改动: reduction=2（Cr=ch/2）。结构与v8完全一致。
+
+◆ 21. rtdetr_r18vd_6x_visdrone_dsadoc_v10.yml —— DSADOC v10（半通道切分设计, 当前主力）
+  ★ 三大改动:
+    (a) 半通道chunk: 输入按通道切两半, 前半走DSADOC创新块, 后半走标准Conv3x3
+    (b) ★替换branch2a（删除原3x3卷积, DSADOC输出直接接branch2b）, 而非串联在branch2b后
+    (c) ★插入全部4个stage的最后一个block（stride=1, shortcut=True）
+  reduction=1 → Cr=半通道。
+  结构图(以stage2末block, dim=128, half=64, Cr=64为例):
+    x [B,128,80,80]
+    ├─ chunk → x_dsadoc [B,64,80,80] | x_conv [B,64,80,80]
+    │
+    ├─【DSADOC路径(前半)】
+    │   xs=x_dsadoc (Cr=64, 无需再降维)
+    │   ├─ DSA(5路): DW3/5/7/3d4 + Scharr(减均值) → cat [B,320,80,80]
+    │   │   → Conv1x1 → softmax → [B,5,80,80] → Σ → channel_mix → fdsa [B,64,80,80]
+    │   └─ DCC: HaarDWT(xs)→ll/lh/hl/hh [B,64,40,40]
+    │       全局描述子(α,β,γ softmax标量) + LL全向spatial_mix + 高频方向spatial_mix
+    │       cal_xx=Conv1x1(xx)+global+spatial_xx → HaarIDWT → GroupNorm
+    │       → FiLM(s=0初始恒等) → fdcc = xs·film_γ+film_β [B,64,80,80]
+    │   cross_gate: cat[GAP(fdsa),GAP(fdcc)] [B,128,1,1] → Conv1x1+Sigmoid → cw
+    │   cat[fdsa,fdcc]×cw → dsadoc_fusion(Conv1x1+BN+SiLU, 128→64) → dsadoc_out [B,64,80,80]
+    │
+    ├─【Conv路径(后半)】: x_conv → Conv3x3+BN+ReLU → conv_out [B,64,80,80]
+    │
+    └─ cat[dsadoc_out, conv_out] [B,128,80,80] (=branch2a替代输出)
+        → branch2b(3x3+BN) → (+x残差) → ReLU → [B,128,80,80]
+  ★ 预训练权重兼容: branch2b及shortcut保留原权重, DSADOC参数随机初始化。
+
+◆ 22. rtdetr_r18vd_6x_visdrone_dsawacga.yml —— DSAWACGA
+  ★ DCC被WACGA替代: Scharr边缘 + 可学习Haar小波 + WACGA小波注意力校准 + cross_gate，
+    且采用与v10相同的半通道chunk设计。
+  ★ 插入位置: 替换branch2a, 全部4个stage的最后一个block。
+  结构图(以stage2末block, dim=128, half=64为例):
+    x [B,128,80,80] → chunk → x_dsawacga [B,64,80,80] | x_conv [B,64,80,80]
+    ├─【DSA路径】DW3/5/7/3d4 + Scharr → softmax空间权重 → Σ → channel_mix → fdsa
+    ├─【WACGA路径】(与DSA同输入):
+    │   可学习HaarDWT → 子带处理 → 卷积gating → 子带融合(subband fusion) → fwacga
+    │   (num_heads=4, 小波域注意力校准)
+    ├─ cross_gate: cat[GAP(fdsa),GAP(fwacga)] → Conv1x1+Sigmoid → cw [B,128,1,1]
+    │   cat[fdsa,fwacga]×cw → dsawacga_fusion(128→64) → out1 [B,64,80,80]
+    └─【Conv路径】x_conv → Conv3x3+BN+ReLU → out2 [B,64,80,80]
+        cat[out1,out2] → branch2b → (+x) → ReLU
+  ★ 与v10区别: 创新半通道用 DSA+WACGA（小波注意力）替代 DSA+DCC(FiLM)。
+
+◆ 23. rtdetr_r18vd_6x_visdrone_dsamee.yml —— DSAMEE
+  ★ DCC被MEE(多尺度边缘增强)替代: DSA + MEE双分支 + cross_gate。
+  插入位置: stage[1,2]末block, branch2b之后串联（非替换branch2a）。
+  结构图(ch=128, reduction=4, Cr=32):
+    x [B,128,80,80] → branch2a → branch2b → [B,128,80,80]
+    → channel_reduce → xs [B,32,80,80]
+    ├─ DSA: DW3/5/7/3d4 → softmax空间权重[B,4,80,80] → Σ → channel_mix → fdsa
+    ├─ MEE: 多尺度边缘增强(scales=2,4,6,8, 显式高频边缘提取+门控增强+旁路局部上下文)
+    │        → fmee [B,32,80,80]  (与DSA互补: DSA中低频空间模式, MEE高频边缘轮廓)
+    ├─ cross_gate: cat[GAP(fdsa),GAP(fmee)] → Conv1x1+Sigmoid → cw
+    └─ cat[fdsa,fmee]×cw → Conv1x1+BN+SiLU → out [B,128,80,80] → (+x) → ReLU
+
+◆ 24. rtdetr_r18vd_6x_visdrone_msca.yml —— MSCA 多尺度耦合注意力
+  ★ backbone = PResNet_MSCA; MSCA = MSCCA(通道) → MSCSA(空间) 串联耦合。
+  插入位置: stage[1,2] 的第2个block（索引1, 非最后block）, branch2b之后串联。
+  结构图(ch=128):
+    x → branch2a → branch2b → [B,128,80,80] → MSCA → [B,128,80,80] → (+x) → ReLU
+    MSCA内部:
+    ├─ MSCCA 多尺度耦合通道注意力:
+    │   多尺度DWConv(3/5/7) + CBS通道对齐 → 跨分支通道交互 → cat+1x1融合(3C→C)
+    │   → reshape [B,N,C] → Q,K,V → 交叉协方差注意力(L2norm Q/K, softmax(QᵀK/√d)·V)
+    │   → GAP → Sigmoid通道门控
+    └─ MSCSA 多尺度耦合空间注意力:
+        多尺度DWConv(3/5/7) + 跨分支交互 → cat+1x1融合 → Q,K,V
+        → NonLM(Linear→BN1d→ReLU→Linear→ELU+1) → 交叉Gram注意力(sim=Q̂K̂ᵀ归一化·V)
+        → 通道维池化 → Sigmoid空间门控
+    MSCCA输出作为MSCSA输入（串行耦合）。
+
+◆ 25. rtdetr_r18vd_6x_visdrone_percepconv.yml —— PercepConv 感知卷积
+  ★ 来源: MSA-DETR(UAV小目标检测)论文; 多尺度卷积+感知注意力。
+  插入位置: stage[1,2] 的第2个block（索引1）, branch2b之后串联。
+  结构图(ch=128, reduction=4):
+    x → branch2a → branch2b → [B,128,80,80] → PercepConv → [B,128,80,80] → (+x) → ReLU
+    PercepConv内部:
+    ├─ 多尺度DW卷积分支: DW3x3 / DW5x5 / DW7x7 并行捕获不同尺度(小目标尺寸变化友好)
+    ├─ PCA 感知通道注意力: GAP → FC → ReLU → FC → Sigmoid (强调信息通道)
+    ├─ PSA 感知空间注意力: 通道max+avg池化 → cat → 7x7Conv → Sigmoid (突出小目标位置)
+    └─ 特征融合: 多尺度特征与注意力图加权融合 → [B,128,80,80]
+
+◆ 26. rtdetr_r18vd_6x_visdrone_csfh.yml —— CSFHNet 跨空频高频增强骨干
+  ★ 整个backbone被替换（非PResNet）! 来自CSFPR-RTDETR论文(UAV小目标)。
+  ★ 通道配置特殊: channels_list=[128,256,384,384], HybridEncoder in_channels=[256,384,384]。
+  ★ 无ImageNet预训练结构对应（全新骨干）。
+  结构图(输入 [B,3,640,640]):
+    Stem: Conv(3→64,k3,s2) → [B,64,320,320]                    (P1/2)
+    Stage0: Conv(64→128,s2)→[B,128,160,160] + CSFH_C2fBlock(128,n=1) → [B,128,160,160] (P2/4)
+    Stage1: Conv(128→256,s2)→[B,256,80,80] + CSFH_C2fBlock(256,n=1) → [B,256,80,80]   (P3/8)←输出
+    Stage2: Conv(256→384,s2)→[B,384,40,40] + CSFH_C2fBlock(384,n=1) → [B,384,40,40]  (P4/16)←输出
+    Stage3: Conv(384→384,s2)→[B,384,20,20] + CSFH_C2fBlock(384,n=3) → [B,384,20,20]  (P5/32)←输出
+    CSFH_C2fBlock (C2f结构, expansion=0.5, 以c1=256,c2=256为例, c=128):
+      x [B,256,80,80] → cv1(1x1, 256→256) → split两半 [B,128,80,80]×2
+      分支0: 恒等;  分支1: n×SFHF_Block串联(每个输出 [B,128,80,80])
+      cat[全部中间输出] [B,(2+n)·128,80,80] → cv2(1x1, →256) → [B,256,80,80]
+    SFHF_Block (残差+可学习scale, β/γ初始0):
+      x → BN → SFHF_Mixer → x+β·out → BN → SFHF_FFN → +γ·out
+      SFHF_Mixer: 1x1扩维(2x) → split局部/全局两支
+        局部: 膨胀DWConv(TokenMixer_For_Local)
+        全局: 傅里叶域处理(TokenMixer_For_Gloal, FFT全局建模)
+        → cat → SE式通道注意力门控 → 1x1回原维
+  ★ 与原版差异: backbone整体更换(384通道P4/P5)、C2f堆叠替代BasicBlock、
+    频域-空间混合Mixer; Encoder/Decoder仍为标准HybridEncoder/RTDETRTransformer。
+
+
+##################################################################################
+# Part 3  Encoder 改进系列（P2小目标层引入, backbone仍为PResNet-r18vd）
+##################################################################################
+
+◆ 27. rtdetr_r18vd_6x_visdrone_p2_spd_okm.yml —— HybridEncoderP2SPDOKM（P2系列基础版）
+  ★ backbone: PResNet-r18vd, return_idx改为[0,1,2,3]（P2也输出!）
+  ★ encoder = HybridEncoderP2SPDOKM, in_channels=[64,128,256,512], strides=[4,8,16,32]
+  整体数据流(与后续所有P2版本共享):
+    P2 [B,64,160,160]  → input_proj[0]=★Identity(不投影, 原始通道直接用)
+    P3 [B,128,80,80]   → input_proj[1]=★Identity
+    P4 [B,256,40,40]   → input_proj[2]=★Identity
+    P5 [B,512,20,20]   → input_proj[3]=Conv1x1+BN(512→256) → [B,256,20,20]
+    AIFI(仅P5, 1层): → [B,256,20,20]
+    FPN(P5→P4): y5=lateral1x1(P5')→up→[B,256,40,40]
+                 cat[y5up, P4]=[B,512,40,40]→CSPRep(512→256)→p4_inner
+                 y4=lateral1x1(p4_inner)→[B,256,40,40]
+    ★CCFF P2融合(核心创新位置):
+      p2_spd = SPDConv(P2): P2四象限切片cat [B,256,160,160]→Conv3x3(256→128,s1)
+                            → [B,128,80,80]  ★无损下采样(无信息丢失, 替代stride卷积)
+      y4_up = up(y4) → [B,256,80,80]
+      cat[p2_spd, y4_up, P3] = [B,512,80,80]   ★512维不降维
+      cv1: Conv1x1(512→512) → split[128, 384] (★EFAM 1:3划分)
+      → 创新块BottleNect(128) ∥ identity(384直通)
+      → cat[512] → cv2: Conv1x1(512→512) → CSPRepLayer(512→256) → f3 [B,256,80,80]
+    PAN(与原版相同): ds(f3)→cat[ds,y4]→CSPRep→f4 [B,256,40,40]
+                     ds(f4)→cat[ds,y5]→CSPRep→f5 [B,256,20,20]
+    输出仍为3层256通道@80/40/20 → RTDETRTransformer
+  ★BottleNect创新块(128通道, OKNet风格) 结构图:
+    in [B,128,80,80] → in_conv(1x1+GELU) → out [B,128,80,80]
+    ├─ 大核分支: dw_1×31 + dw_31×1 + dw_31×31 + dw_1×1 (4个DW卷积, 各[B,128,80,80])
+    ├─ FCA频域分支: fft2(out) → GAP→Conv1x1→x_att 调制频谱 → ifft2→abs [B,128,80,80]
+    ├─ SCA: GAP→Conv1x1→权重·x_fca
+    ├─ FGM频域门控: x1·fft(x2)→ifft2→abs → α·out+β·x (α初始0/β初始1, 恒等启动)
+    └─ 汇总: out = x + Σdw分支 + FGM(SCA(FCA(out))) → ReLU → out_conv(1x1)
+  ★ 与原版差异: (1)P2层引入+SPDConv无损下采样 (2)CCFF重设计(EFAM 1:3划分+创新块)
+    (3)P2/P3/P4不再input_proj投影 (4)BottleNect大核+频域分支替代部分CSPRep计算。
+
+◆ 28. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs.yml —— HybridEncoderP2SPDOKMFS（+FreqScale频域分支）
+  整体数据流同27（P2+SPD+EFAM 1:3划分）。
+  ★ CCFF创新块升级为CCFFBlock(128), 三路并行分支:
+    x [B,128,80,80]
+    ├─ Small分支: cat[x, DCFM(x)] [B,256,80,80] → small_fuse(Conv1x1+BN+SiLU, 256→128)
+    │   DCFM: PDCBlock(cv) ∥ PDCBlock(cd中心差分, θ加权) → cat [B,256,80,80]
+    │         → attention_fc(softmax 2路) → 加权和 [B,128,80,80]
+    ├─ Large分支: OKNetLargeKernel(128) = dw_1×K+dw_K×1+dw_K×K+dw_1×1 组合 (K=31)
+    └─ Global分支: GMM(空间全局混合, H/W方向池化) ∥ FreqScale(频域调制)
+            → α·f_space + β·f_freq (α/β逐通道可学习, 初始0.5)
+            → global_out(Conv1x1+BN+SiLU)
+    三路Add → out_conv(Conv1x1+BN+SiLU) → ★+identity(块级残差) → [B,128,80,80]
+    FreqScale内部: in_conv(1x1+BN) → rfft2 [B,128,40,41](复数)
+      → routing: GAP→Linear→tanh [B,group×num_filters]
+      → einsum(routing, complex_weights[num_filters,C/group,14,8], 双三次插值对齐)
+      → 复数逐点调制 → irfft2 → [B,128,80,80]
+  ★ 相对27: BottleNect(串行FCA/SCA/FGM) → CCFFBlock(三路并行+DCFM差分+GMM+FreqScale)。
+  ★ 本版CCFFBlock作用于512→256降维后的256通道全宽（ccff_channel_reduce先行）:
+    实际接线: cat[512] → channel_reduce(512→256) → CCFFBlock(256) → f3（无1:3划分）。
+
+◆ 29. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v2.yml —— FSv2（1:3划分版, 过拟合教训版）
+  ★ 接线改回EFAM 1:3划分: cat[p2_spd,y4up,P3]=[B,512,80,80] → cv1(512→512)
+    → split[128,384] → CCFFBlock(128) ∥ identity(384) → cat[512] → cv2(512→512)
+    → CSPRep(512→256) → f3
+  CCFFBlock(128)内部结构与28相同（Small DCFM / Large OKNet / Global GMM∥FreqScale
+    α/β融合, 块级残差+identity）。
+  ★ 教训(项目记忆): 此代频域/注意力组合在VisDrone上泛化不佳, 后续版本持续简化。
+
+◆ 30. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v3.yml —— FSv3（先降维再内部划分）
+  ★ 接线: cat[512] → Conv1x1(512→256)先降维 → CCFFBlock(256)
+    CCFFBlock内部再做EFAM 1:3划分:
+      cv1(256→256) → split[64,192] → 创新(64) ∥ identity(192) → cat[256] → cv2 → +残差
+  ★ 创新块三路(64通道): Small: cat[x,DCFM(64)]→fuse(128→64);
+    Large: OKNetLargeKernel(64); ★Global: GMM ∥ (FreqScale→FGM) → α·space+β·cross
+  ★ FreqScale加回内部残差(out+x_in)。
+
+◆ 31. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v4.yml —— FSv4（512维空间1:3划分定稿）
+  ★ 接线回到: cat[512] → cv1(512→512) → split[128,384] → 创新(128)∥identity(384)
+    → cat[512] → cv2(512→512) → CSPRep(512→256) → f3
+    （不再先降到256再划分, 在512维空间划分后128ch送创新块）
+  ★ CCFFBlock改纯创新块: 无内部残差（identity路径天然提供skip connection）
+  ★ FreqScale去除残差（对齐FreDS原论文; 近零初始化=渐进生长）
+  Global分支: GMM ∥ FreqScale→FGM → α/β融合。
+
+◆ 32. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v5.yml —— FSv5（去GMM, FreqScale→SCA→FGM）
+  接线同v4（512维1:3划分, 创新128ch）。
+  ★ CCFFBlock v5两项改动:
+    (a) 去除GMM（占82.6%参数, 功能被Large分支覆盖）
+    (b) Global分支改为 FreqScale → SCA → FGM（对齐OKNet FCA→SCA→FGM结构）
+  结构图(128通道):
+    x [B,128,80,80]
+    ├─ Small: cat[x, DCFM(x)] → small_fuse(256→128)        [B,128,80,80]
+    ├─ Large: OKNetLargeKernel(128, K=31)                    [B,128,80,80]
+    └─ Global: FreqScale(复数调制) → SCA(通道注意力) → FGM(频域门控)
+               → global_out(Conv1x1+BN+SiLU)                 [B,128,80,80]
+    三路Add → fuse_out(Conv1x1+BN+SiLU) → [B,128,80,80]
+    （无块内残差; split的identity 384ch负责保底）
+
+◆ 33. rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v6.yml —— FSv6（当前主力, 纯差分DCFM）
+  接线同v4/v5。★ v6相对v5唯一改动: PDCBlock去除内部残差（stride=1时）,
+  DCFM输出纯差分特征:
+    v5: y = conv2(ReLU(BN(PDCConv(x)))) + x   (含残差)
+    v6: y = conv2(ReLU(BN(PDCConv(x))))        (纯差分)
+  ★ 语义对齐EFAM: 创新路径专注差分特征, identity路径负责保底, x在Local分支仅出现1次。
+  CCFFBlock结构同v5（Small DCFM / Large OKNet / Global FreqScale→SCA→FGM）。
+  超参: large_kernel=31, fs_group=16, fs_num_filters=4, fs_base_size=14,
+        split_ratio=0.25, dcfm_theta=0.875, fs_reweight_ratio=0.25, fs_init_scale=1e-5。
+  （该结构已1:1移植到RTDETRU: rtdetr-r18-P2SPDOKMFSV6.yaml）
+
+◆ 34. rtdetr_r18vd_6x_visdrone_p2_spd_mffm_dcfm.yml —— HybridEncoderP2SPDMFFMDCFM
+  整体接线同P2系列（P2/P3/P4 Identity, P5投影+AIFI, FPN, PAN）。
+  ★ CCFF创新块改为 MFFM→降维→DCFM 串联:
+    cat[p2_spd, y4up, P3] [B,512,80,80]
+    → MFFM(512→512):
+        5路并行卷积: Conv1x1 / Conv3x3 / Conv5x5 / Conv7x7 / Conv3x3d2
+          各 [B,512,80,80] (Conv+BN+ReLU)
+        → cat [B,2560,80,80] → scale_attention(GAP→1x1→ReLU→1x1→Sigmoid→5路权重)
+        → 加权求和 [B,512,80,80] → conv_fusion(1x1) [B,512,80,80]
+    → ChannelReduce: Conv1x1(512→256) [B,256,80,80]
+    → DCFM(256): PDCBlock(cv) ∥ PDCBlock(cd) → softmax注意力加权融合 [B,256,80,80]
+    → f3
+  ★ 与OKM系列区别: 无EFAM 1:3划分、无大核分支、无频域分支；
+    用MFFM多尺度卷积(1/3/5/7/膨胀)做特征提取, DCFM差分融合。
+
+◆ 35. rtdetr_r18vd_6x_visdrone_p2_spd_mffm_dcfm_lite.yml —— MFFM/DCFM 轻量版
+  ★ 相对34唯一改动: 先降维再MFFM（降低计算量）:
+    cat[512] → Conv1x1(512→256) → MFFM(256→256, 5路卷积在256维) → DCFM(256) → f3
+  其余（P2接线/AIFI/FPN/PAN）与34完全一致。
+
+◆ 36. rtdetr_r18vd_6x_visdrone_dsadoc_p2_spd_okm_fs_v2.yml —— DSADOC_v2骨干 + FSv2编码器（组合实验）
+  ★ backbone = PResNet_DSADOC_v2 (reduction=1, stage[1,2]末block, branch2b后, 见◆13/16)
+  ★ encoder = HybridEncoderP2SPDOKMFSV2 (见◆29)
+  = Backbone创新(DSA+小波DCC) 与 Encoder创新(P2+SPD+三路CCFF) 的首次组合。
+  backbone输出仍为P3/P4/P5(128/256/512@80/40/20)+P2(64@160), encoder输入in_channels=[64,128,256,512]。
+
+◆ 37. rtdetr_r18vd_6x_visdrone_dsadoc_p2_spd_okm_fs_v2_np_alllr.yml —— 同◆36结构
+  ★ 仅训练策略差异: 统一学习率（np_alllr）。
+
+
+##################################################################################
+# 附: 快速对照表
+##################################################################################
+配置文件                                backbone               encoder
+--------------------------------------------------------------------------------
+rtdetr_r18vb_6x_visdrone               PResNet(variant b)     HybridEncoder
+rtdetr_r18vd_6x_visdrone               PResNet-r18vd          HybridEncoder          [基线]
+rtdetr_r18vd_6x_visdrone_downlr        PResNet-r18vd          HybridEncoder          [仅改lr]
+rtdetr_r18vd_6x_visdrone_np_alllr      PResNet-r18vd          HybridEncoder          [仅改lr]
+rtdetr_r18vd_6x_visdrone_csfh          CSFHNet(128/256/384/384) HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadcc        PResNet_DSADCC(r4)     HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadcc_v2     PResNet_DSADCC_v2(r4)  HybridEncoder          [过拟合教训版]
+rtdetr_r18vd_6x_visdrone_dsadcc_v3     PResNet_DSADCC_v3(r4)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadcc_v4     PResNet_DSADCC_v4(r4)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc        PResNet_DSADOC(r4)     HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v2     PResNet_DSADOC_v2(r4)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v3     PResNet_DSADOC_v3(r4)  HybridEncoder          [全stage]
+rtdetr_r18vd_6x_visdrone_dsadoc_v4     PResNet_DSADOC_v4(r4)  HybridEncoder          [跳过P2]
+rtdetr_r18vd_6x_visdrone_dsadoc_v5     PResNet_DSADOC_v2(r1)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v6     PResNet_DSADOC_v4(r1)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v7     PResNet_DSADOC_v4(r2)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v8     PResNet_DSADOC_v8(r1)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v9     PResNet_DSADOC_v9(r2)  HybridEncoder
+rtdetr_r18vd_6x_visdrone_dsadoc_v10    PResNet_DSADOC_v10     HybridEncoder          [半通道/替换branch2a]
+rtdetr_r18vd_6x_visdrone_dsadoc_v5_np_alllr  PResNet_DSADOC_v2(r1) HybridEncoder     [仅改lr]
+rtdetr_r18vd_6x_visdrone_dsawacga      PResNet_DSAWACGA       HybridEncoder          [半通道/WACGA]
+rtdetr_r18vd_6x_visdrone_dsamee        PResNet_DSAMEE(r4)     HybridEncoder
+rtdetr_r18vd_6x_visdrone_msca          PResNet_MSCA           HybridEncoder
+rtdetr_r18vd_6x_visdrone_percepconv    PResNet_PercepConv     HybridEncoder
+rtdetr_r18vd_6x_visdrone_p2_spd_okm    PResNet-r18vd(P2输出)  HybridEncoderP2SPDOKM
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs PResNet-r18vd(P2输出)  HybridEncoderP2SPDOKMFS
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v2    PResNet-r18vd   HybridEncoderP2SPDOKMFSV2
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v2_np_alllr PResNet-r18vd HybridEncoderP2SPDOKMFSV2 [仅改lr]
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v3    PResNet-r18vd   HybridEncoderP2SPDOKMFSV3
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v4    PResNet-r18vd   HybridEncoderP2SPDOKMFSV4
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v5    PResNet-r18vd   HybridEncoderP2SPDOKMFSV5
+rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v6    PResNet-r18vd   HybridEncoderP2SPDOKMFSV6 [主力]
+rtdetr_r18vd_6x_visdrone_p2_spd_mffm_dcfm    PResNet-r18vd   HybridEncoderP2SPDMFFMDCFM
+rtdetr_r18vd_6x_visdrone_p2_spd_mffm_dcfm_lite PResNet-r18vd HybridEncoderP2SPDMFFMDCFMLite
+rtdetr_r18vd_6x_visdrone_dsadoc_p2_spd_okm_fs_v2 PResNet_DSADOC_v2(r1) HybridEncoderP2SPDOKMFSV2
+rtdetr_r18vd_6x_visdrone_dsadoc_p2_spd_okm_fs_v2_np_alllr 同上                [仅改lr]
+
+--------------------------------------------------------------------------------
+关键演进脉络小结:
+  DSADCC v1→v2: 逐通道softmax+内部残差+scale0.1 → 过拟合
+           v3: 共享降维+空间自适应权重+标量融合+cross_gate
+           v4: +Scharr边缘+小波域DCC+FiLM(零初始化恒等启动)
+  DSADOC  v1: v4去cross_gate(直接融合)+LL全向空间特征
+           v2: 恢复cross_gate; v3: 全stage; v4: 跳过P2
+           v5/v6/v7: reduction=1/1/2 通道宽度消融
+           v8/v9: reduction=1/2; v10: 半通道chunk+替换branch2a+全stage(定型)
+  Encoder P2SPDOKM: BottleNect(串行频域) → FS: 三路并行+GMM/FreqScale
+           FSv2: EFAM 1:3划分; FSv3: 先降维再划分; FSv4: 512维划分+纯创新块+FreqScale无残差
+           FSv5: 去GMM, Global=FreqScale→SCA→FGM; FSv6: PDCBlock无残差(纯差分, 定型)
+  硬约束(项目记忆): DSA内部禁残差/禁scale缩放; DCC融合用标量权重; FSv6为当前主力。
+================================================================================

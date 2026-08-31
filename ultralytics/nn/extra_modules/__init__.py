@@ -16,7 +16,9 @@ from .yolov13 import *
 from .UMFormer import *
 from .RepStem import RepStem
 from .dsawacga import *
+from .dsawacga_v2 import *
 from .dsadoc_v10 import *
+from .dsadoc_v11 import *
 from .hybrid_encoder_p2_spd_okm_fs_v6 import *
 from .hybrid_encoder_p2_spd_okm_fs_v5 import *
 from .hybrid_encoder_p2_spd_okm import *

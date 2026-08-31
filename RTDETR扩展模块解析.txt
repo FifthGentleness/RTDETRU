@@ -1,0 +1,1426 @@
+RT-DETRU extra_modules 扩展模块解析
+==========================================================================================
+目录: ultralytics/nn/extra_modules
+说明: 每个文件含 [文件作用] 与 [类清单及具体作用]；类描述优先取人工整理，
+      其次源码docstring/注释；组合命名(C2f_XXX等)自动拆解描述。
+
+共 60 个模块文件 + 10 个子目录（CUDA算子库）
+
+==========================================================================================
+◆ ast.py
+  文件作用: AST自适应稀疏Transformer（CVPR2024 Adapt or Perish）：AdaptiveSparseSA稀疏Token选择注意力+FRFN2D频率细化前馈
+  导出(__all__): AdaptiveSparseSA, FRFN2D
+  ▸ LinearProjection: 线性投影（QKV投影）
+  ▸ WindowAttention: 窗口注意力（Swin风格W-MSA）
+  ▸ WindowAttention_sparse: 稀疏窗口注意力（AST组件）
+  ▸ Mlp: MLP前馈网络
+  ▸ LeFF: LeFF局部增强前馈（FFN中加入深度卷积）
+  ▸ FRFN: FRFN频率细化前馈网络（AST组件）
+  ▸ FRFN2D: AST频率细化前馈网络（2D频域门控FFN）
+  ▸ AdaptiveSparseSA: AST自适应稀疏自注意力（CVPR2024）：稀疏Token选择+特征细化
+
+==========================================================================================
+◆ attention.py
+  文件作用: 注意力模块库：EMA/SimAM/TripletAttention/CoordAtt/BAM/SE/LSKA/SegNext/DAT可变形注意力/FocusedLinearAttention/MLCA/TransNeXt聚合注意力/HiLo/ELA/CAA/TSSA等即插即用注意力
+  导出(__all__): EMA, SimAM, SpatialGroupEnhance, BiLevelRoutingAttention, BiLevelRoutingAttention_nchw, TripletAttention, CoordAtt, BAMBlock, EfficientAttention, LSKBlock, SEAttention, CPCA, MPCA, deformable_LKA, EffectiveSEModule, LSKA, SegNext_Attention, DAttention, FocusedLinearAttention, MLCA, TransNeXt_AggregatedAttention, HiLo, LocalWindowAttention, ELA, CAA, EfficientAdditiveAttnetion, AFGCAttention, DualDomainSelectionMechanism, AttentionTSSA
+  ▸ EMA: EMA：高效多尺度注意力（水平/垂直分组池化+组内交叉SPAttention）
+  ▸ SimAM: SimAM：无参数注意力（神经科学能量函数推导的3D注意力权重）
+  ▸ SpatialGroupEnhance: SGE：空间组增强注意力（按组统计量做空间门控）
+  ▸ TopkRouting: differentiable topk routing with scaling Args: qk_dim: int, feature dimension of query and key
+  ▸ KVGather: KV收集器（稀疏注意力按索引收集key/value）
+  ▸ QKVLinear: QKV线性投影层
+  ▸ BiLevelRoutingAttention: BiLevelRoutingAttention (NWC)：双层路由区域注意力（区域级top-k路由+token注意力，稀疏）
+  ▸ BiLevelRoutingAttention_nchw: BiLevelRoutingAttention的NCHW布局实现（原生空间布局，免重排）
+  ▸ h_sigmoid: 硬Sigmoid（ReLU6(x+3)/6，轻量）
+  ▸ h_swish: 硬Swish（x*h_sigmoid(x)，轻量）
+  ▸ CoordAtt: CoordAtt：坐标注意力（H/W方向1D池化编码位置信息）
+  ▸ BasicConv: 基础卷积块（Conv+BN+ReLU）
+  ▸ ZPool: Z池化（最大+平均池化拼接）
+  ▸ AttentionGate: 注意力门控（Attention U-Net风格门控）
+  ▸ TripletAttention: TripletAttention：三分支旋转注意力（H/W/C三轴分别做池化注意力再平均）
+  ▸ Flatten: 展平层
+  ▸ ChannelAttention: 通道注意力（GAP+1x1压缩激励，SE风格）
+  ▸ SpatialAttention: 空间注意力
+  ▸ BAMBlock: BAM：瓶颈注意力模块（通道+空间双分支）
+  ▸ AttnMap: 注意力图生成器
+  ▸ EfficientAttention: 高效注意力（线性复杂度注意力）
+  ▸ LSKBlock_SA: 组合模块: LSK：大选择性核注意力（5x5+7x7拆分DW+空间选择）
+  ▸ LSKBlock: LSK：大选择性核注意力（5x5+7x7拆分DW+空间选择）
+  ▸ SEAttention: SE：Squeeze-and-Excitation通道注意力
+  ▸ CPCA_ChannelAttention: 组合模块: CPCA：金字塔卷积位置注意力（多尺度DW卷积生成位置注意力） + 通道注意力（GAP+1x1压缩激励，SE风格）
+  ▸ CPCA: CPCA：金字塔卷积位置注意力（多尺度DW卷积生成位置注意力）
+  ▸ MPCA: MPCA：多尺度金字塔卷积注意力
+  ▸ DeformConv: 可变形卷积（DCNv1/v2核心算子）
+  ▸ deformable_LKA: 可变形大核注意力（LKA基础上采样点可学习偏移）
+  ▸ EffectiveSEModule: eSE：有效SE（直接全通道FC的轻量版）
+  ▸ LSKA: LSKA：大可分离核注意力（大核拆为条带DW级联）
+  ▸ SegNext_Attention: SegNext/SCSA：条带卷积空间注意力（H/W条带DW+门控）
+  ▸ LayerNormProxy: 层归一化代理（cfpt：nn.LayerNorm包装用于CV）
+  ▸ DAttention: DAT可变形注意力：采样位置可学习偏移的稀疏注意力
+  ▸ FocusedLinearAttention: FLA：聚焦线性注意力（线性复杂度+聚焦函数）
+  ▸ MLCA: MLCA：混合局部通道注意力，融合局部与全局通道注意力
+  ▸ TransNeXt_AggregatedAttention: TransNeXt聚合注意力：像素聚焦注意力+卷积value
+  ▸ HiLo: HiLo：高低频注意力（局部高频+全局低频分解）
+  ▸ CascadedGroupAttention: EfficientViT级联组注意力：各头级联处理不同通道子集，缓解注意力冗余
+  ▸ LocalWindowAttention: 局部窗口注意力（Swin风格W-MSA）
+  ▸ ELA: ELA高效局部注意力
+  ▸ CAA: CAA上下文锚点注意力
+  ▸ EfficientAdditiveAttnetion: EAA：高效加性注意力（线性复杂度加性token混合）
+  ▸ Mix: 混合层（FFN辅助）
+  ▸ AFGCAttention: AFGC：自适应细粒度通道注意力
+  ▸ ChannelPool: 通道池化（最大+平均池化拼接，CBAM空间注意力组件）
+  ▸ DSM_SpatialGate: 双域选择机制-空间门控
+  ▸ DSM_LocalAttention: 双域选择机制-局部分支
+  ▸ DualDomainSelectionMechanism: DDSM：双域选择机制（频域+空间域选择门控）
+  ▸ AttentionTSSA: TSSA：Token统计注意力（ICLR2025 Token Statistics Transformer）
+
+==========================================================================================
+◆ block.py
+  文件作用: 改进模块汇总库（最核心文件）：汇集数百个即插即用模块——各类卷积变体(SPDConv/AKConv/DEConv/DBB/FDConv...)、注意力(ELA/CAA/DSA...)、C2f/C3/ELAN改进瓶颈、上下采样、融合模块等，均通过__init__.py导出供YAML配置引用
+  导出(__all__): Ghost_HGBlock, Rep_HGBlock, DWRC3, C3_DWR, C2f_DWR, BasicBlock_Ortho, BottleNeck_Ortho, C3_DCNv2_Dynamic, C2f_DCNv2_Dynamic, BasicBlock_DCNv2_Dynamic, BottleNeck_DCNv2_Dynamic, C3_DCNv2, C2f_DCNv2, BasicBlock_DCNv2, BottleNeck_DCNv2, C3_DCNv3, C2f_DCNv3, BasicBlock_DCNv3, BottleNeck_DCNv3, C3_DCNv4, C2f_DCNv4, BasicBlock_DCNv4, BottleNeck_DCNv4, C3_iRMB, C2f_iRMB, BasicBlock_iRMB, BottleNeck_iRMB, C3_iRMB_Cascaded, C2f_iRMB_Cascaded, BasicBlock_iRMB_Cascaded, BottleNeck_iRMB_Cascaded, BasicBlock_Attention, BottleNeck_Attention, HGBlock_Attention, C3_Attention, C2f_Attention, C3_Ortho, C2f_Ortho, SPDConv, BasicBlock_WTConv, BottleNeck_WTConv, C3_DySnakeConv, C2f_DySnakeConv, BasicBlock_DySnakeConv, BottleNeck_DySnakeConv, C3_Faster, C2f_Faster, C3_Faster_EMA, C2f_Faster_EMA, C3_Faster_Rep, C2f_Faster_Rep, C3_Faster_Rep_EMA, C2f_Faster_Rep_EMA, BasicBlock_PConv, BottleNeck_PConv, BasicBlock_PConv_Rep, BottleNeck_PConv_Rep, BasicBlock_Faster_Block, BottleNeck_Faster_Block, BasicBlock_Faster_Block_EMA, BottleNeck_Faster_Block_EMA, BasicBlock_Faster_Block_Rep, BottleNeck_Faster_Block_Rep, BasicBlock_Faster_Block_Rep_EMA, BottleNeck_Faster_Block_Rep_EMA, C3_AKConv, C2f_AKConv, BasicBlock_AKConv, BottleNeck_AKConv, AKConv, RFAConv, RFCBAMConv, RFCAConv, C3_RFAConv, C2f_RFAConv, C3_RFCBAMConv, C2f_RFCBAMConv, C3_RFCAConv, C2f_RFCAConv, BasicBlock_RFAConv, BottleNeck_RFAConv, BasicBlock_RFCBAMConv, BottleNeck_RFCBAMConv, BasicBlock_RFCAConv, BottleNeck_RFCAConv, C3_Conv3XC, C2f_Conv3XC, C3_SPAB, C2f_SPAB, BasicBlock_Conv3XC, BottleNeck_Conv3XC, C3_UniRepLKNetBlock, C2f_UniRepLKNetBlock, C3_DRB, C2f_DRB, BasicBlock_DRB, BottleNeck_DRB, DWRC3_DRB, C3_DWR_DRB, C2f_DWR_DRB, Conv3XCC3, DRBC3, DBBC3, C2f_DBB, C3_DBB, BasicBlock_DBB, BottleNeck_DBB, CSP_EDLAN, BasicBlock_DualConv, BottleNeck_DualConv, Zoom_cat, ScalSeq, DynamicScalSeq, Add, asf_attention_model, GSConv, VoVGSCSP, VoVGSCSPC, BasicBlock_AggregatedAtt, BottleNeck_AggregatedAtt, C3_AggregatedAtt, C2f_AggregatedAtt, SDI, SimFusion_3in, SimFusion_4in, IFM, InjectionMultiSum_Auto_pool, PyramidPoolAgg, AdvPoolFusion, TopBasicLayer, ChannelAttention_HSFPN, ELA_HSFPN, CA_HSFPN, Multiply, DySample, CARAFE, HWD, C3_SWC, C2f_SWC, BasicBlock_SWC, BottleNeck_SWC, C3_iRMB_DRB, C2f_iRMB_DRB, BasicBlock_iRMB_DRB, BottleNeck_iRMB_DRB, C3_iRMB_SWC, C2f_iRMB_SWC, BasicBlock_iRMB_SWC, BottleNeck_iRMB_SWC, C3_VSS, C2f_VSS, C3_LVMB, C2f_LVMB, BasicBlock_VSS, BottleNeck_VSS, RepNCSPELAN4, DBBNCSPELAN4, OREPANCSPELAN4, DRBNCSPELAN4, Conv3XCNCSPELAN4, ADown, Fusion, ContextGuidedBlock_Down, BasicBlock_ContextGuided, BottleNeck_ContextGuided, C3_ContextGuided, C2f_ContextGuided, ParallelAtrousConv, AttentionUpsample, AttentionDownsample, CSP_PAC, DGCST, DGCST2, RetBlockC3, C3_RetBlock, C2f_RetBlock, CAA_HSFPN, RepNCSPELAN4_CAA, C3_PKIModule, C2f_PKIModule, BasicBlock_FADC, BottleNeck_FADC, C3_FADC, C2f_FADC, C3_PPA, C2f_PPA, FocusFeature, SRFD, DRFD, CFC_CRB, SFC_G2, CAFM, CGAFusion, CAFMFusion, RGCSPELAN, C3_Faster_CGLU, C2f_Faster_CGLU, BasicBlock_Faster_Block_CGLU, BottleNeck_Faster_Block_CGLU, SDFM, PSFM, BasicBlock_Star, BottleNeck_Star, C3_Star, C2f_Star, C3_Star_CAA, C2f_Star_CAA, C3_KAN, C2f_KAN, BasicBlock_KAN, BottleNeck_KAN, KANC3, ContextGuideFusionModule, C3_DEConv, C2f_DEConv, BasicBlock_DEConv, BottleNeck_DEConv, C3_SMPCGLU, C2f_SMPCGLU, C3_Heat, C2f_Heat, PSA, SBA, WaveletPool, WaveletUnPool, CSP_PTB, GLSA, CSPOmniKernel, WTConv2d, RCM, PyramidContextExtraction, DynamicInterpolationFusion, FuseBlockMulti, C2f_FMB, gConvC3, C2f_gConv, LDConv, BasicBlock_WDBB, BottleNeck_WDBB, BasicBlock_DeepDBB, BottleNeck_DeepDBB, C2f_AdditiveBlock, C2f_AdditiveBlock_CGLU, CSP_MSCB, EUCB, C2f_MSMHSA_CGLU, CSP_PMSFA, C2f_MogaBlock, C2f_SHSA, C2f_SHSA_CGLU, C2f_SMAFB, C2f_SMAFB_CGLU, DynamicAlignFusion, CSP_MutilScaleEdgeInformationEnhance, C2f_FFCM, C2f_SFHF, CSP_FreqSpatial, C2f_MSM, CSP_MutilScaleEdgeInformationSelect, C2f_HDRAB, C2f_RAB, LFEC3, MutilScaleEdgeInfoGenetator, ConvEdgeFusion, C2f_FCA, C2f_CAMixer, HyperComputeModule, MANet, MANet_FasterBlock, MANet_FasterCGLU, MANet_Star, MultiScaleGatedAttn, C2f_HFERB, C2f_DTAB, DTAB, C2f_JDPM, C2f_ETB, ETB, C2f_FDT, FDT, WFU, PSConv, C2f_AP, ContrastDrivenFeatureAggregation, C2f_ELGCA, C2f_ELGCA_CGLU, C2f_Strip, C2f_StripCGLU, MultiScalePCA, FSA, MultiScalePCA_Down, C2f_KAT, C2f_Faster_KAN, C2f_DCMB, C2f_DCMB_KAN, C2f_GlobalFilter, C2f_DynamicFilter, HAFB, C2f_SAVSS, C2f_MambaOut, C2f_EfficientVIM, C2f_EfficientVIM_CGLU, EUCB_SC, CSP_MSCB_SC, C2f_MambaOut_UniRepLK, CrossAttentionBlock, C2f_IEL, IELC3, C2f_RCB, C2f_FAT, C2f_LEGM, C2f_MobileMamba, C2f_LFEM, LoGStem, C2f_SBSM, C2f_LSBlock, C2f_MambaOut_LSConv, C2f_TransMamba, C2f_EVS, C2f_EBlock, C2f_DBlock, C2f_FDConv, C2f_MambaOut_FDConv, C2f_PFDConv, C2f_FasterFDConv, FDConvC3, C2f_DSAN, C2f_DSAN_EDFFN, C2f_MambaOut_DSA, C2f_DSA, C2f_RMB, SNI, GSConvE, C2f_SFSConv, C2f_MambaOut_SFSC, C2f_PSFSConv, C2f_FasterSFSConv, C2f_GroupMamba, C2f_GroupMambaBlock, C2f_MambaVision, FCM, FCM_1, FCM_2, FCM_3, Pzconv, PST, C2f_FourierConv, FourierConv, C2f_wConv, wConv2d, C2f_GLVSS, C2f_ESC, C2f_MBRConv3, C2f_MBRConv5, MBRConv3C3, MBRConv5C3, C2f_VSSD, C2f_TVIM, DPCF, C2f_CSI, C2f_SHSA_EPGO, C2f_SHSA_EPGO_CGLU, C2f_ConvAttn, C2f_UniConvBlock, C2f_LGLB, C2f_ConverseB, C2f_Converse2D, Converse2DC3, Converse2D, C2f_GCConv, GCConvC3, GCConv, C2f_CFBlock, C2f_FMABlock, C2f_LWGA
+  ▸ Ghost_HGBlock: HG_Block of PPHGNetV2 with 2 convolutions and LightConv. https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+  ▸ RepLightConv: Light convolution with args(ch_in, ch_out, kernel). https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+  ▸ Rep_HGBlock: HG_Block of PPHGNetV2 with 2 convolutions and LightConv. https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+  ▸ DWR: DWR膨胀卷积模块（DWR分割网络）：分层膨胀卷积捕获多尺度上下文
+  ▸ DWRC3: C3瓶颈结构，内部bottleneck替换为 DWR 模块（DWR膨胀卷积模块（DWR分割网络）：分层膨胀卷积捕获多尺度上下文）
+  ▸ C3_DWR: C3瓶颈，bottleneck替换为DWR膨胀卷积模块
+  ▸ C2f_DWR: C2f瓶颈结构，内部bottleneck替换为 DWR 模块。组件: DWR膨胀卷积模块（DWR分割网络）：分层膨胀卷积捕获多尺度上下文
+  ▸ GramSchmidtTransform: Gram-Schmidt正交化变换（滤波器正交化）
+  ▸ Attention_Ortho: 组合模块: 注意力（文件内部通用注意力） + Ortho正交卷积：正交约束卷积核降低冗余
+  ▸ BasicBlock_Ortho: PResNet残差瓶颈变体：3x3卷积替换为 Ortho（Ortho正交卷积：正交约束卷积核降低冗余）
+  ▸ BottleNeck_Ortho: PResNet残差瓶颈变体：3x3卷积替换为 Ortho（Ortho正交卷积：正交约束卷积核降低冗余）
+  ▸ Bottleneck_Ortho: PResNet残差瓶颈变体：3x3卷积替换为 Ortho（Ortho正交卷积：正交约束卷积核降低冗余）
+  ▸ C3_Ortho: C3瓶颈结构，bottleneck替换为 Ortho 模块（Ortho正交卷积：正交约束卷积核降低冗余）
+  ▸ C2f_Ortho: C2f瓶颈结构，内部bottleneck替换为 Ortho 模块。组件: Ortho正交卷积：正交约束卷积核降低冗余
+  ▸ DCNv2: DCNv2可变形卷积v2（TorchVision实现）：带调制系数
+  ▸ Bottleneck_DCNV2: Standard bottleneck with DCNV2.
+  ▸ C3_DCNv2: C3瓶颈，bottleneck替换为DCNv2可变形卷积
+  ▸ C2f_DCNv2: C2f瓶颈结构，内部bottleneck替换为 DCNv2 模块。组件: DCNv2可变形卷积v2（TorchVision实现）：带调制系数
+  ▸ BasicBlock_DCNv2: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2（DCNv2可变形卷积v2（TorchVision实现）：带调制系数）
+  ▸ BottleNeck_DCNv2: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2（DCNv2可变形卷积v2（TorchVision实现）：带调制系数）
+  ▸ DCNv2_Offset_Attention: DCNv2偏移注意力：偏移量经注意力加权
+  ▸ DCNv2_Dynamic: 动态DCNv2：可变形卷积+动态偏移预测
+  ▸ Bottleneck_DCNV2_Dynamic: Standard bottleneck with DCNV2.
+  ▸ C3_DCNv2_Dynamic: C3瓶颈，动态DCNv2可变形卷积
+  ▸ C2f_DCNv2_Dynamic: C2f瓶颈结构，内部bottleneck替换为 DCNv2_Dynamic 模块。组件: DCNv2可变形卷积v2（TorchVision实现）：带调制系数
+  ▸ BasicBlock_DCNv2_Dynamic: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2_Dynamic（动态DCNv2：可变形卷积+动态偏移预测）
+  ▸ BottleNeck_DCNv2_Dynamic: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2_Dynamic（动态DCNv2：可变形卷积+动态偏移预测）
+  ▸ DCNV3_YOLO: 组合模块: DCNv3：可变形卷积v3（Intern系列），分组可变形采样+归一化调制
+  ▸ Bottleneck_DCNV3: Standard bottleneck with DCNV3.
+  ▸ C3_DCNv3: C3瓶颈，bottleneck替换为DCNv3
+  ▸ C2f_DCNv3: C2f瓶颈结构，内部bottleneck替换为 DCNv3 模块
+  ▸ BasicBlock_DCNv3: PResNet残差瓶颈变体：3x3卷积替换为 DCNv3
+  ▸ BottleNeck_DCNv3: PResNet残差瓶颈变体：3x3卷积替换为 DCNv3
+  ▸ iRMB: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量）
+  ▸ iRMB_Cascaded: 组合模块: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量）
+  ▸ iRMB_DRB: 组合模块: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量） + DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联
+  ▸ iRMB_SWC: 组合模块: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量） + SWC滑窗卷积（图像去雾Rethinking论文）
+  ▸ C3_iRMB: C3瓶颈结构，bottleneck替换为 iRMB 模块（iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量））
+  ▸ C2f_iRMB: C2f瓶颈结构，内部bottleneck替换为 iRMB 模块。组件: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量）
+  ▸ BasicBlock_iRMB: PResNet残差瓶颈变体：3x3卷积替换为 iRMB（iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量））
+  ▸ BottleNeck_iRMB: PResNet残差瓶颈变体：3x3卷积替换为 iRMB（iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量））
+  ▸ C3_iRMB_Cascaded: C3瓶颈结构，bottleneck替换为 iRMB_Cascaded 模块
+  ▸ C2f_iRMB_Cascaded: C2f瓶颈结构，内部bottleneck替换为 iRMB_Cascaded 模块。组件: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量）
+  ▸ BasicBlock_iRMB_Cascaded: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_Cascaded
+  ▸ BottleNeck_iRMB_Cascaded: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_Cascaded
+  ▸ C3_iRMB_DRB: C3瓶颈结构，bottleneck替换为 iRMB_DRB 模块
+  ▸ C2f_iRMB_DRB: C2f瓶颈结构，内部bottleneck替换为 iRMB_DRB 模块。组件: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量） + DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联
+  ▸ BasicBlock_iRMB_DRB: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_DRB
+  ▸ BottleNeck_iRMB_DRB: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_DRB
+  ▸ C3_iRMB_SWC: C3瓶颈结构，bottleneck替换为 iRMB_SWC 模块
+  ▸ C2f_iRMB_SWC: C2f瓶颈结构，内部bottleneck替换为 iRMB_SWC 模块。组件: iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量） + SWC滑窗卷积（图像去雾Rethinking论文）
+  ▸ BasicBlock_iRMB_SWC: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_SWC
+  ▸ BottleNeck_iRMB_SWC: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_SWC
+  ▸ BasicBlock_Attention: PResNet残差瓶颈变体：3x3卷积替换为 Attention（注意力（文件内部通用注意力））
+  ▸ BottleNeck_Attention: PResNet残差瓶颈变体：3x3卷积替换为 Attention（注意力（文件内部通用注意力））
+  ▸ HGBlock_Attention: HG_Block of PPHGNetV2 with 2 convolutions and LightConv. https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+  ▸ Bottleneck_Attention: Standard bottleneck.
+  ▸ C2f_Attention: C2f瓶颈结构，内部bottleneck替换为 Attention 模块。组件: 注意力（文件内部通用注意力）
+  ▸ C3_Attention: C3瓶颈，bottleneck替换为注意力模块
+  ▸ Bottleneck_DySnakeConv: Standard bottleneck with DySnakeConv.
+  ▸ C3_DySnakeConv: C3瓶颈结构，bottleneck替换为 DySnakeConv 模块（DySnakeConv：动态蛇形卷积（ICCV2023），细长/管状目标友好）
+  ▸ C2f_DySnakeConv: C2f瓶颈结构，内部bottleneck替换为 DySnakeConv 模块。组件: DySnakeConv：动态蛇形卷积（ICCV2023），细长/管状目标友好
+  ▸ BasicBlock_DySnakeConv: PResNet残差瓶颈变体：3x3卷积替换为 DySnakeConv（DySnakeConv：动态蛇形卷积（ICCV2023），细长/管状目标友好）
+  ▸ BottleNeck_DySnakeConv: PResNet残差瓶颈变体：3x3卷积替换为 DySnakeConv（DySnakeConv：动态蛇形卷积（ICCV2023），细长/管状目标友好）
+  ▸ Partial_conv3: FasterNet部分3x3卷积（只卷1/4通道，其余恒等）
+  ▸ Faster_Block: 组合模块: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + 基础块（文件内部通用块）
+  ▸ Faster_Block_EMA: 组合模块: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + 基础块（文件内部通用块） + EMA：高效多尺度注意力（水平/垂直分组池化+组内交叉SPAttention）
+  ▸ Partial_conv3_Rep: 重参数化版部分3x3卷积（部署时分支合并）
+  ▸ Faster_Block_Rep: 组合模块: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + 基础块（文件内部通用块）
+  ▸ Faster_Block_Rep_EMA: 组合模块: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + 基础块（文件内部通用块） + EMA：高效多尺度注意力（水平/垂直分组池化+组内交叉SPAttention）
+  ▸ C3_Faster: C3瓶颈结构，bottleneck替换为 Faster 模块（FasterNet系列：PConv部分卷积+PWConv极简高效结构）
+  ▸ C2f_Faster: C2f瓶颈结构，内部bottleneck替换为 Faster 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构
+  ▸ C3_Faster_EMA: C3瓶颈结构，bottleneck替换为 Faster_EMA 模块
+  ▸ C2f_Faster_EMA: C2f瓶颈结构，内部bottleneck替换为 Faster_EMA 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + EMA：高效多尺度注意力（水平/垂直分组池化+组内交叉SPAttention）
+  ▸ C3_Faster_Rep: C3瓶颈结构，bottleneck替换为 Faster_Rep 模块
+  ▸ C2f_Faster_Rep: C2f瓶颈结构，内部bottleneck替换为 Faster_Rep 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构
+  ▸ C3_Faster_Rep_EMA: C3瓶颈结构，bottleneck替换为 Faster_Rep_EMA 模块
+  ▸ C2f_Faster_Rep_EMA: C2f瓶颈结构，内部bottleneck替换为 Faster_Rep_EMA 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + EMA：高效多尺度注意力（水平/垂直分组池化+组内交叉SPAttention）
+  ▸ BasicBlock_PConv: PResNet残差瓶颈变体：3x3卷积替换为 PConv（PConv：部分卷积（FasterNet），只对部分通道卷积，其余通道恒等传递）
+  ▸ BottleNeck_PConv: PResNet残差瓶颈变体：3x3卷积替换为 PConv（PConv：部分卷积（FasterNet），只对部分通道卷积，其余通道恒等传递）
+  ▸ BasicBlock_PConv_Rep: PResNet残差瓶颈变体：3x3卷积替换为 PConv_Rep
+  ▸ BottleNeck_PConv_Rep: PResNet残差瓶颈变体：3x3卷积替换为 PConv_Rep
+  ▸ BasicBlock_Faster_Block: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block
+  ▸ BasicBlock_Faster_Block_Rep: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep
+  ▸ BasicBlock_Faster_Block_EMA: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_EMA
+  ▸ BasicBlock_Faster_Block_Rep_EMA: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep_EMA
+  ▸ BottleNeck_Faster_Block: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block
+  ▸ BottleNeck_Faster_Block_EMA: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_EMA
+  ▸ BottleNeck_Faster_Block_Rep: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep
+  ▸ BottleNeck_Faster_Block_Rep_EMA: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep_EMA
+  ▸ AKConv: AKConv：任意核卷积，为每个采样点学习任意形状/数量的卷积核偏移
+  ▸ Bottleneck_AKConv: Standard bottleneck with FocusedLinearAttention.
+  ▸ C3_AKConv: C3瓶颈结构，bottleneck替换为 AKConv 模块（AKConv：任意核卷积，为每个采样点学习任意形状/数量的卷积核偏移）
+  ▸ C2f_AKConv: C2f瓶颈结构，内部bottleneck替换为 AKConv 模块。组件: AKConv：任意核卷积，为每个采样点学习任意形状/数量的卷积核偏移
+  ▸ BasicBlock_AKConv: PResNet残差瓶颈变体：3x3卷积替换为 AKConv（AKConv：任意核卷积，为每个采样点学习任意形状/数量的卷积核偏移）
+  ▸ BottleNeck_AKConv: PResNet残差瓶颈变体：3x3卷积替换为 AKConv（AKConv：任意核卷积，为每个采样点学习任意形状/数量的卷积核偏移）
+  ▸ Bottleneck_RFAConv: Standard bottleneck with RFAConv.
+  ▸ C3_RFAConv: C3瓶颈结构，bottleneck替换为 RFAConv 模块（RFAConv：感受野注意力卷积，对空间每个感受野位置生成注意力）
+  ▸ C2f_RFAConv: C2f瓶颈结构，内部bottleneck替换为 RFAConv 模块。组件: RFAConv：感受野注意力卷积，对空间每个感受野位置生成注意力
+  ▸ BasicBlock_RFAConv: PResNet残差瓶颈变体：3x3卷积替换为 RFAConv（RFAConv：感受野注意力卷积，对空间每个感受野位置生成注意力）
+  ▸ BottleNeck_RFAConv: PResNet残差瓶颈变体：3x3卷积替换为 RFAConv（RFAConv：感受野注意力卷积，对空间每个感受野位置生成注意力）
+  ▸ Bottleneck_RFCBAMConv: Standard bottleneck with RFCBAMConv.
+  ▸ C3_RFCBAMConv: C3瓶颈结构，bottleneck替换为 RFCBAMConv 模块（RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积）
+  ▸ C2f_RFCBAMConv: C2f瓶颈结构，内部bottleneck替换为 RFCBAMConv 模块。组件: RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积
+  ▸ BasicBlock_RFCBAMConv: PResNet残差瓶颈变体：3x3卷积替换为 RFCBAMConv（RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积）
+  ▸ BottleNeck_RFCBAMConv: PResNet残差瓶颈变体：3x3卷积替换为 RFCBAMConv（RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积）
+  ▸ Bottleneck_RFCAConv: Standard bottleneck with RFCBAMConv.
+  ▸ C3_RFCAConv: C3瓶颈结构，bottleneck替换为 RFCAConv 模块（RFCAConv：结合坐标注意力的感受野注意力卷积）
+  ▸ C2f_RFCAConv: C2f瓶颈结构，内部bottleneck替换为 RFCAConv 模块。组件: RFCAConv：结合坐标注意力的感受野注意力卷积
+  ▸ BasicBlock_RFCAConv: PResNet残差瓶颈变体：3x3卷积替换为 RFCAConv（RFCAConv：结合坐标注意力的感受野注意力卷积）
+  ▸ BottleNeck_RFCAConv: PResNet残差瓶颈变体：3x3卷积替换为 RFCAConv（RFCAConv：结合坐标注意力的感受野注意力卷积）
+  ▸ Conv3XC: Conv3XC三分支卷积（1x1/1x1-KxK/恒等）
+  ▸ SPAB: SPAB空间金字塔注意力块（SPP风格）
+  ▸ Bottleneck_Conv3XC: Standard bottleneck with Conv3XC.
+  ▸ C3_Conv3XC: C3瓶颈结构，bottleneck替换为 Conv3XC 模块（Conv3XC三分支卷积（1x1/1x1-KxK/恒等））
+  ▸ C2f_Conv3XC: C2f瓶颈结构，内部bottleneck替换为 Conv3XC 模块。组件: Conv3XC三分支卷积（1x1/1x1-KxK/恒等）
+  ▸ C3_SPAB: C3瓶颈，bottleneck替换为SPAB空间金字塔注意力块
+  ▸ C2f_SPAB: C2f瓶颈结构，内部bottleneck替换为 SPAB 模块。组件: SPAB空间金字塔注意力块（SPP风格）
+  ▸ BasicBlock_Conv3XC: PResNet残差瓶颈变体：3x3卷积替换为 Conv3XC（Conv3XC三分支卷积（1x1/1x1-KxK/恒等））
+  ▸ BottleNeck_Conv3XC: PResNet残差瓶颈变体：3x3卷积替换为 Conv3XC（Conv3XC三分支卷积（1x1/1x1-KxK/恒等））
+  ▸ Conv3XCC3: C3瓶颈结构，内部bottleneck替换为 Conv3XC 模块（Conv3XC三分支卷积（1x1/1x1-KxK/恒等））
+  ▸ DilatedReparamBlock: Dilated Reparam Block proposed in UniRepLKNet (https://github.com/AILab-CVC/UniRepLKNet) We assume the inputs to this block are (N, C, H, W)
+  ▸ UniRepLKNetBlock: UniRepLKNet大核块（MHAYOLO使用）
+  ▸ C3_UniRepLKNetBlock: C3瓶颈，bottleneck替换为UniRepLKNet大核块
+  ▸ C2f_UniRepLKNetBlock: C2f瓶颈结构，内部bottleneck替换为 UniRepLKNetBlock 模块。组件: UniRepLKNet大核块（MHAYOLO使用）
+  ▸ Bottleneck_DRB: Standard bottleneck with DilatedReparamBlock.
+  ▸ C3_DRB: C3瓶颈结构，bottleneck替换为 DRB 模块（DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联）
+  ▸ C2f_DRB: C2f瓶颈结构，内部bottleneck替换为 DRB 模块。组件: DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联
+  ▸ BasicBlock_DRB: PResNet残差瓶颈变体：3x3卷积替换为 DRB（DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联）
+  ▸ BottleNeck_DRB: PResNet残差瓶颈变体：3x3卷积替换为 DRB（DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联）
+  ▸ DRBC3: C3瓶颈结构，内部bottleneck替换为 DRB 模块（DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联）
+  ▸ DWR_DRB: 组合模块: DWR膨胀卷积模块（DWR分割网络）：分层膨胀卷积捕获多尺度上下文 + DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联
+  ▸ DWRC3_DRB: 组合模块: DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联
+  ▸ C3_DWR_DRB: C3瓶颈结构，bottleneck替换为 DWR_DRB 模块
+  ▸ C2f_DWR_DRB: C2f瓶颈结构，内部bottleneck替换为 DWR_DRB 模块。组件: DWR膨胀卷积模块（DWR分割网络）：分层膨胀卷积捕获多尺度上下文 + DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联
+  ▸ BasicBlock_DBB: PResNet残差瓶颈变体：3x3卷积替换为 DBB（DiverseBranchBlock：多分支卷积块，训练时多分支（1x1/1x1-KxK/均值等）推理时等价合并）
+  ▸ BottleNeck_DBB: PResNet残差瓶颈变体：3x3卷积替换为 DBB（DiverseBranchBlock：多分支卷积块，训练时多分支（1x1/1x1-KxK/均值等）推理时等价合并）
+  ▸ BasicBlock_WDBB: PResNet残差瓶颈变体：3x3卷积替换为 WDBB（WDBB：加宽版多分支卷积块）
+  ▸ BottleNeck_WDBB: PResNet残差瓶颈变体：3x3卷积替换为 WDBB（WDBB：加宽版多分支卷积块）
+  ▸ BasicBlock_DeepDBB: PResNet残差瓶颈变体：3x3卷积替换为 DeepDBB（深度版DBB：在更多通道层级使用多分支卷积块）
+  ▸ BottleNeck_DeepDBB: PResNet残差瓶颈变体：3x3卷积替换为 DeepDBB（深度版DBB：在更多通道层级使用多分支卷积块）
+  ▸ Bottleneck_DBB: PResNet残差瓶颈变体：3x3卷积替换为 DBB（DiverseBranchBlock：多分支卷积块，训练时多分支（1x1/1x1-KxK/均值等）推理时等价合并）
+  ▸ C2f_DBB: C2f瓶颈结构，内部bottleneck替换为 DBB 模块。组件: DiverseBranchBlock：多分支卷积块，训练时多分支（1x1/1x1-KxK/均值等）推理时等价合并
+  ▸ C3_DBB: C3瓶颈结构，bottleneck替换为 DBB 模块（DiverseBranchBlock：多分支卷积块，训练时多分支（1x1/1x1-KxK/均值等）推理时等价合并）
+  ▸ DBBC3: C3瓶颈结构，内部bottleneck替换为 DBB 模块（DiverseBranchBlock：多分支卷积块，训练时多分支（1x1/1x1-KxK/均值等）推理时等价合并）
+  ▸ DualConv: DualConv：Dual Convolution，3x3与1x1并联的轻量卷积组
+  ▸ EDLAN: EDLAN：DualConv双卷积(3x3+1x1并联)堆叠的ELAN分解块
+  ▸ CSP_EDLAN: CSP结构+EDLAN（DualConv双卷积ELAN分解块）
+  ▸ BasicBlock_DualConv: PResNet残差瓶颈变体：3x3卷积替换为 DualConv（DualConv：Dual Convolution，3x3与1x1并联的轻量卷积组）
+  ▸ BottleNeck_DualConv: PResNet残差瓶颈变体：3x3卷积替换为 DualConv（DualConv：Dual Convolution，3x3与1x1并联的轻量卷积组）
+  ▸ Zoom_cat: Zoom_cat拼接：目标尺寸自适应缩放对齐后拼接（U-Net v2风格跳连）
+  ▸ ScalSeq: Gold-YOLO GD收集模块：多尺度特征池化对齐后拼接
+  ▸ DynamicScalSeq: Gold-YOLO GD动态收集模块：多尺度对齐后用3D卷积跨尺度聚合
+  ▸ Add: 逐元素相加融合
+  ▸ asf_channel_att: ASF通道注意力分支
+  ▸ asf_local_att: ASF局部注意力分支
+  ▸ asf_attention_model: ASF-YOLO注意力模型：通道+局部双注意力加权融合
+  ▸ GSConv: GSConv：分组+深度可分离轻量卷积（slim-neck核心算子）
+  ▸ GSBottleneck: GSConv瓶颈（slim-neck组件：分组卷积+深度可分离卷积瓶颈）
+  ▸ GSBottleneckC: GSConv瓶颈C变体（拼接式）
+  ▸ VoVGSCSP: GSConv轻量neck（slim-neck-by-GSConv）
+  ▸ VoVGSCSPC: VoVGSCSP的C变体：GSConv瓶颈堆叠的CSP结构
+  ▸ BasicBlock_AggregatedAtt: PResNet残差瓶颈变体：3x3卷积替换为 AggregatedAtt（聚合多尺度注意力（P2/4~P5/32分级sr_ratio））
+  ▸ BottleNeck_AggregatedAtt: PResNet残差瓶颈变体：3x3卷积替换为 AggregatedAtt（聚合多尺度注意力（P2/4~P5/32分级sr_ratio））
+  ▸ Bottleneck_AggregatedAttention: Standard bottleneck With CloAttention.
+  ▸ C2f_AggregatedAtt: C2f瓶颈结构，内部bottleneck替换为 AggregatedAtt 模块。组件: 聚合多尺度注意力（P2/4~P5/32分级sr_ratio）
+  ▸ C3_AggregatedAtt: C3瓶颈结构，bottleneck替换为 AggregatedAtt 模块（聚合多尺度注意力（P2/4~P5/32分级sr_ratio））
+  ▸ SDI: SDI语义差异感知融合（双向融合上下文/细节）
+  ▸ RepVGGBlock: RepVGG重参数化块：训练时3x3+1x1+Identity并联，部署时合并为单3x3卷积
+  ▸ SimFusion_3in: Gold-YOLO三输入简单融合（下采样对齐后拼接）
+  ▸ SimFusion_4in: Gold-YOLO浅层四输入简单融合（池化对齐后拼接）
+  ▸ IFM: Gold-YOLO中间特征模块：RepVGG块堆叠，聚合特征映射为多路尺度特征
+  ▸ h_sigmoid: 硬Sigmoid（ReLU6(x+3)/6，轻量）
+  ▸ InjectionMultiSum_Auto_pool: Gold-YOLO注入模块：全局信息经自适应池化多尺度求和后注入局部特征
+  ▸ PyramidPoolAgg: Gold-YOLO金字塔池化聚合：跨尺度自适应平均池化对齐
+  ▸ Mlp: MLP前馈网络
+  ▸ DropPath: Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
+  ▸ GOLDYOLO_Attention: Gold-YOLO注意力（GD机制收集-注入）
+  ▸ top_Block: 顶层块（Gold-YOLO TopBasicLayer包装）
+  ▸ TopBasicLayer: Gold-YOLO顶层Transformer层（多头注意力+MLP）
+  ▸ AdvPoolFusion: Gold-YOLO自适应平均池化融合两路特征
+  ▸ DCNV4_YOLO: 组合模块: DCNv4：可变形卷积v4，v3加速版，去除softmax归一化提升表达能力
+  ▸ Bottleneck_DCNV4: Standard bottleneck with DCNV3.
+  ▸ C3_DCNv4: C3瓶颈，bottleneck替换为DCNv4
+  ▸ C2f_DCNv4: C2f瓶颈结构，内部bottleneck替换为 DCNv4 模块
+  ▸ BasicBlock_DCNv4: PResNet残差瓶颈变体：3x3卷积替换为 DCNv4
+  ▸ BottleNeck_DCNv4: PResNet残差瓶颈变体：3x3卷积替换为 DCNv4
+  ▸ ChannelAttention_HSFPN: 组合模块: 通道注意力（GAP+1x1压缩激励，SE风格） + HS-FPN高效尺度序列FPN（MFM+UMU+AGAF）
+  ▸ ELA_HSFPN: HS-FPN+ELA高效局部注意力变体
+  ▸ h_sigmoid: 硬Sigmoid（ReLU6(x+3)/6，轻量）
+  ▸ h_swish: 硬Swish（x*h_sigmoid(x)，轻量）
+  ▸ CA_HSFPN: HS-FPN+CA坐标注意力变体
+  ▸ CAA_HSFPN: HS-FPN+CAA上下文锚点注意力变体
+  ▸ Multiply: 逐元素相乘（门控加权）
+  ▸ DySample: DySample：动态上采样，通过偏移生成器学习采样点实现轻量上采样
+  ▸ CARAFE: CARAFE：内容感知上采样，用子网络预测的重组核进行上采样
+  ▸ HWD: Haar小波下采样：DWT分解+1x1卷积融合
+  ▸ Bottleneck_SWC: Standard bottleneck with DilatedReparamBlock.
+  ▸ C3_SWC: C3瓶颈结构，bottleneck替换为 SWC 模块（SWC滑窗卷积（图像去雾Rethinking论文））
+  ▸ C2f_SWC: C2f瓶颈结构，内部bottleneck替换为 SWC 模块。组件: SWC滑窗卷积（图像去雾Rethinking论文）
+  ▸ BasicBlock_SWC: PResNet残差瓶颈变体：3x3卷积替换为 SWC（SWC滑窗卷积（图像去雾Rethinking论文））
+  ▸ BottleNeck_SWC: PResNet残差瓶颈变体：3x3卷积替换为 SWC（SWC滑窗卷积（图像去雾Rethinking论文））
+  ▸ Bottleneck_VSS: PResNet残差瓶颈变体：3x3卷积替换为 VSS
+  ▸ C3_VSS: C3瓶颈，bottleneck替换为VSS视觉状态空间Mamba块
+  ▸ C2f_VSS: C2f瓶颈结构，内部bottleneck替换为 VSS 模块
+  ▸ C3_LVMB: C3瓶颈，bottleneck替换为LVMB（LiteViM Mamba块）
+  ▸ C2f_LVMB: C2f瓶颈结构，内部bottleneck替换为 LVMB 模块
+  ▸ BasicBlock_VSS: PResNet残差瓶颈变体：3x3卷积替换为 VSS
+  ▸ BottleNeck_VSS: PResNet残差瓶颈变体：3x3卷积替换为 VSS
+  ▸ RepConvN: RepConv is a basic rep-style block, including training and deploy status This code is based on https://github.com/DingXiaoH/RepVGG/blob/main/repvgg.py
+  ▸ RepNBottleneck: RepVGG重参数化瓶颈（RepNeXt风格）
+  ▸ DBBNBottleneck: DBB多分支卷积瓶颈（供NCSP结构使用）
+  ▸ OREPANBottleneck: OREPA在线重参数化瓶颈（供NCSP结构使用）
+  ▸ DRBNBottleneck: DRB膨胀残差瓶颈（供NCSP结构使用）
+  ▸ Conv3XCNBottleneck: Conv3XC三分支卷积瓶颈（供NCSP结构使用）
+  ▸ RepNCSP: RepNeXt CSP结构（重参数化分支，部署合并）
+  ▸ DBBNCSP: ELAN CSP结构+DBB多分支卷积
+  ▸ OREPANCSP: ELAN CSP结构+OREPA在线重参数化模块
+  ▸ Conv3XCNCSP: ELAN CSP结构+Conv3XC三分支卷积
+  ▸ DRBNCSP: ELAN CSP结构+DRB膨胀残差块
+  ▸ RepNCSPELAN4: YOLOv10 ELAN CSP结构（RepVGG重参数分支），融合 Rep
+  ▸ DBBNCSPELAN4: YOLOv10 ELAN CSP结构（RepVGG重参数分支），融合 DBB
+  ▸ OREPANCSPELAN4: YOLOv10 ELAN CSP结构（RepVGG重参数分支），融合 OREPA
+  ▸ DRBNCSPELAN4: YOLOv10 ELAN CSP结构（RepVGG重参数分支），融合 DRB
+  ▸ Conv3XCNCSPELAN4: YOLOv10 ELAN CSP结构（RepVGG重参数分支），融合 Conv3XC
+  ▸ ADown: YOLOv9高效下采样：平均池化+1x1与3x3 stride2卷积两路并联
+  ▸ Fusion: 通用特征融合模块（fusion_mode指定逐元素相加/拼接等方式）
+  ▸ FGlo: the FGlo class is employed to refine the joint feature of both local feature and surrounding context.
+  ▸ ContextGuidedBlock: CGBlock上下文引导块：局部特征+全局上下文联合引导（上下文引导网络CGNet）
+  ▸ ContextGuidedBlock_Down: the size of feature map divided 2, (H,W,C)---->(H/2, W/2, 2C)
+  ▸ C3_ContextGuided: C3瓶颈，bottleneck替换为CGBlock上下文引导块
+  ▸ C2f_ContextGuided: C2f瓶颈结构，内部bottleneck替换为 ContextGuided 模块
+  ▸ BasicBlock_ContextGuided: PResNet残差瓶颈变体：3x3卷积替换为 ContextGuided
+  ▸ BottleNeck_ContextGuided: PResNet残差瓶颈变体：3x3卷积替换为 ContextGuided
+  ▸ ParallelAtrousConv: 并联空洞卷积（多膨胀率并联）
+  ▸ CSP_PAC: CSP Bottleneck with ParallelAtrousConv.
+  ▸ AttentionUpsample: 注意力上采样（MHA-YOLO）：全局池化门控+双分支上采样
+  ▸ AttentionDownsample: 注意力下采样（MHA-YOLO）：全局池化门控+双分支下采样
+  ▸ DGSM: DGSM动态组shuffle混合（DGCST组件：组卷积+通道shuffle）
+  ▸ DGCST: DGCST动态组卷积Shuffle Transformer：组卷积+空间shuffle跨组交互
+  ▸ DGCST2: DGCST变体2：DGSM动态组shuffle混合
+  ▸ RetBlockC3: C3瓶颈结构，内部bottleneck替换为 RetBlock 模块
+  ▸ C3_RetBlock: C3瓶颈，bottleneck替换为RMT的RetBlock（Retention注意力）
+  ▸ C2f_RetBlock: C2f瓶颈结构，内部bottleneck替换为 RetBlock 模块
+  ▸ GSiLU: Global Sigmoid-Gated Linear Unit, reproduced from paper <SIMPLE CNN FOR VISION>
+  ▸ PKIModule_CAA: 组合模块: PKINet多核聚合块：3/5/7/9/11多尺度DW卷积+CAA上下文锚点注意力 + CAA上下文锚点注意力
+  ▸ PKIModule: PKINet多核聚合块：3/5/7/9/11多尺度DW卷积+CAA上下文锚点注意力
+  ▸ C3_PKIModule: C3瓶颈结构，bottleneck替换为 PKIModule 模块（PKINet多核聚合块：3/5/7/9/11多尺度DW卷积+CAA上下文锚点注意力）
+  ▸ C2f_PKIModule: C2f瓶颈结构，内部bottleneck替换为 PKIModule 模块。组件: PKINet多核聚合块：3/5/7/9/11多尺度DW卷积+CAA上下文锚点注意力
+  ▸ RepNCSPELAN4_CAA: YOLOv10 ELAN CSP结构（RepVGG重参数分支），融合 Rep_CAA
+  ▸ BasicBlock_FADC: PResNet残差瓶颈变体：3x3卷积替换为 FADC
+  ▸ BottleNeck_FADC: PResNet残差瓶颈变体：3x3卷积替换为 FADC
+  ▸ Bottleneck_FADC: Standard bottleneck with FADC.
+  ▸ C3_FADC: C3瓶颈，bottleneck替换为FADC频域自适应膨胀卷积
+  ▸ C2f_FADC: C2f瓶颈结构，内部bottleneck替换为 FADC 模块
+  ▸ FocusFeature: 聚焦特征模块（FFM）：跨层特征聚焦融合
+  ▸ C3_PPA: C3瓶颈结构，bottleneck替换为 PPA 模块（HCFNet并行像素注意力（金字塔拼接+通道/空间注意力））
+  ▸ C2f_PPA: C2f瓶颈结构，内部bottleneck替换为 PPA 模块。组件: HCFNet并行像素注意力（金字塔拼接+通道/空间注意力）
+  ▸ Cut: 四象限切分模块：特征切为4块拼接后1x1融合（DRFD组件）
+  ▸ SRFD: 轻量下采样块：空间重标记（split+多分支卷积强化）
+  ▸ DRFD: DRFD细节恢复频率分解块（Cut四象限切分+DW卷积分支）
+  ▸ PSPModule: 金字塔池化模块（PSPNet：多尺度自适应平均池化+拼接）
+  ▸ LocalAttenModule: 局部注意力模块（GLSA的局部分支）
+  ▸ CFC_CRB: CFCNet上下文反馈卷积块：多grid金字塔上下文+空间注意力
+  ▸ SFC_G2: 空间上下文融合模块（2组）：非局部上下文生成+局部注意力增强
+  ▸ SpatialAttention_CGA: CGA空间注意力组件
+  ▸ ChannelAttention_CGA: CGA通道注意力组件
+  ▸ PixelAttention_CGA: CGA像素注意力组件
+  ▸ CGAFusion: CGA：内容引导注意力融合，一路特征生成空间注意力图加权另一路
+  ▸ CAFM: Convolution and Attention Fusion Module  (CAFM)
+  ▸ CAFMFusion: CAFM：通道注意力+像素注意力双重加权的两路特征融合
+  ▸ RGCSPELAN: RGC-ELAN：分组卷积ELAN CSP轻量结构
+  ▸ ConvolutionalGLU: 卷积门控线性单元（Conv+GLU前馈）
+  ▸ Faster_Block_CGLU: 组合模块: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + 基础块（文件内部通用块） + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ C3_Faster_CGLU: C3瓶颈结构，bottleneck替换为 Faster_CGLU 模块
+  ▸ C2f_Faster_CGLU: C2f瓶颈结构，内部bottleneck替换为 Faster_CGLU 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ BasicBlock_Faster_Block_CGLU: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_CGLU
+  ▸ BottleNeck_Faster_Block_CGLU: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_CGLU
+  ▸ SDFM: superficial detail fusion module
+  ▸ GEFM: 门控特征融合模块（PSFM组件）
+  ▸ DenseLayer: 密集连接层（PSFM组件：密集残差连接）
+  ▸ PSFM: PSFM像素级空间特征融合：DenseLayer密集连接+GEFM门控融合
+  ▸ Star_Block: StarNet星形块：两路线性变换逐元素乘法（星形操作）
+  ▸ Star_Block_CAA: 组合模块: 基础块（文件内部通用块） + CAA上下文锚点注意力
+  ▸ C3_Star: C3瓶颈，bottleneck替换为StarNet星形块（两路卷积逐元素乘）
+  ▸ C2f_Star: C2f瓶颈结构，内部bottleneck替换为 Star 模块
+  ▸ C3_Star_CAA: C3瓶颈结构，bottleneck替换为 Star_CAA 模块
+  ▸ C2f_Star_CAA: C2f瓶颈结构，内部bottleneck替换为 Star_CAA 模块。组件: CAA上下文锚点注意力
+  ▸ BasicBlock_Star: PResNet残差瓶颈变体：3x3卷积替换为 Star
+  ▸ BottleNeck_Star: PResNet残差瓶颈变体：3x3卷积替换为 Star
+  ▸ Bottleneck_KAN: PResNet残差瓶颈变体：3x3卷积替换为 KAN（MLP as used in Vision Transformer, MLP-Mixer and related networks）
+  ▸ C3_KAN: C3瓶颈结构，bottleneck替换为 KAN 模块（MLP as used in Vision Transformer, MLP-Mixer and related networks）
+  ▸ C2f_KAN: C2f瓶颈结构，内部bottleneck替换为 KAN 模块。组件: MLP as used in Vision Transformer, MLP-Mixer and related networks
+  ▸ BasicBlock_KAN: PResNet残差瓶颈变体：3x3卷积替换为 KAN（MLP as used in Vision Transformer, MLP-Mixer and related networks）
+  ▸ BottleNeck_KAN: PResNet残差瓶颈变体：3x3卷积替换为 KAN（MLP as used in Vision Transformer, MLP-Mixer and related networks）
+  ▸ KANC3: C3瓶颈结构，内部bottleneck替换为 KAN 模块（MLP as used in Vision Transformer, MLP-Mixer and related networks）
+  ▸ ContextGuideFusionModule: CGFusion上下文引导融合模块：局部/全局上下文联合引导融合
+  ▸ Bottleneck_DEConv: Standard bottleneck with DCNV3.
+  ▸ C3_DEConv: C3瓶颈结构，bottleneck替换为 DEConv 模块（DEConv：差分卷积（详情差分/边界差分等四种差分卷积并联，可重参数化合并））
+  ▸ C2f_DEConv: C2f瓶颈结构，内部bottleneck替换为 DEConv 模块。组件: DEConv：差分卷积（详情差分/边界差分等四种差分卷积并联，可重参数化合并）
+  ▸ BasicBlock_DEConv: PResNet残差瓶颈变体：3x3卷积替换为 DEConv（DEConv：差分卷积（详情差分/边界差分等四种差分卷积并联，可重参数化合并））
+  ▸ BottleNeck_DEConv: PResNet残差瓶颈变体：3x3卷积替换为 DEConv（DEConv：差分卷积（详情差分/边界差分等四种差分卷积并联，可重参数化合并））
+  ▸ SMPCGLU: SMP块+ConvGlu门控前馈组合
+  ▸ C3_SMPCGLU: C3瓶颈，bottleneck替换为SMP块+ConvGlu
+  ▸ C2f_SMPCGLU: C2f瓶颈结构，内部bottleneck替换为 SMPCGLU 模块。组件: SMP块+ConvGlu门控前馈组合
+  ▸ Mlp_Heat: 组合模块: MLP前馈网络 + vHeat块（CVPR2025）：基于热传导方程的视觉Mamba
+  ▸ LayerNorm2d: 2D层归一化（mona）
+  ▸ Heat2D: du/dt -k(d2u/dx2 + d2u/dy2) = 0; du/dx_{x=0, x=a} = 0 du/dy_{y=0, y=b} = 0
+  ▸ HeatBlock: vHeat热扩散块（CVPR2025）：热传导方程离散化的视觉Mamba
+  ▸ C3_Heat: C3瓶颈结构，bottleneck替换为 Heat 模块（vHeat块（CVPR2025）：基于热传导方程的视觉Mamba）
+  ▸ C2f_Heat: C2f瓶颈结构，内部bottleneck替换为 Heat 模块。组件: vHeat块（CVPR2025）：基于热传导方程的视觉Mamba
+  ▸ SBA: HCFNet边界注意力模块：融合局部细节与全局上下文，增强目标边界响应
+  ▸ PSA_Attention: PSA极化自注意力变体
+  ▸ PSA: 极化自注意力（PSA：通道极化+空间极化双分支）
+  ▸ WaveletPool: Haar小波池化下采样（LL/LH/HL/HH四子带）
+  ▸ WaveletUnPool: Haar小波逆池化上采样
+  ▸ MHSA_CGLU: 组合模块: ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ PartiallyTransformerBlock: 部分Transformer块：部分通道走注意力，其余走卷积（轻量）
+  ▸ CSP_PTB: CSP-PTB(Partially Transformer Block).
+  ▸ ContextBlock: GCNet上下文模块：全局上下文建模（transformer式简化）
+  ▸ GLSAChannelAttention: GLSA通道注意力分支
+  ▸ GLSASpatialAttention: GLSA空间注意力分支
+  ▸ GLSAConvBranch: GLSA卷积分支
+  ▸ GLSA: GLSA：全局-局部空间注意力（局部/全局双分支+sigmoid空间门控）
+  ▸ SPDConv: SPDConv：空间到深度（Space-to-Depth）下采样，无信息丢失的下采样替代方案
+  ▸ FGM: FSV6频域门控调制
+  ▸ OmniKernel: OmniKernel全能核：频域FCA+1x1/3x3/13x1/31x1大核DW卷积全局建模
+  ▸ CSPOmniKernel: CSP版OmniKernel：频域FCA注意力+1x1/3x3/13x1/31x1大核深度卷积全局建模
+  ▸ BasicBlock_WTConv: PResNet残差瓶颈变体：3x3卷积替换为 WTConv
+  ▸ BottleNeck_WTConv: PResNet残差瓶颈变体：3x3卷积替换为 WTConv
+  ▸ PyramidPoolAgg_PCE: 组合模块: Gold-YOLO金字塔池化聚合：跨尺度自适应平均池化对齐
+  ▸ ConvMlp: MLP using 1x1 convs that keeps spatial dims copied from timm: https://github.com/huggingface/pytorch-image-models/blob/v0.6.11/timm/models/layers/mlp.py
+  ▸ RCA: Gold-YOLO RCA：残差到残差的通道注意力聚合（Residual-to-Residual CA）
+  ▸ RCM: MetaNeXtBlock Block Args: dim (int): Number of input channels.
+  ▸ multiRCM: 多RCA串联（n个RCA残差通道注意力块堆叠）
+  ▸ PyramidContextExtraction: 金字塔上下文提取（PCE）：多尺度池化聚合+RCA上下文建模
+  ▸ FuseBlockMulti: 多特征融合块：多路特征RCA聚合后按通道split分发
+  ▸ DynamicInterpolationFusion: 动态插值融合：sigmoid门控+双线性插值加权融合两路特征
+  ▸ DMlp: 动态MLP（输入自适应MLP）
+  ▸ PCFN: PCFN并联卷积前馈网络（MFDS-DETR）
+  ▸ SMFA: SMFA尺度感知多频聚合（MFDS-DETR）：多尺度频率分量自适应聚合
+  ▸ FMB: FMB特征混合块（MFDS-DETR）：SMFA+PCFN组合
+  ▸ C2f_FMB: C2f瓶颈结构，内部bottleneck替换为 FMB 模块。组件: FMB特征混合块（MFDS-DETR）：SMFA+PCFN组合
+  ▸ gConvBlock: gConv门控卷积块（gated conv block）
+  ▸ gConvC3: C3瓶颈结构，内部bottleneck替换为 gConv 模块（gConv：门控卷积（gated conv）结构）
+  ▸ C2f_gConv: C2f瓶颈结构，内部bottleneck替换为 gConv 模块。组件: gConv：门控卷积（gated conv）结构
+  ▸ LDConv: LDConv：可学习卷积，通过可学习偏移量获得任意形状感受野
+  ▸ Mlp_CASVIT: CAS-ViT MLP（卷积风格轻量前馈）
+  ▸ SpatialOperation: 空间操作（空间重排工具层）
+  ▸ ChannelOperation: 通道操作（通道重排/选择工具层）
+  ▸ LocalIntegration: 局部特征整合模块
+  ▸ AdditiveTokenMixer: 改变了proj函数的输入，不对q+k卷积，而是对融合之后的结果proj
+  ▸ AdditiveBlock: Meta加性token mixer：dwc(q+k)*v
+  ▸ AdditiveBlock_CGLU: 组合模块: Meta加性token mixer：dwc(q+k)*v + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ C2f_AdditiveBlock: C2f瓶颈结构，内部bottleneck替换为 AdditiveBlock 模块。组件: Meta加性token mixer：dwc(q+k)*v
+  ▸ C2f_AdditiveBlock_CGLU: C2f瓶颈结构，内部bottleneck替换为 AdditiveBlock_CGLU 模块。组件: Meta加性token mixer：dwc(q+k)*v + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ EUCB: EUCB高效上采样卷积块：上采样+DW卷积+SCA（EMA风格）
+  ▸ MSDC: Multi-scale depth-wise convolution (MSDC)
+  ▸ MSCB: Multi-scale convolution block (MSCB)
+  ▸ CSP_MSCB: CSP结构，内部块替换为 MSCB 模块（Multi-scale convolution block (MSCB)）
+  ▸ MutilScal: 多尺度块（transformer多尺度编码层）
+  ▸ Mutilscal_MHSA: 多尺度MHSA（不同膨胀率）
+  ▸ MSMHSA_CGLU: 组合模块: 多尺度多头自注意力 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ C2f_MSMHSA_CGLU: C2f瓶颈结构，内部bottleneck替换为 MSMHSA_CGLU 模块。组件: 多尺度多头自注意力 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ PMSFA: PMSFA部分多尺度特征聚合：分流多尺度卷积融合
+  ▸ CSP_PMSFA: CSP结构+PMSFA部分多尺度特征聚合
+  ▸ ElementScale: A learnable element-wise scaler.
+  ▸ ChannelAggregationFFN: An implementation of FFN with Channel Aggregation. Args: embed_dims (int): The feature dimension. Same as
+  ▸ MultiOrderDWConv: Multi-order Features with Dilated DWConv Kernel. Args: embed_dims (int): Number of input channels.
+  ▸ MultiOrderGatedAggregation: Spatial Block with Multi-order Gated Aggregation. Args: embed_dims (int): Number of input channels.
+  ▸ MogaBlock: MogaNet块：门控空间上下文聚合+FFN（混合卷积门控注意力）
+  ▸ C2f_MogaBlock: C2f瓶颈结构，内部bottleneck替换为 MogaBlock 模块。组件: MogaNet块：门控空间上下文聚合+FFN（混合卷积门控注意力）
+  ▸ Conv2d_BN: Conv2d+BN融合层（部署友好）
+  ▸ Residual: 残差包装器（x+f(x)）
+  ▸ SHSA_GroupNorm: Group Normalization with 1 group. Input: tensor in shape [B, C, H, W]
+  ▸ SHSABlock_FFN: SHSA块前馈网络
+  ▸ SHSA: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量）
+  ▸ SHSA_EPGO: Single-Head Self-Attention
+  ▸ SHSABlock: SHSA块：EfficientViT单头自注意力+FFN
+  ▸ SHSABlock_EPGO: 组合模块: SHSA块：EfficientViT单头自注意力+FFN + EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力
+  ▸ C2f_SHSA: C2f瓶颈结构，内部bottleneck替换为 SHSA 模块。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量）
+  ▸ C2f_SHSA_EPGO: C2f瓶颈结构，内部bottleneck替换为 SHSA_EPGO 模块。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量） + EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力
+  ▸ SHSABlock_CGLU: 组合模块: SHSA块：EfficientViT单头自注意力+FFN + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ SHSABlock_EPGO_CGLU: 组合模块: SHSA块：EfficientViT单头自注意力+FFN + EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ C2f_SHSA_CGLU: C2f瓶颈结构，内部bottleneck替换为 SHSA_CGLU 模块。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量） + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ C2f_SHSA_EPGO_CGLU: C2f瓶颈结构，内部bottleneck替换为 SHSA_EPGO_CGLU 模块。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量） + EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ Modulator: 调制器（FocalModulation焦点调制组件）
+  ▸ SMA: SMA软混合注意力（SMAFormer）
+  ▸ E_MLP: E-MLP增强型多层感知机
+  ▸ SMAFormerBlock: SMAFormer块：软混合注意力+ConvFFN（轻量Former）
+  ▸ SMAFormerBlock_CGLU: 组合模块: SMAFormer块：软混合注意力+ConvFFN（轻量Former） + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ C2f_SMAFB: C2f瓶颈结构，内部bottleneck替换为 SMAFB 模块。组件: SMAFB轻量软混合聚合前馈块
+  ▸ C2f_SMAFB_CGLU: C2f瓶颈结构，内部bottleneck替换为 SMAFB_CGLU 模块。组件: SMAFB轻量软混合聚合前馈块 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ DynamicAlignFusion: 动态对齐融合：可学习对齐两路特征后融合
+  ▸ EdgeEnhancer: 1.使用 nn.AvgPool2d 对输入特征图进行平滑操作，提取其低频信息。 | 2.将原始输入特征图与平滑后的特征图进行相减，得到增强的边缘信息（高频信息）。 | 3.用卷积操作进一步处理增强的边缘信息。 | 4.将处理后的边缘信息与原始输入特征图相加，以形成增强后的输出。
+  ▸ MutilScaleEdgeInformationEnhance: 多尺度边缘信息增强（Sobel边缘+多尺度融合）
+  ▸ MutilScaleEdgeInformationSelect: 多尺度边缘信息选择融合
+  ▸ CSP_MutilScaleEdgeInformationEnhance: CSP结构+多尺度边缘信息增强（Sobel边缘多尺度融合）
+  ▸ CSP_MutilScaleEdgeInformationSelect: CSP结构+多尺度边缘信息选择融合
+  ▸ FourierUnit: 傅里叶单元（FFT域处理：rfft2+卷积+irfft2）
+  ▸ Freq_Fusion: 频域融合模块（FFT域特征融合）
+  ▸ Fused_Fourier_Conv_Mixer: 融合傅里叶卷积混合器：FFT全局+卷积局部联合token混合
+  ▸ C2f_FFCM: C2f瓶颈结构，内部bottleneck替换为 FFCM 模块。组件: 频域特征通道混合模块（FFT+通道交互）
+  ▸ SFHF_FFN: SFHF频域混合前馈网络
+  ▸ TokenMixer_For_Local: 局部token mixer（局部窗口混合）
+  ▸ SFHF_FourierUnit: SFHF傅里叶单元（FFT域处理）
+  ▸ TokenMixer_For_Gloal: 全局token mixer（全局上下文混合）
+  ▸ SFHF_Mixer: SFHF混合器（空间+频域token混合）
+  ▸ SFHF_Block: SFHF空间-频域混合融合块
+  ▸ C2f_SFHF: C2f瓶颈结构，内部bottleneck替换为 SFHF 模块
+  ▸ ScharrConv: Scharr边缘卷积（固定3x3梯度卷积）
+  ▸ FreqSpatial: 频域-空间混合块：小波/FFT频域分支+空间分支
+  ▸ CSP_FreqSpatial: CSP结构+频域-空间混合块（小波低频/高频分离处理）
+  ▸ DeepPoolLayer: 深度池化层（MSM多尺度混合组件：多尺度池化）
+  ▸ dynamic_filter: 动态滤波器（Meta Dynamic Filter：预测输入自适应空间滤波器）
+  ▸ cubic_attention: 立方注意力：H/W双向条带注意力+可学习gamma
+  ▸ spatial_strip_att: 空间条带注意力（H或W方向1xk条带DW+注意力）
+  ▸ MultiShapeKernel: 多形状核：不同形状卷积核（1xk/kx1/3x3）并联
+  ▸ C2f_MSM: C2f瓶颈结构，内部bottleneck替换为 MSM 模块
+  ▸ CAB: CAB通道注意力块（GAP+1x1压缩激励）
+  ▸ HDRAB: HDRAB混合双残差注意力块：CAB通道注意力+双残差（图像去雾）
+  ▸ C2f_HDRAB: C2f瓶颈结构，内部bottleneck替换为 HDRAB 模块。组件: HDRAB混合双残差注意力块：CAB通道注意力+双残差（图像去雾）
+  ▸ ChannelPool: 通道池化（最大+平均池化拼接，CBAM空间注意力组件）
+  ▸ SAB: 空间注意力块（CBAM风格：ChannelPool+卷积）
+  ▸ RAB: RAB残差注意力块（RADN去噪网络）
+  ▸ C2f_RAB: C2f瓶颈结构，内部bottleneck替换为 RAB 模块。组件: RAB残差注意力块（RADN去噪网络）
+  ▸ MeanShift: RGB均值偏移层（超分网络输入归一化，固定参数）
+  ▸ ShiftConv2d0: 移位卷积变体0
+  ▸ ShiftConv2d1: 移位卷积变体1
+  ▸ ShiftConv2d: 移位卷积2D（unsqueeze移位+卷积，轻量）
+  ▸ LFE: LFE轻量特征提取块（LSNet）
+  ▸ LFEC3: C3瓶颈结构，内部bottleneck替换为 LFE 模块（LFE轻量特征提取块（LSNet））
+  ▸ SobelConv: Sobel边缘卷积（固定梯度卷积）
+  ▸ MutilScaleEdgeInfoGenetator: 多尺度边缘信息生成器：Sobel算子提取边缘+逐级最大池化生成多尺度边缘特征
+  ▸ ConvEdgeFusion: 边缘特征融合：多尺度边缘信息与主干特征卷积融合
+  ▸ FrequencyProjection: Frequency Projection. Args: dim (int): input channels.
+  ▸ ChannelProjection: Channel Projection. Args: dim (int): input channels.
+  ▸ SpatialProjection: Spatial Projection. Args: dim (int): input channels.
+  ▸ DynamicPosBias: Dynamic Relative Position Bias. Args: dim (int): Number of input channels.
+  ▸ Spatial_Attention: Spatial Self-Attention. It supports rectangle window (containing square window). Args:
+  ▸ Spatial_Frequency_Attention: Spatial Frequency Self-Attention Args: dim (int): Number of input channels.
+  ▸ Channel_Transposed_Attention: Channel Transposed Self-Attention Args: dim (int): Number of input channels.
+  ▸ FrequencyGate: Frequency-Gate. Args: dim (int): Input channels.
+  ▸ DFFN: Dual frequency aggregation Feed-Forward Network. Args: in_features (int): Number of input channels.
+  ▸ FCA: FCA频域通道注意力（FcaNet）：DCT多频率分量做通道注意力统计
+  ▸ C2f_FCA: C2f瓶颈结构，内部bottleneck替换为 FCA 模块。组件: FCA频域通道注意力（FcaNet）：DCT多频率分量做通道注意力统计
+  ▸ C2f_CAMixer: C2f瓶颈结构，内部bottleneck替换为 CAMixer 模块。组件: CAMixer（ECCV2024）：内容感知token混合器（路由器决定token走卷积还是注意力）
+  ▸ MANet: MANet多尺度注意力瓶颈（DSMA多尺度注意力）
+  ▸ MANet_FasterBlock: MANet+FasterBlock混合：部分卷积瓶颈
+  ▸ MANet_FasterCGLU: MANet+FasterBlock+ConvGlu
+  ▸ MANet_Star: MANet+StarReLU轻量块
+  ▸ MessageAgg: 消息聚合器（超像素卷积组件：mean/sum聚合）
+  ▸ HyPConv: 超像素卷积（HyPConv）：像素-超像素消息传递（MessageAgg mean聚合）
+  ▸ HyperComputeModule: YOLOv13超图计算模块：v→e→v两阶段超图卷积建模高阶关联
+  ▸ GlobalExtraction: 全局特征提取分支（CGBlock组件）
+  ▸ ContextExtraction: 上下文提取模块（CGBlock组件）
+  ▸ MultiscaleFusion: 多尺度融合模块
+  ▸ MultiScaleGatedAttn: 多尺度门控注意力（MHA-YOLO）：局部+全局分支门控融合
+  ▸ HFERB: CRAFT高频增强残差块（ICCV2023）：显式高频分支增强
+  ▸ C2f_HFERB: C2f瓶颈结构，内部bottleneck替换为 HFERB 模块。组件: CRAFT高频增强残差块（ICCV2023）：显式高频分支增强
+  ▸ C2f_DTAB: C2f瓶颈结构，内部bottleneck替换为 DTAB 模块。组件: TSDN去噪Transformer块（AAAI2025）：MDTA通道注意力+膨胀重叠交叉注意力
+  ▸ JDPM: JDPM联合域感知模块（ECCV2024频空纠缠学习）：频域+空间域联合调制
+  ▸ C2f_JDPM: C2f瓶颈结构，内部bottleneck替换为 JDPM 模块。组件: JDPM联合域感知模块（ECCV2024频空纠缠学习）：频域+空间域联合调制
+  ▸ FeedForward: 前馈网络（tsdn）
+  ▸ Attention_F: 频域注意力分支（ETB组件：FFT域注意力）
+  ▸ Attention_S: 空间注意力分支（ETB频域-空间双注意力块组件）
+  ▸ ETB: ETB频域-空间双注意力Transformer块：空间+频域双分支
+  ▸ C2f_ETB: C2f瓶颈结构，内部bottleneck替换为 ETB 模块。组件: ETB频域-空间双注意力Transformer块：空间+频域双分支
+  ▸ GSA: GSA全局稀疏注意力（Restormer风格转置通道注意力变体）
+  ▸ RSA: RSA稀疏注意力
+  ▸ FDT: 频域Transformer块：窗口频域注意力+空间注意力混合
+  ▸ C2f_FDT: C2f瓶颈结构，内部bottleneck替换为 FDT 模块。组件: 频域Transformer块：窗口频域注意力+空间注意力混合
+  ▸ HaarWavelet: Haar小波变换模块
+  ▸ WFU: 小波特征上采样单元：Haar小波正/逆变换实现上采样+残差融合
+  ▸ PSConv: PSConv：多尺度卷积，不同组使用不同空洞率拼接
+  ▸ APBottleneck: Asymmetric Padding bottleneck.
+  ▸ C2f_AP: C2f瓶颈结构，内部bottleneck替换为 AP 模块。组件: AP风车卷积瓶颈（Pinwheel-shaped Convolution，红外小目标）：旋转对称风车形卷积
+  ▸ HaarWaveletConv: Haar小波卷积：DWT分解+频带卷积+IDWT重建
+  ▸ ContrastDrivenFeatureAggregation: 对比驱动特征聚合（MFDS-DETR CDC）：小波低频/高频分离+对比度驱动注意力
+  ▸ ELGCA_MLP: 组合模块: ELGCA：高效局部全局上下文聚合注意力（多头局部门控） + MLP前馈网络（CFBlock组件）
+  ▸ ELGCA: ELGCA：高效局部全局上下文聚合注意力（多头局部门控）
+  ▸ ELGCA_EncoderBlock: dim: number of channels of input features
+  ▸ C2f_ELGCA: C2f瓶颈结构，内部bottleneck替换为 ELGCA 模块。组件: ELGCA：高效局部全局上下文聚合注意力（多头局部门控）
+  ▸ ELGCA_CGLU: dim: number of channels of input features
+  ▸ C2f_ELGCA_CGLU: C2f瓶颈结构，内部bottleneck替换为 ELGCA_CGLU 模块。组件: ELGCA：高效局部全局上下文聚合注意力（多头局部门控） + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ StripMlp: 条带MLP（H/W条带方向MLP）
+  ▸ Strip_Block: 条带注意力块（Strip Block，H/W条带注意力+FFN）
+  ▸ Strip_Attention: 条带注意力：1xk/kx1条带空间注意力
+  ▸ StripBlock: 条带注意力块：1xk条带注意力
+  ▸ C2f_Strip: C2f瓶颈结构，内部bottleneck替换为 Strip 模块
+  ▸ StripCGLU: 条带注意力+ConvGlu门控前馈组合
+  ▸ C2f_StripCGLU: C2f瓶颈结构，内部bottleneck替换为 StripCGLU 模块。组件: 条带注意力+ConvGlu门控前馈组合
+  ▸ MultiScalePCA: 多尺度并联坐标注意力
+  ▸ MultiScalePCA_Down: 多尺度并联坐标注意力下采样融合
+  ▸ Adaptive_global_filter: 自适应全局滤波器（频域可学习滤波）
+  ▸ SpatialAttention: 空间注意力
+  ▸ FSA: FSA频域空间注意力：自适应全局滤波(AGF)+空间注意力(SA)并联
+  ▸ KAN: MLP as used in Vision Transformer, MLP-Mixer and related networks
+  ▸ KatAttention: KAT注意力层
+  ▸ LayerScale: LayerScale层缩放：可学习逐通道缩放系数（残差稳定训练）
+  ▸ Kat: KAT模块（KAN风格）
+  ▸ C2f_KAT: C2f瓶颈结构，内部bottleneck替换为 KAT 模块
+  ▸ Faster_Block_KAN: 组合模块: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + 基础块（文件内部通用块） + MLP as used in Vision Transformer, MLP-Mixer and related networks
+  ▸ C2f_Faster_KAN: C2f瓶颈结构，内部bottleneck替换为 Faster_KAN 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + MLP as used in Vision Transformer, MLP-Mixer and related networks
+  ▸ DynamicInceptionDWConv2d: Dynamic Inception depthweise convolution
+  ▸ DynamicInceptionMixer: 动态Inception混合器（DynamicIncMixerBlock组件）
+  ▸ DynamicIncMixerBlock: 动态Inception混合块（多尺度核动态混合）
+  ▸ C2f_DCMB: C2f瓶颈结构，内部bottleneck替换为 DCMB 模块
+  ▸ DynamicCIncMixerBlock_KAN: 组合模块: MLP as used in Vision Transformer, MLP-Mixer and related networks
+  ▸ C2f_DCMB_KAN: C2f瓶颈结构，内部bottleneck替换为 DCMB_KAN 模块。组件: MLP as used in Vision Transformer, MLP-Mixer and related networks
+  ▸ GlobalFilter: GFNet全局滤波器：频域可学习全局滤波替代自注意力
+  ▸ GlobalFilterBlock: GFNet全局滤波器块：FFT频域可学习滤波替代自注意力
+  ▸ C2f_GlobalFilter: C2f瓶颈结构，内部bottleneck替换为 GlobalFilter 模块。组件: GFNet全局滤波器：频域可学习全局滤波替代自注意力
+  ▸ StarReLU: StarReLU激活：s*relu(x)^2+b（Meta MetaFormer）
+  ▸ DynamicFilterMlp: MLP as used in MetaFormer models, eg Transformer, MLP-Mixer, PoolFormer, MetaFormer baslines and related networks. Mostly copied from timm.
+  ▸ DynamicFilter: Meta动态过滤器token mixer：预测输入自适应空间滤波器
+  ▸ C2f_DynamicFilter: C2f瓶颈结构，内部bottleneck替换为 DynamicFilter 模块。组件: Meta动态过滤器token mixer：预测输入自适应空间滤波器
+  ▸ HAFB: HAFB层次注意力融合块：LocalGlobalAttention局部-全局双分支融合（双主干融合用）
+  ▸ C2f_SAVSS: C2f瓶颈结构，内部bottleneck替换为 SAVSS 模块。组件: SAVSS空间聚合视觉状态空间块
+  ▸ C2f_MambaOut: C2f瓶颈结构，内部bottleneck替换为 MambaOut 模块
+  ▸ GatedUniRepLKBlock_BCHW: Our implementation of Gated CNN Block: https://arxiv.org/pdf/1612.08083 Args: conv_ratio: control the number of channels to conduct depthwise convolution.
+  ▸ C2f_MambaOut_UniRepLK: C2f瓶颈结构，内部bottleneck替换为 MambaOut_UniRepLK 模块
+  ▸ C2f_EfficientVIM: C2f瓶颈结构，内部bottleneck替换为 EfficientVIM 模块
+  ▸ C2f_EfficientVIM_CGLU: C2f瓶颈结构，内部bottleneck替换为 EfficientVIM_CGLU 模块。组件: ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ Shift_channel_mix: 具体而言，该模块首先沿着通道维度（dim=1）对输入特征图进行四等分分块（即 x_1, x_2, x_3, x_4），随后分别在水平方向（宽度维度）和垂直方向（高度维度）上施加正负方向的循环移位（circular shift）。 | 其中，x_1 和 x_2 分别在高度方向进行正向和负向偏移，而 x_3 和 x_4 则在宽度方向进行正向和负向偏移。 | 最终，偏移后的特征块通过通道拼接（channel concatenation）重新组合，以实现跨通道的信息交互与局部特征增强。 | 该设计的核心
+  ▸ EUCB_SC: EUCB+SC空间上下文：上采样+DW卷积+注意力
+  ▸ MSCB_SC: Multi-scale convolution block (MSCB)
+  ▸ CSP_MSCB_SC: CSP结构，内部块替换为 MSCB_SC 模块（Multi-scale convolution block (MSCB)）
+  ▸ CrossAttentionBlock: Cross Attention Block
+  ▸ IEL: IEL强度增强层（SEGNet）：门控DWConv前馈
+  ▸ C2f_IEL: C2f瓶颈结构，内部bottleneck替换为 IEL 模块。组件: IEL强度增强层（SEGNet）：门控DWConv前馈
+  ▸ IELC3: C3瓶颈结构，内部bottleneck替换为 IEL 模块（IEL强度增强层（SEGNet）：门控DWConv前馈）
+  ▸ C2f_RCB: C2f瓶颈结构，内部bottleneck替换为 RCB 模块
+  ▸ C2f_FAT: C2f瓶颈结构，内部bottleneck替换为 FAT 模块。组件: FAT频域token交互块
+  ▸ C2f_LEGM: C2f瓶颈结构，内部bottleneck替换为 LEGM 模块。组件: DCMPNet轻量增强模块
+  ▸ C2f_MobileMamba: C2f瓶颈结构，内部bottleneck替换为 MobileMamba 模块
+  ▸ Conv_Extra: 扩展卷积（额外分支卷积）
+  ▸ Scharr: Scharr边缘算子模块
+  ▸ Gaussian: 高斯模块（可学习高斯滤波）
+  ▸ LFEA: LFE注意力增强变体
+  ▸ LFE_Module: LFE轻量特征提取模块
+  ▸ C2f_LFEM: C2f瓶颈结构，内部bottleneck替换为 LFEM 模块。组件: LFEM轻量特征增强模块
+  ▸ DRFD_LoG: 组合模块: DRFD细节恢复频率分解块（Cut四象限切分+DW卷积分支）
+  ▸ LoGFilter: LoG滤波器（LoG-Net）：Laplacian of Gaussian边缘增强滤波
+  ▸ LoGStem: LoGNet的Stem：多分支卷积下采样头
+  ▸ C2f_SBSM: C2f瓶颈结构，内部bottleneck替换为 SBSM 模块。组件: SEMNet语义桥接块（WACV2024）：门控语义融合
+  ▸ C2f_LSBlock: C2f瓶颈结构，内部bottleneck替换为 LSBlock 模块。组件: MambaYOLO的LS块（DW卷积+BN+GELU+1x1瓶颈结构）
+  ▸ GatedLSConvBlock_BCHW: Our implementation of Gated CNN Block: https://arxiv.org/pdf/1612.08083 Args: conv_ratio: control the number of channels to conduct depthwise convolution.
+  ▸ C2f_MambaOut_LSConv: C2f瓶颈结构，内部bottleneck替换为 MambaOut_LSConv 模块
+  ▸ C2f_TransMamba: C2f瓶颈结构，内部bottleneck替换为 TransMamba 模块
+  ▸ C2f_EVS: C2f瓶颈结构，内部bottleneck替换为 EVS 模块。组件: EVSSM增强视觉状态空间Mamba块
+  ▸ C2f_EBlock: C2f瓶颈结构，内部bottleneck替换为 EBlock 模块。组件: DarkIR EBlock编码块（图像恢复）
+  ▸ C2f_DBlock: C2f瓶颈结构，内部bottleneck替换为 DBlock 模块。组件: DarkIR DBlock：多膨胀率深度卷积分支块（图像恢复）
+  ▸ Bottleneck_FDConv: PResNet残差瓶颈变体：3x3卷积替换为 FDConv（FDConv：频域可分解卷积，FBM频带分解自适应多频卷积）
+  ▸ C2f_FDConv: C2f瓶颈结构，内部bottleneck替换为 FDConv 模块。组件: FDConv：频域可分解卷积，FBM频带分解自适应多频卷积
+  ▸ GatedFDConvBlock_BCHW: Our implementation of Gated CNN Block: https://arxiv.org/pdf/1612.08083 Args: conv_ratio: control the number of channels to conduct depthwise convolution.
+  ▸ C2f_MambaOut_FDConv: C2f瓶颈结构，内部bottleneck替换为 MambaOut_FDConv 模块。组件: FDConv：频域可分解卷积，FBM频带分解自适应多频卷积
+  ▸ Partial_FDConv: 组合模块: FDConv：频域可分解卷积，FBM频带分解自适应多频卷积
+  ▸ FasterFDConv: FasterNet部分卷积结构+FDConv频域可分解卷积组合
+  ▸ Bottleneck_PFDConv: PResNet残差瓶颈变体：3x3卷积替换为 PFDConv（FDConv的P变体（并行频带））
+  ▸ C2f_PFDConv: C2f瓶颈结构，内部bottleneck替换为 PFDConv 模块。组件: FDConv的P变体（并行频带）
+  ▸ C2f_FasterFDConv: C2f瓶颈结构，内部bottleneck替换为 FasterFDConv 模块。组件: FasterNet部分卷积结构+FDConv频域可分解卷积组合
+  ▸ FDConvC3: C3瓶颈结构，内部bottleneck替换为 FDConv 模块（FDConv：频域可分解卷积，FBM频带分解自适应多频卷积）
+  ▸ C2f_DSAN: C2f瓶颈结构，内部bottleneck替换为 DSAN 模块。组件: DSAN双重空间注意力网络块：DSA空间注意力+FFN残差
+  ▸ C2f_DSAN_EDFFN: C2f瓶颈结构，内部bottleneck替换为 DSAN_EDFFN 模块。组件: DSAN双重空间注意力网络块：DSA空间注意力+FFN残差 + EDFFN高效分解前馈网络：小波patch感知FFN
+  ▸ GatedDSABlock_BCHW: Our implementation of Gated CNN Block: https://arxiv.org/pdf/1612.08083 Args: conv_ratio: control the number of channels to conduct depthwise convolution.
+  ▸ C2f_MambaOut_DSA: C2f瓶颈结构，内部bottleneck替换为 MambaOut_DSA 模块。组件: DSA空间门控注意力：proj+DSCNPair中心差分空间门控单元
+  ▸ Bottleneck_DSA: PResNet残差瓶颈变体：3x3卷积替换为 DSA（DSA空间门控注意力：proj+DSCNPair中心差分空间门控单元）
+  ▸ C2f_DSA: C2f瓶颈结构，内部bottleneck替换为 DSA 模块。组件: DSA空间门控注意力：proj+DSCNPair中心差分空间门控单元
+  ▸ C2f_RMB: C2f瓶颈结构，内部bottleneck替换为 RMB 模块。组件: RMB残差混合块（MaIR组件）
+  ▸ SNI: https://github.com/AlanLi1997/rethinking-fpn soft nearest neighbor interpolation for up-sampling secondary features aligned
+  ▸ GSConvE: GSConv enhancement for representation learning: generate various receptive-fields and texture-features only in one Conv module https://github.com/AlanLi1997/slim-neck-by-gsconv
+  ▸ Bottleneck_SFSConv: PResNet残差瓶颈变体：3x3卷积替换为 SFSConv
+  ▸ C2f_SFSConv: C2f瓶颈结构，内部bottleneck替换为 SFSConv 模块
+  ▸ GatedSFSCBlock_BCHW: Our implementation of Gated CNN Block: https://arxiv.org/pdf/1612.08083 Args: conv_ratio: control the number of channels to conduct depthwise convolution.
+  ▸ C2f_MambaOut_SFSC: C2f瓶颈结构，内部bottleneck替换为 MambaOut_SFSC 模块
+  ▸ Partial_SFSConv: Partial SFSConv：部分通道走SFSConv频域卷积的轻量结构
+  ▸ FasterSFSConv: FasterNet部分卷积结构+SFSConv尺度序列频域卷积组合
+  ▸ Bottleneck_PSFSConv: PResNet残差瓶颈变体：3x3卷积替换为 PSFSConv
+  ▸ C2f_PSFSConv: C2f瓶颈结构，内部bottleneck替换为 PSFSConv 模块
+  ▸ C2f_FasterSFSConv: C2f瓶颈结构，内部bottleneck替换为 FasterSFSConv 模块。组件: FasterNet部分卷积结构+SFSConv尺度序列频域卷积组合
+  ▸ C2f_GroupMamba: C2f瓶颈结构，内部bottleneck替换为 GroupMamba 模块。组件: GroupMamba主干：分组SSM扫描
+  ▸ C2f_GroupMambaBlock: C2f瓶颈结构，内部bottleneck替换为 GroupMambaBlock 模块
+  ▸ C2f_MambaVision: C2f瓶颈结构，内部bottleneck替换为 MambaVision 模块
+  ▸ Channel: 通道注意力分支（CGBlock内部组件）
+  ▸ Spatial: 空间注意力分支（CGBlock内部组件）
+  ▸ FCM_3: FCM变体3（sigmoid门控输出）
+  ▸ FCM_2: FCM变体2（通道比3:1切分）
+  ▸ FCM_1: FCM变体1（分组比例不同）
+  ▸ FCM: 频域通道混合块：通道分组+空间/通道注意力交叉（FCM）
+  ▸ Pzconv: 分组卷积+空间/通道注意力交叉增强模块
+  ▸ PSAttn: Pyramid Sparse Attention module for efficient multi-scale feature fusion in object detection. This module implements a cross-attention mechanism where queries are derived from lower-level features and keys/values from higher-level features. It provid
+  ▸ PSAttnBlock: Pyramid Sparse Attention block module for efficient feature fusion. This module implements a Pyramid Sparse Attention (PSAttn) mechanism combined with a multi-layer perceptron (MLP) to enhance feature representation while maintaining
+  ▸ PST: Pyramid Sparse Transformer (PST) module for enhanced feature fusion with attention mechanisms. This module integrates Pyramid Sparse Attention (PSA) blocks to fuse features from different scales, leveraging cross-attention and dynamic token selection
+  ▸ DeepSparse: 深度稀疏频域模块：频域复数可学习稀疏滤波（DeepSpark风格）
+  ▸ FourierConv: 傅里叶卷积：FFT频域全局逐点卷积，获得全局感受野
+  ▸ Bottleneck_FourierConv: PResNet残差瓶颈变体：3x3卷积替换为 FourierConv（傅里叶卷积：FFT频域全局逐点卷积，获得全局感受野）
+  ▸ C2f_FourierConv: C2f瓶颈结构，内部bottleneck替换为 FourierConv 模块。组件: 傅里叶卷积：FFT频域全局逐点卷积，获得全局感受野
+  ▸ wConv2d: wConv2d加宽卷积（加宽通道的卷积变体）
+  ▸ Bottleneck_wConv: PResNet残差瓶颈变体：3x3卷积替换为 wConv（wConv：加宽卷积变体）
+  ▸ C2f_wConv: C2f瓶颈结构，内部bottleneck替换为 wConv 模块。组件: wConv：加宽卷积变体
+  ▸ C2f_GLVSS: C2f瓶颈结构，内部bottleneck替换为 GLVSS 模块。组件: GLVSS全局-局部视觉状态空间块
+  ▸ C2f_ESC: C2f瓶颈结构，内部bottleneck替换为 ESC 模块
+  ▸ Bottleneck_ConvAttn: PResNet残差瓶颈变体：3x3卷积替换为 ConvAttn（卷积注意力瓶颈（Bottleneck_ConvAttn））
+  ▸ C2f_ConvAttn: C2f瓶颈结构，内部bottleneck替换为 ConvAttn 模块。组件: 卷积注意力瓶颈（Bottleneck_ConvAttn）
+  ▸ MBRConv3: MobileIE多分支重参数3x3卷积（推理时分支合并）
+  ▸ MBRConv5: MobileIE多分支重参数5x5卷积（含十字形分支，推理时合并）
+  ▸ Bottleneck_MBRConv3: PResNet残差瓶颈变体：3x3卷积替换为 MBRConv3（MobileIE多分支重参数3x3卷积（推理时分支合并））
+  ▸ C2f_MBRConv3: C2f瓶颈结构，内部bottleneck替换为 MBRConv3 模块。组件: MobileIE多分支重参数3x3卷积（推理时分支合并）
+  ▸ Bottleneck_MBRConv5: PResNet残差瓶颈变体：3x3卷积替换为 MBRConv5（MobileIE多分支重参数5x5卷积（含十字形分支，推理时合并））
+  ▸ C2f_MBRConv5: C2f瓶颈结构，内部bottleneck替换为 MBRConv5 模块。组件: MobileIE多分支重参数5x5卷积（含十字形分支，推理时合并）
+  ▸ MBRConv3C3: C3瓶颈结构，内部bottleneck替换为 MBRConv3 模块（MobileIE多分支重参数3x3卷积（推理时分支合并））
+  ▸ MBRConv5C3: C3瓶颈结构，内部bottleneck替换为 MBRConv5 模块（MobileIE多分支重参数5x5卷积（含十字形分支，推理时合并））
+  ▸ C2f_VSSD: C2f瓶颈结构，内部bottleneck替换为 VSSD 模块
+  ▸ C2f_TVIM: C2f瓶颈结构，内部bottleneck替换为 TVIM 模块。组件: TinyVIM token混合块
+  ▸ AdaptiveCombiner: 自适应组合器：可学习标量/向量加权组合多分支输出
+  ▸ DPCF: DPCF动态参数组合融合：可学习标量门控加权融合低/高频特征
+  ▸ C2f_CSI: C2f瓶颈结构，内部bottleneck替换为 CSI 模块。组件: CSI通道切分Mamba混合块：1/4通道走Mamba SSM，其余走卷积分支
+  ▸ C2f_UniConvBlock: C2f瓶颈结构，内部bottleneck替换为 UniConvBlock 模块。组件: UniConvNet块（ICLR2025）：统一卷积（DCNv3核心+大核DW+条带卷积统一设计）
+  ▸ C2f_LGLB: C2f瓶颈结构，内部bottleneck替换为 LGLB 模块
+  ▸ C2f_ConverseB: C2f瓶颈结构，内部bottleneck替换为 ConverseB 模块
+  ▸ Bottleneck_Converse: PResNet残差瓶颈变体：3x3卷积替换为 Converse
+  ▸ C2f_Converse2D: C2f瓶颈结构，内部bottleneck替换为 Converse2D 模块。组件: Converse2D（图像修复）：转置卷积风格逆卷积算子
+  ▸ Converse2DC3: C3瓶颈结构，内部bottleneck替换为 Converse2D 模块（Converse2D（图像修复）：转置卷积风格逆卷积算子）
+  ▸ Bottleneck_GCConv: PResNet残差瓶颈变体：3x3卷积替换为 GCConv（GCConv：全局上下文卷积，简化版自注意力式的全局建模卷积）
+  ▸ C2f_GCConv: C2f瓶颈结构，内部bottleneck替换为 GCConv 模块。组件: GCConv：全局上下文卷积，简化版自注意力式的全局建模卷积
+  ▸ GCConvC3: C3瓶颈结构，内部bottleneck替换为 GCConv 模块（GCConv：全局上下文卷积，简化版自注意力式的全局建模卷积）
+  ▸ C2f_CFBlock: C2f瓶颈结构，内部bottleneck替换为 CFBlock 模块。组件: CFBlock通道-频率交互块
+  ▸ C2f_FMABlock: C2f瓶颈结构，内部bottleneck替换为 FMABlock 模块。组件: SRCNN风格特征调制注意力块（频域调制）
+  ▸ C2f_LWGA: C2f瓶颈结构，内部bottleneck替换为 LWGA 模块
+
+==========================================================================================
+◆ camixer.py
+  文件作用: CAMixer（ECCV2024）：内容感知token混合器——路由器决定token走卷积还是注意力（动态稀疏）
+  导出(__all__): CAMixer
+  ▸ LayerNorm: 层归一化
+  ▸ PredictorLG: Importance Score Predictor
+  ▸ CAMixer: CAMixer（ECCV2024）：内容感知token混合器（路由器决定token走卷积还是注意力）
+
+==========================================================================================
+◆ CFBlock.py
+  文件作用: CFBlock：通道-频率交互块
+  ▸ MLP: MLP前馈网络（CFBlock组件）
+  ▸ ConvolutionalAttention: 卷积注意力（esc：ESCBlock组件）
+  ▸ CFBlock: CFBlock通道-频率交互块
+
+==========================================================================================
+◆ cfpt.py
+  文件作用: CFPT跨尺度特征金字塔Transformer（AAAI2024）：尺度内+尺度间Transformer交互（IEL/HRAB等组件）
+  导出(__all__): CrossLayerChannelAttention, CrossLayerSpatialAttention
+  ▸ LayerNormProxy: 层归一化代理（cfpt：nn.LayerNorm包装用于CV）
+  ▸ CrossLayerPosEmbedding3D: 跨层3D位置嵌入（cfpt）
+  ▸ ConvPosEnc: 卷积位置编码（cfpt：DW卷积位置编码）
+  ▸ DWConv: 深度可分离卷积
+  ▸ Mlp: MLP前馈网络
+  ▸ CrossLayerSpatialAttention: 跨层空间注意力：对多层级特征做跨层空间交互
+  ▸ CrossLayerChannelAttention: 跨层通道注意力：对多层级特征做跨层通道交互
+
+==========================================================================================
+◆ ConverseNet.py
+  文件作用: Converse2D（2023图像修复）：转置卷积风格逆卷积算子及块
+  导出(__all__): Converse2D, ConverseBlock
+  ▸ LayerNorm: 层归一化
+  ▸ Converse2D: Converse2D（图像修复）：转置卷积风格逆卷积算子
+  ▸ ConverseBlock: Converse2D块（ConverseNet）
+
+==========================================================================================
+◆ CSI.py
+  文件作用: CSI通道切分Mamba混合块：1/4通道走Mamba SSM，其余走卷积分支
+  ▸ Mlp: MLP前馈网络
+  ▸ CSI: CSI通道切分Mamba混合块：1/4通道走Mamba SSM，其余走卷积分支
+
+==========================================================================================
+◆ CTrans.py
+  文件作用: CTrans通道Transformer（Medical Transformer）：通道维做token的自注意力
+  文件头注释: -*- coding: utf-8 -*- | @Author  : Haonan Wang | @File    : CTrans.py | @Software: PyCharm | coding=utf-8
+  导出(__all__): ChannelTransformer, GetIndexOutput
+  ▸ Channel_Embeddings: Construct the embeddings from patch, position embeddings.
+  ▸ Reconstruct: 重建模块（CTrans：卷积重建）
+  ▸ Attention_org: 原始多头注意力（CTrans组件）
+  ▸ Mlp: MLP前馈网络
+  ▸ Block_ViT: ViT基础块（CTrans：MHSA+MLP）
+  ▸ Encoder: 编码器（CTrans：通道Transformer编码层堆叠）
+  ▸ ChannelTransformer: CTrans通道Transformer：将通道视为token做自注意力
+  ▸ GetIndexOutput: 从多输出模块中按索引取指定特征
+
+==========================================================================================
+◆ DarkIR.py
+  文件作用: DarkIR（2024）：EBlock编码块/DBlock解码块（多膨胀率深度卷积分支，图像恢复）
+  导出(__all__): DBlock, EBlock
+  ▸ LayerNormFunction: 层归一化函数式封装（DarkIR）
+  ▸ LayerNorm2d: 2D层归一化（mona）
+  ▸ SimpleGate: 简单门控（NAFNet风格：通道减半门控）
+  ▸ Adapter: 适配器（DarkIR：轻量适配卷积块）
+  ▸ FreMLP: FreMLP频域MLP（DarkIR：频域前馈）
+  ▸ Branch: Branch that lasts lonly the dilated convolutions
+  ▸ DBlock: DarkIR DBlock：多膨胀率深度卷积分支块（图像恢复）
+  ▸ EBlock: DarkIR EBlock编码块（图像恢复）
+
+==========================================================================================
+◆ DCMPNet.py
+  文件作用: DCMPNet：MFM多尺度特征融合模块（GAP+MLP通道注意力加权多路输入）+LEGM轻量增强
+  导出(__all__): MFM, LEGM
+  ▸ WATT: WATT窗口注意力（DCMPNet：窗口MHSA）
+  ▸ Att: 注意力（DCMPNet组件）
+  ▸ Mlp: MLP前馈网络
+  ▸ LayNormal: 层归一化（DCMPNet）
+  ▸ LEGM: DCMPNet轻量增强模块
+  ▸ MFM: DCMPNet多尺度特征融合模块：GAP+MLP生成通道注意力对多路输入加权（HS-FPN核心）
+
+==========================================================================================
+◆ deconv.py
+  文件作用: DEConv差分卷积（ICLR2023）：详情差分/边界差分等四种差分卷积并联，推理时可重参数化合并为一个卷积
+  ▸ Conv2d_cd: 中心差分卷积（DEConv组件：卷积-θ*中心求和项）
+  ▸ Conv2d_ad: 角差分卷积（DEConv组件）
+  ▸ Conv2d_rd: 垂直差分卷积（DEConv组件）
+  ▸ Conv2d_hd: 水平差分卷积（DEConv组件）
+  ▸ Conv2d_vd: 普通卷积（DEConv组件：vanilla）
+  ▸ DEConv: DEConv：差分卷积（详情差分/边界差分等四种差分卷积并联，可重参数化合并）
+
+==========================================================================================
+◆ dsadoc_v10.py
+  文件作用: DSADOC_v10（自研，自rtdetr_pytorch 1:1移植）：Haar小波+Scharr边缘+DSA多尺度DWConv+DCC小波校准FiLM，插入PResNet每个stage最后一个BasicBlock的branch2a
+  文件头注释: DSADOC_v10 ported from rtdetr_pytorch/src/nn/backbone/presnet_dsadoc_v10.py | (config: rtdetr_r18vd_6x_visdrone_dsadoc_v10.yml, backbone PResNet_DSADOC_v10). | Porting rules (structure kept 1:1 with rtdetr_pytorch, no channel changes): | - DSADOC_v10 module math is identical (HaarDWT/HaarIDWT / ScharrEdge / | DSA multi-scale DWConv / DCC wavelet calibration + FiLM / cross_gate / | half-channel chunk design, dsadoc_fusion = Conv1x1+BN+SiLU). | - DSADOCv10BasicBlock replicates _insert_dsadcc semantics: DSADOC_v10 | replaces branch2a of the LAST BasicBlock of each stage; branch2b (3x3) | and the residual shortcut are untouched. | - BlocksDSADOCv10 is the stage container: all blocks are vanilla 
+  导出(__all__): DSADOC_v10, DSADOCv10BasicBlock, BlocksDSADOCv10
+  ▸ HaarDWT: Haar离散小波正变换（单层，LL/LH/HL/HH）
+  ▸ HaarIDWT: Haar离散小波逆变换
+  ▸ ScharrEdge: Scharr算子边缘提取（固定3x3梯度卷积）
+  ▸ DSADOC_v10: DSADOC_v10（自研）：Haar小波+Scharr边缘+DSA多尺度DWConv+DCC小波校准FiLM调制
+  ▸ DSADOCv10BasicBlock: DSADOC_v10插入版BasicBlock：DSADOC替换stage末block的branch2a
+  ▸ BlocksDSADOCv10: DSADOC_v10 stage容器：普通BasicBlock+末位DSADOCv10BasicBlock
+
+==========================================================================================
+◆ dsadoc_v11.py
+  文件作用: DSADOC_v11（自研v11迭代版）：v10基础上改进的骨干调制模块，同样按stage末block插入
+  文件头注释: DSADOC_v11: Based on DSADOC_v10 with cross_gate mechanism removed. | Changes from v10: | - Removed: cross_gate (Conv1x1 + Sigmoid global gating) | - Removed: GAP on fdsa/fdcc for gate signal generation | - Reason: Global gating is spatial-blind (harmful for small objects), | redundant with dsadoc_fusion (Conv1x1+BN+SiLU already does channel | selection), and Sigmoid(0,1) is purely inhibitory. | - Effect: fdsa and fdcc are concatenated directly into dsadoc_fusion | without prior channel-wise suppression. dsadoc_fusion alone handles | DSA-DCC cross-channel interaction and compression (2cr -> cr). | - Parameter savings per stage (cr=ch_out//2): | cross_gate Conv1x1: 2cr * 2cr = 2*cr^2 params re
+  导出(__all__): DSADOC_v11, DSADOCv11BasicBlock, BlocksDSADOCv11
+  ▸ HaarDWT: Haar离散小波正变换（单层，LL/LH/HL/HH）
+  ▸ HaarIDWT: Haar离散小波逆变换
+  ▸ ScharrEdge: Scharr算子边缘提取（固定3x3梯度卷积）
+  ▸ DSADOC_v11: DSADOC_v11: v10 with cross_gate removed. Half-channel split design, replaces branch2a: - First half  -> DSA (multi-scale spatial) + DCC (wavelet calibration + FiLM)
+  ▸ DSADOCv11BasicBlock: BasicBlock with DSADOC_v11 replacing branch2a.
+  ▸ BlocksDSADOCv11: Stage container: vanilla BasicBlocks + last-block DSADOC_v11.
+
+==========================================================================================
+◆ dsan.py
+  文件作用: DSAN双重空间注意力网络：DSA空间门控注意力（proj+中心差分）+FFN残差
+  导出(__all__): DSA, DSAN, DSAN_EDFFN
+  ▸ Mlp: MLP前馈网络
+  ▸ DSCNPair: 中心差分卷积对（dsan：DSA组件）
+  ▸ DSA: DSA空间门控注意力：proj+DSCNPair中心差分空间门控单元
+  ▸ DSAN: DSAN双重空间注意力网络块：DSA空间注意力+FFN残差
+  ▸ DWConv: 深度可分离卷积
+  ▸ DSAN_EDFFN: 组合模块: DSAN双重空间注意力网络块：DSA空间注意力+FFN残差 + EDFFN高效分解前馈网络：小波patch感知FFN
+
+==========================================================================================
+◆ dsawacga.py
+  文件作用: DSAWACGA（自研）：Scharr边缘+可学习Haar小波+WACGA小波注意力校准+cross_gate，半通道chunk设计
+  文件头注释: DSAWACGA ported from rtdetr_pytorch/src/nn/backbone/presnet_dsawacga.py | (config: rtdetr_r18vd_6x_visdrone_dsawacga.yml, backbone PResNet_DSAWACGA). | Porting rules (structure kept 1:1 with rtdetr_pytorch, no channel changes): | - DSAWACGA module math is identical (ScharrEdge / LearnableHaarDWT / WACGA / | cross_gate / half-channel chunk design). | - DSAWACGABasicBlock replicates _insert_dsawacga semantics: DSAWACGA replaces | branch2a of the LAST BasicBlock of each stage; branch2b (3x3) and the | residual shortcut are untouched. | - BlocksDSAWACGA is the stage container: all blocks are vanilla BasicBlock | except the last one, which is DSAWACGABasicBlock. Channel layout follows | PResNet-1
+  导出(__all__): DSAWACGA, DSAWACGABasicBlock, BlocksDSAWACGA
+  ▸ ScharrEdge: Scharr算子边缘提取（固定3x3梯度卷积）
+  ▸ LearnableHaarDWT: 可学习Haar小波变换
+  ▸ WACGA: 小波注意力校准（WACGA）
+  ▸ DSAWACGA: DSAWACGA（自研）：Scharr边缘+可学习Haar小波+WACGA小波注意力校准+cross_gate
+  ▸ DSAWACGABasicBlock: DSAWACGA插入版BasicBlock
+  ▸ BlocksDSAWACGA: DSAWACGA stage容器
+
+==========================================================================================
+◆ dynamic_snake_conv.py
+  文件作用: 动态蛇形卷积DySnakeConv（ICCV2023）：可变形蛇形卷积，细长/管状目标友好
+  导出(__all__): DySnakeConv
+  ▸ DySnakeConv: DySnakeConv：动态蛇形卷积（ICCV2023），细长/管状目标友好
+  ▸ DSConv: 动态蛇形卷积核心算子（dynamic_snake_conv）
+  ▸ DSC: Core code, for ease of understanding, we mark the dimensions of input and output next to the code
+
+==========================================================================================
+◆ efficientvim.py
+  文件作用: EfficientViM（NeurIPS2024）：EfficientViMBlock移动端视觉Mamba块（聚合SSM，含CGLU变体）
+  导出(__all__): EfficientViMBlock, EfficientViMBlock_CGLU
+  ▸ LayerNorm2D: LayerNorm for channels of 2D tensor(B C H W)
+  ▸ LayerNorm1D: LayerNorm for channels of 1D tensor(B C L)
+  ▸ ConvLayer2D: 二维卷积层（EfficientViM组件）
+  ▸ ConvLayer1D: 一维卷积层（EfficientViM组件）
+  ▸ FFN: 前馈网络
+  ▸ HSMSSD: HSMSSD高效SSD扫描（EfficientViM核心：聚合SSM）
+  ▸ ConvolutionalGLU: 卷积门控线性单元（Conv+GLU前馈）
+  ▸ EfficientViMBlock: EfficientViM块（NeurIPS2024）：移动端视觉Mamba（聚合SSM）
+  ▸ EfficientViMBlock_CGLU: EfficientViM块+ConvGlu门控前馈变体
+
+==========================================================================================
+◆ esc.py
+  文件作用: ESCBlock（ICCV2025）：高效自校准卷积块+ConvAttn卷积注意力瓶颈
+  导出(__all__): ESCBlock, ConvAttn
+  ▸ LayerNorm: 层归一化
+  ▸ ConvolutionalAttention: 卷积注意力（esc：ESCBlock组件）
+  ▸ ConvAttnWrapper: 卷积注意力包装器（esc）
+  ▸ ConvAttn: 卷积注意力瓶颈（Bottleneck_ConvAttn）
+  ▸ ConvFFN: 卷积前馈网络（DWConv+FFN）
+  ▸ WindowAttention: 窗口注意力（Swin风格W-MSA）
+  ▸ ESCBlock: ESCBlock（ICCV2025）：高效自校准卷积块
+
+==========================================================================================
+◆ EVSSM.py
+  文件作用: EVSSM：EVS增强视觉状态空间Mamba块
+  导出(__all__): EVS, EDFFN
+  ▸ WithBias_LayerNorm: 带偏置LayerNorm（tsdn）
+  ▸ LayerNorm: 层归一化
+  ▸ EDFFN: EDFFN高效分解前馈网络：小波patch感知FFN
+  ▸ SS2D: SS2D二维选择性扫描（VMamba核心：四向扫描+选择性SSM）
+  ▸ EVS: EVSSM增强视觉状态空间Mamba块
+
+==========================================================================================
+◆ fadc.py
+  文件作用: FADC频域自适应膨胀卷积（CVPR2024）：频域能量引导的自适应膨胀率卷积
+  文件头注释: Copyright (c) Meta Platforms, Inc. and affiliates.
+  导出(__all__): AdaptiveDilatedDWConv
+  ▸ OmniAttention: OmniAttention全能注意力（FADC组件）
+  ▸ FrequencySelection: 频率选择（FADC组件：频域能量选择膨胀率）
+  ▸ AdaptiveDilatedConv: FADC：频域自适应膨胀卷积（CVPR2024），频域能量引导膨胀率
+  ▸ AdaptiveDilatedDWConv: A ModulatedDeformable Conv Encapsulation that acts as normal Conv layers. Args:
+
+==========================================================================================
+◆ FDConv_initialversion.py
+  文件作用: FDConv频域可分解卷积初版：FBM频带分解（滤波器组）自适应多频卷积，替换DOC用
+  ▸ StarReLU: StarReLU激活：s*relu(x)^2+b（Meta MetaFormer）
+  ▸ KernelSpatialModulation_Global: 核空间全局调制（FDConv组件）
+  ▸ KernelSpatialModulation_Local: Constructs a ECA module. Args: channel: Number of channels of the input feature map
+  ▸ FrequencyBandModulation: 频带调制（FDConv FBM组件：按频带调制卷积核）
+  ▸ FDConv: FDConv：频域可分解卷积，FBM频带分解自适应多频卷积
+
+==========================================================================================
+◆ filc.py
+  文件作用: FILC：FMFFN频域混合前馈网络、FAT_Block频域token交互块（ICLR2024 FTIC，窗口频域注意力）
+  导出(__all__): FMFFN, FAT_Block
+  ▸ WindowAttention: 窗口注意力（Swin风格W-MSA）
+  ▸ WindowFrequencyModulation_FMFFN: 组合模块: 窗口频域调制（filc：FAT块组件） + FILC频域混合前馈网络（窗口频域+MLP）
+  ▸ FMFFN: FILC频域混合前馈网络（窗口频域+MLP）
+  ▸ Swin_FDWA: Swin频域窗口注意力（filc：FDWA窗口注意力+频域）
+  ▸ WindowFrequencyModulation: 窗口频域调制（filc：FAT块组件）
+  ▸ FAT_Block: FAT频域token交互块（ICLR2024 FTIC）
+
+==========================================================================================
+◆ FreqFusion.py
+  文件作用: FreqFusion（TPAMI2024）：频率感知特征融合——生成低通核(去混叠平滑)+高通核(锐化)修正特征融合
+  文件头注释: TPAMI 2024：Frequency-aware Feature Fusion for Dense Image Prediction
+  导出(__all__): FreqFusion
+  ▸ FreqFusion: FreqFusion频率感知融合（TPAMI2024）：低通去混叠+高通锐化核修正融合
+  ▸ LocalSimGuidedSampler: offset generator in FreqFusion
+
+==========================================================================================
+◆ gcconv.py
+  文件作用: GCConv全局上下文卷积：简化自注意力风格的上下文建模卷积（GC混合）
+  ▸ Block1x1: The 1x1_1x1 path of the GCBlock. Args: in_channels (int): Number of channels in the input image
+  ▸ Block3x3: The 3x3_1x1 path of the GCBlock. Args: in_channels (int): Number of channels in the input image
+  ▸ GCConv: GCConv：全局上下文卷积，简化版自注意力式的全局建模卷积
+
+==========================================================================================
+◆ hcfnet.py
+  文件作用: HCFNet（红外小目标）：PPA并行像素注意力、LocalGlobalAttention局全局注意力、DASI维度感知选择集成、SBA边界注意力
+  导出(__all__): PPA, DASI, LocalGlobalAttention
+  ▸ SpatialAttentionModule: 空间注意力模块（hcfnet：SBA组件）
+  ▸ LocalGlobalAttention: HCFNet局部全局注意力（局部分支+全局池化分支融合）
+  ▸ ECA: ECA通道注意力
+  ▸ PPA: HCFNet并行像素注意力（金字塔拼接+通道/空间注意力）
+  ▸ Bag: 像素注意力聚合（hcfnet PPA组件）
+  ▸ DASI: HCFNet维度感知选择性集成
+
+==========================================================================================
+◆ HSFPN.py
+  文件作用: HS-FPN高效尺度序列特征金字塔（2024）：MFM多尺度特征融合+UMU上/下采样混合单元+AGAF聚合（含CA/CAA/ELA注意力变体）
+  文件头注释: ------------------------------------------------------------------# | Code Structure of HS-FPN (https://arxiv.org/abs/2412.10116) | HS-FPN | ├── HFP (High Frequency Perception Module) | │   ├── DctSpatialInteraction (Spatial Path of HFP) | │   └── DctChannelInteraction (Channel Path of HFP) | └── SDP&SDP_Large (Spatial Dependency Perception Module | -----------------------------------------------------------------#
+  导出(__all__): HFP, SDP
+  ▸ DctSpatialInteraction: ------------------------------------------------------------------# | Spatial Path of HFP | Only p1&p2 use dct to extract high_frequency response | ------------------------------------------------------------------#
+  ▸ DctChannelInteraction: ------------------------------------------------------------------# | Channel Path of HFP | Only p1&p2 use dct to extract high_frequency response | ------------------------------------------------------------------#
+  ▸ HFP: ------------------------------------------------------------------# | High Frequency Perception Module HFP | ------------------------------------------------------------------#
+  ▸ SDP: ------------------------------------------------------------------# | Spatial Dependency Perception Module SDP | ------------------------------------------------------------------#
+  ▸ SDP_Improved: ------------------------------------------------------------------# | Improved Version of Spatial Dependency Perception Module SDP | 2025 03 15 szc | ------------------------------------------------------------------#
+
+==========================================================================================
+◆ hybrid_encoder_p2_spd_okm.py
+  文件作用: 混合编码器（P2+SPD+OKM初版）：P2小目标层融合+SPDConv下采样+OKNet大核，CCFF重设计
+  文件头注释: HybridEncoderP2SPDOKM ported from rtdetr_pytorch/src/zoo/rtdetr/hybrid_encoder_p2_spd_okm.py | (config: rtdetr_r18vd_6x_visdrone_p2_spd_okm.yml, encoder HybridEncoderP2SPDOKM) | Porting rules (structure kept 1:1 with rtdetr_pytorch, no channel changes): | - P2/P3/P4 are consumed raw (input_proj[0..2] = Identity, only P5 gets | Conv1x1(bias=False)+BN proj to 256), handled by the yaml layers. | - AIFI (1 layer, dff=1024, 8 heads, dropout=0) is handled by the yaml AIFI module. | - FPN/PAN blocks use CSPRepLayer/RepVggBlock ported VERBATIM from | rtdetr_pytorch hybrid_encoder.py (reused from the v6 port file; | RTDETRU's RepC3 is NOT equivalent, so it is NOT used here). | - CCFFP2 is the multi-i
+  导出(__all__): CCFFP2
+  ▸ FGM: FSV6频域门控调制
+  ▸ BottleNect: BottleNect: verbatim from rtdetr_pytorch hybrid_encoder_p2_spd_okm.py | (OKNet bottleneck: FCA -> SCA -> FGM global branch + 4 dw large-kernel | convs, residual fusion, ReLU, out_conv; no BatchNorm inside)
+  ▸ CCFFP2: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKM. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+==========================================================================================
+◆ hybrid_encoder_p2_spd_okm_fs_v5.py
+  文件作用: 混合编码器v5：在初版基础上加入FreqScale频域缩放分支（频域调制+重加权）
+  文件头注释: HybridEncoderP2SPDOKMFSV5 ported from rtdetr_pytorch/src/zoo/rtdetr/hybrid_encoder_p2_spd_okm_fs_v5.py | (config: rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v5.yml, encoder HybridEncoderP2SPDOKMFSV5) | v5 vs v6 (the ONLY structural difference): | PDCBlock keeps the internal residual at stride=1: | v5: y = conv2(ReLU(BN(PDCConv(x)))) + x   (with residual) | v6: y = conv2(ReLU(BN(PDCConv(x))))        (no residual, pure differential) | Everything else (SPDConv / OKNetLargeKernel / FreqScale / SCA / FGM / | CCFFBlock data flow / hyperparams / channel layout) is identical to v6. | To guarantee 1:1 fidelity while avoiding ~300 duplicated lines, this file | reuses the v6 ported components verbatim and 
+  导出(__all__): CCFFP2V5
+  ▸ PDCBlockV5: v5: keeps the internal residual. v5: y = conv2(ReLU(BN(PDCConv(x)))) + x   (with residual) (v6 removed this residual; see hybrid_encoder_p2_spd_okm_fs_v6.py)
+  ▸ DCFMV5: v5版DCFM局部差分分支（PDC中心差分）
+  ▸ CCFFBlockV5: v5 CCFFBlock: identical data flow to v6, but DCFM uses PDCBlock WITH residual.
+  ▸ CCFFP2V5: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKMFSV5. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+==========================================================================================
+◆ hybrid_encoder_p2_spd_okm_fs_v6.py
+  文件作用: 混合编码器v6（当前主力）：CCFFBlock三分支——DCFM中心差分局部分支+OKNetLargeKernel大核分支+FreqScale/SCA/FGM全局频域分支；导出CSPRepLayer与CCFFP2V6
+  文件头注释: HybridEncoderP2SPDOKMFSV6 ported from rtdetr_pytorch/src/zoo/rtdetr/hybrid_encoder_p2_spd_okm_fs_v6.py | (config: rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v6.yml, encoder HybridEncoderP2SPDOKMFSV6) | Porting rules (structure kept 1:1 with rtdetr_pytorch, no channel changes): | - P2 is consumed raw (input_proj[0..2] = Identity, only P5 gets 1x1+BN proj to 256). | - AIFI (1 layer, dff=1024, 8 heads) is handled by the yaml AIFI module (equivalent port). | - FPN/PAN blocks use CSPRepLayer/RepVggBlock ported VERBATIM from | rtdetr_pytorch hybrid_encoder.py (RTDETRU's RepC3 is NOT equivalent: | additive fusion + RepConv, vs concat + RepVggBlock). | - CCFFP2V6 is the multi-input module replicating th
+  导出(__all__): CSPRepLayer, CCFFP2V6
+  ▸ _SPDConv: SPDConv (internal): space-to-depth + 3x3 ConvNormLayer
+  ▸ PDCConv: PDC (partial difference convolution) for DCFM
+  ▸ PDCBlock: v6: no internal residual at stride=1, output is a pure differential feature. v5: y = conv2(ReLU(BN(PDCConv(x)))) + x   (with residual) v6: y = conv2(ReLU(BN(PDCConv(x))))       (no residual, pure differential)
+  ▸ DCFM: FSV6局部差分分支：PDCBlock中心差分卷积（v6无内部残差）
+  ▸ OKNetLargeKernel: FSV6大核分支：组合多种dw卷积的大感受野分支
+  ▸ _StarReLU: FreqScale (internal StarReLU helper)
+  ▸ FreqScale: FSV6全局频域分支：复数权重调制+频域重加权
+  ▸ SCA: FSV6简单通道注意力
+  ▸ _FGM: FGM频域门控调制（FSV6内部组件）
+  ▸ CCFFBlock: FSV6核心三分支块：DCFM中心差分局部分支+OKNetLargeKernel大核分支+FreqScale/SCA/FGM全局频域分支
+  ▸ RepVggBlock: RepVggBlock / CSPRepLayer: ported VERBATIM from | rtdetr_pytorch/src/zoo/rtdetr/hybrid_encoder.py
+  ▸ CSPRepLayer: RT-DETR官方CCFF的CSP模块（3个RepVggBlock，自rtdetr_pytorch逐行移植）
+  ▸ CCFFP2V6: FSV6编码器CCFF模块：SPDConv(P2)+CCFFBlock三分支（DCFM/OKNet大核/FreqScale频域）+CSPRepLayer输出f3
+
+==========================================================================================
+◆ LWGANet.py
+  文件作用: LWGANet轻量生成式注意力网络：LWGABlock（图像恢复，频率感知门控注意力）
+  文件头注释: Copyright (c) Microsoft Corporation. | Licensed under the MIT License.
+  导出(__all__): LWGA_Block
+  ▸ DRFD: DRFD细节恢复频率分解块（Cut四象限切分+DW卷积分支）
+  ▸ PA: 像素注意力（LWGANet组件）
+  ▸ LA: 局部注意力（LWGANet组件）
+  ▸ BlurPool: 模糊池化（抗混叠下采样：低通滤波+池化）
+  ▸ MRA: MRA多注意力聚合（LWGANet组件）
+  ▸ GA12: GA12门控注意力变体（LWGANet）
+  ▸ D_GA: D_GA双门控注意力（LWGANet组件）
+  ▸ GA: GA门控注意力（LWGANet组件）
+  ▸ LWGA_Block: LWGA轻量生成式注意力块（LWGANet核心）
+
+==========================================================================================
+◆ MaIR.py
+  文件作用: MaIR：多头交叉注意力块等图像恢复组件
+  文件头注释: Code Implementation of the MaIR Model
+  导出(__all__): RMB
+  ▸ ShuffleAttn: 混洗注意力（MaIR：通道混洗+注意力）
+  ▸ Mlp: MLP前馈网络
+  ▸ VMM: VMM视觉混合Mixer（MaIR组件）
+  ▸ RMB: RMB残差混合块（MaIR组件）
+
+==========================================================================================
+◆ mamba_vss.py
+  文件作用: VMamba视觉状态空间块VSSBlock：SS2D二维选择性扫描（官方vss实现）
+  导出(__all__): VSSBlock
+  ▸ SS2D: SS2D二维选择性扫描（VMamba核心：四向扫描+选择性SSM）
+  ▸ VSSBlock: VMamba视觉状态空间块（官方）：SS2D二维选择性扫描
+
+==========================================================================================
+◆ mamba_yolo.py
+  文件作用: MambaYOLO（2024）：VSSBlock_YOLO视觉状态空间块（LSBlock+SS2D）、SimpleStem、VisionClueMerge等纯SSM检测架构组件
+  导出(__all__): VSSBlock_YOLO, SimpleStem, VisionClueMerge, XSSBlock
+  ▸ LayerNorm2d: 2D层归一化（mona）
+  ▸ CrossScan: 交叉扫描（四向展开：H/W正反向，SS2D组件）
+  ▸ CrossMerge: 交叉合并（四向序列合并回2D，SS2D组件）
+  ▸ SelectiveScanCore: cross selective scan ===============================
+  ▸ SS2D: SS2D二维选择性扫描（VMamba核心：四向扫描+选择性SSM）
+  ▸ RGBlock: RG块（mamba_yolo：门控FFN残差块）
+  ▸ LSBlock: MambaYOLO的LS块（DW卷积+BN+GELU+1x1瓶颈结构）
+  ▸ XSSBlock: MambaYOLO跨扫描状态空间块（XSS，MLP分支+SS2D）
+  ▸ VSSBlock_YOLO: MambaYOLO视觉状态空间块：LSBlock+SS2D
+  ▸ SimpleStem: MambaYOLO轻量Stem下采样头（卷积→2倍下采样）
+  ▸ VisionClueMerge: MambaYOLO视觉线索合并模块（多路特征卷积合并）
+
+==========================================================================================
+◆ mambaIR.py
+  文件作用: MambaIR（ECCV2024）：AttentiveLayer窗口注意力+Mamba SSM混合（attentive-to-plain渐进训练）
+  导出(__all__): AttentiveLayer
+  ▸ Gate: 门控单元（MambaIR：SiLU门控分支）
+  ▸ GatedMLP: 门控MLP（MambaIR FFN）
+  ▸ ASSM: MambaIR注意力增强SSM：通道注意力加权+SS2D扫描
+  ▸ Selective_Scan: 选择性扫描（Mamba核心SSM扫描算子）
+  ▸ WindowAttention: 窗口注意力（Swin风格W-MSA）
+  ▸ AttentiveLayer: MambaIR窗口注意力层：窗口MHSA+Mamba SSM混合
+
+==========================================================================================
+◆ MambaVision.py
+  文件作用: MambaVision（CVPR2025）：MambaVisionBlock混合块——前半段SWA窗口注意力+后半段SS2D
+  ▸ MambaVisionMixer: MambaVision混合器：SWA窗口注意力+SS2D两阶段
+  ▸ Attention: 注意力（文件内部通用注意力）
+  ▸ Block: 基础块（文件内部通用块）
+  ▸ MambaVisionBlock: MambaVision块（CVPR2025）：前半段SWA窗口注意力+后半段SS2D
+
+==========================================================================================
+◆ metaformer.py
+  文件作用: MetaFormer（Meta池化范式）：MetaFormerBlock/MetaFormerCGLUBlock（SepConv/AdditiveBlock等token mixer+ConvGlu门控前馈）
+  导出(__all__): MF_Attention, RandomMixing, SepConv, Pooling, MetaFormerBlock, MetaFormerCGLUBlock, LayerNormGeneral
+  ▸ Scale: Scale vector by element multiplications.
+  ▸ SquaredReLU: Squared ReLU: https://arxiv.org/abs/2109.08668
+  ▸ StarReLU: StarReLU激活：s*relu(x)^2+b（Meta MetaFormer）
+  ▸ MF_Attention: Vanilla self-attention from Transformer: https://arxiv.org/abs/1706.03762. Modified from timm.
+  ▸ RandomMixing: 随机混合token mixer（MetaFormer：随机固定矩阵混合token）
+  ▸ LayerNormGeneral: General LayerNorm for different situations. Args: affine_shape (int, list or tuple): The shape of affine weight and bias.
+  ▸ LayerNormWithoutBias: Equal to partial(LayerNormGeneral, bias=False) but faster, because it directly utilizes otpimized F.layer_norm
+  ▸ SepConv: SepConv深度可分离token mixer（MetaFormer池化替代）
+  ▸ Pooling: Implementation of pooling for PoolFormer: https://arxiv.org/abs/2111.11418 Modfiled for [B, H, W, C] input
+  ▸ Mlp: MLP前馈网络
+  ▸ ConvolutionalGLU: 卷积门控线性单元（Conv+GLU前馈）
+  ▸ MetaFormerBlock: MetaFormer块（Meta池化范式）：SepConv等token mixer+ConvGlu前馈
+  ▸ MetaFormerCGLUBlock: MetaFormer块+ConvGlu门控前馈变体
+
+==========================================================================================
+◆ mhafyolo.py
+  文件作用: MHA-YOLO：MutilScaleGatedAttn多尺度门控注意力、AttentionUpsample/Downsample注意力上下采样、AdditiveBlock等（脑肿瘤检测改进）
+  文件头注释: Ultralytics YOLO 🚀, AGPL-3.0 license
+  导出(__all__): RepHMS
+  ▸ Conv: 卷积块（文件内部实现：Conv+BN+Act）
+  ▸ AVG: AVG注意力门控（mhafyolo：注意力加权下采样）
+  ▸ RepHDW: 重参数化混合深度卷积（mhafyolo组件）
+  ▸ DepthBottleneckUni: 深度瓶颈块v1（mhafyolo）
+  ▸ UniRepLKNetBlock: UniRepLKNet大核块（MHAYOLO使用）
+  ▸ DilatedReparamBlock: Dilated Reparam Block proposed in UniRepLKNet (https://github.com/AILab-CVC/UniRepLKNet) We assume the inputs to this block are (N, C, H, W)
+  ▸ DepthBottleneckUniv2: 深度瓶颈块v2（mhafyolo）
+  ▸ RepHMS: 重参数化HMS混合多尺度块
+  ▸ DepthBottleneckv2: 深度瓶颈块v2（mhafyolo变体）
+  ▸ ConvMS: 多尺度卷积（mhafyolo组件）
+
+==========================================================================================
+◆ MobileUViT.py
+  文件作用: MobileUViT：移动端UViT块
+  导出(__all__): LGLBlock
+  ▸ Residual: 残差包装器（x+f(x)）
+  ▸ ConvUtr: 卷积单元（ConvFFN风格）
+  ▸ Embeddings: 输入嵌入模块（patch embed+位置编码）
+  ▸ Mlp: MLP前馈网络
+  ▸ CMlp: 卷积MLP（Conv+GELU前馈）
+  ▸ GlobalSparseAttn: 全局稀疏注意力（MobileUViT组件）
+  ▸ LocalAgg: 局部聚合模块（MobileUViT局部分支）
+  ▸ SelfAttn: 自注意力（MobileUViT全局分支）
+  ▸ LGLBlock: 局部-全局块（MobileUViT：局部卷积+全局注意力）
+
+==========================================================================================
+◆ mona.py
+  文件作用: Mona注意力（2024）：MOCHA多顺序嵌套二维轻量注意力（LLaMA风格RMSNorm+分组线性注意力）
+  ▸ LayerNorm2d: 2D层归一化（mona）
+  ▸ MonaOp: Mona注意力核心算子（分组线性注意力+多顺序嵌套）
+  ▸ Mona: Mona注意力（MOCHA）
+
+==========================================================================================
+◆ orepa.py
+  文件作用: OREPA（CVPR2022）：在线重参数化——训练时即压缩为单卷积的 структурно-重参数模块
+  导出(__all__): OREPA, OREPA_LargeConv, RepVGGBlock_OREPA
+  ▸ OREPA: OREPA（CVPR2022）：在线重参数化，训练时即压缩为单卷积
+  ▸ OREPA_LargeConv: 组合模块: OREPA（CVPR2022）：在线重参数化，训练时即压缩为单卷积
+  ▸ ConvBN: Conv+BN融合层（OREPA重参数化组件）
+  ▸ OREPA_3x3_RepVGG: 组合模块: OREPA（CVPR2022）：在线重参数化，训练时即压缩为单卷积
+  ▸ RepVGGBlock_OREPA: 组合模块: RepVGG重参数化块：训练时3x3+1x1+Identity并联，部署时合并为单3x3卷积 + OREPA（CVPR2022）：在线重参数化，训练时即压缩为单卷积
+
+==========================================================================================
+◆ prepbn.py
+  文件作用: PreBN结构工具：BN前移重参数化辅助（RepConv相关）
+  ▸ RepBN: torch.autograd.set_detect_anomaly(True)
+  ▸ LinearNorm: 线性归一化（prepbn）
+
+==========================================================================================
+◆ rep_block.py
+  文件作用: 重参数化模块库：RepVGGBlock、DBB多分支卷积块、RepConv、OREPA等训练多分支/部署合并模块
+  导出(__all__): DiverseBranchBlock, WideDiverseBranchBlock, DeepDiverseBranchBlock
+  ▸ IdentityBasedConv1x1: 恒等式1x1卷积（rep_block：初始化为恒等映射，重参数组件）
+  ▸ BNAndPadLayer: BN+Pad层（rep_block：先BN后padding）
+  ▸ DiverseBranchBlock: DBB多分支卷积块（rep_block官方实现）
+  ▸ DiverseBranchBlockNOAct: 无激活版DBB
+  ▸ DeepDiverseBranchBlock: 深度版DBB（更深层多分支）
+  ▸ WideDiverseBranchBlock: 加宽版DBB
+
+==========================================================================================
+◆ RepStem.py
+  文件作用: 重参数化Stem：多分支下采样头（部署时分支合并，轻量）
+  ▸ SEBlock: Squeeze and Excite module. Pytorch implementation of `Squeeze-and-Excitation Networks` - https://arxiv.org/pdf/1709.01507.pdf
+  ▸ MobileOneBlock: MobileOne building block. This block has a multi-branched architecture at train-time and plain-CNN style architecture at inference time
+  ▸ RepStem: 重参数化Stem：多分支下采样头（部署合并）
+
+==========================================================================================
+◆ RFAConv.py
+  文件作用: RFAConv/RFCAConv/RFCBAMConv（2023）：感受野注意力卷积族——对空间每个感受野位置生成注意力
+  导出(__all__): RFAConv, RFCBAMConv, RFCAConv
+  ▸ h_sigmoid: 硬Sigmoid（ReLU6(x+3)/6，轻量）
+  ▸ h_swish: 硬Swish（x*h_sigmoid(x)，轻量）
+  ▸ RFAConv: RFAConv：感受野注意力卷积，对空间每个感受野位置生成注意力
+  ▸ SE: SE通道注意力
+  ▸ RFCBAMConv: RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积
+  ▸ RFCAConv: RFCAConv：结合坐标注意力的感受野注意力卷积
+
+==========================================================================================
+◆ savss.py
+  文件作用: SAVSS空间聚合视觉状态空间块：Mamba SSM+空间聚合（遥感/UAV）
+  导出(__all__): SAVSS_Layer
+  ▸ BottConv: 瓶颈卷积（savss：1x1压缩+DW+1x1扩张）
+  ▸ GBC: GBC分组瓶颈卷积（SAVSS组件）
+  ▸ PAF: PAF像素聚合融合（SAVSS组件）
+  ▸ SAVSS_2D: 组合模块: SAVSS空间聚合视觉状态空间块
+  ▸ SAVSS_Layer: 组合模块: SAVSS空间聚合视觉状态空间块
+
+==========================================================================================
+◆ semnet.py
+  文件作用: SEMNet（WACV2024）：SBSM语义桥接块+SEFN语义增强前馈网络（分割/语义增强）
+  导出(__all__): SBSM, SEFN
+  ▸ BiasFree_LayerNorm: 无偏置LayerNorm（tsdn）
+  ▸ WithBias_LayerNorm: 带偏置LayerNorm（tsdn）
+  ▸ LayerNorm: 层归一化
+  ▸ SEFN: SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN
+  ▸ MambaLayer: Mamba层（semnet组件：token序列SSM）
+  ▸ SBSM: SEMNet语义桥接块（WACV2024）：门控语义融合
+
+==========================================================================================
+◆ SFSConv.py
+  文件作用: SFSConv（ICLR2025）：尺度序列频域卷积SFS_Conv——可学习频域滤波+空间卷积联合，替代标准卷积
+  ▸ Conv: 卷积块（文件内部实现：Conv+BN+Act）
+  ▸ ChannelAttention: 通道注意力（GAP+1x1压缩激励，SE风格）
+  ▸ SpatialAttention: 空间注意力
+  ▸ FractionalGaborFilter: 分数Gabor滤波器（SFSConv：FrFT域Gabor可学习滤波）
+  ▸ GaborSingle: 单通道Gabor滤波（SFSConv组件）
+  ▸ GaborFPU: Gabor频域处理单元（SFSConv：Gabor滤波变体）
+  ▸ FrFTFilter: 分数傅里叶滤波器（SFSConv核心：FrFT域可学习滤波）
+  ▸ FrFTSingle: 单通道分数傅里叶变换（SFSConv组件）
+  ▸ FourierFPU: 傅里叶频域处理单元（SFSConv组件）
+  ▸ SPU: SPU空间处理单元（SFSConv组件）
+  ▸ SFS_Conv: SFSConv（ICLR2025）：尺度序列频域卷积，可学习频域滤波+空间卷积联合
+
+==========================================================================================
+◆ shiftwise_conv.py
+  文件作用: Shiftwise卷积（CVPR2024）：ReparamLargeKernelConv移位式大核重参数卷积（7x7偏移+重参数合并）
+  导出(__all__): ReparamLargeKernelConv
+  ▸ Mask: 掩码模块（shiftwise_conv：移位掩码生成）
+  ▸ LoRAConvsByWeight: merge LoRA1 LoRA2 shuffle channel by weights rather index
+  ▸ ReparamLargeKernelConv: Shiftwise卷积（CVPR2024）：移位式大核重参数卷积（大核拆为移位小核+合并）
+
+==========================================================================================
+◆ SMPConv.py
+  文件作用: SMPConv（AAAI2024）：自建模式多项式卷积——可学习多项式核+自建模式选择，替代大核卷积
+  导出(__all__): SMPBlock, SMPCNN_ConvFFN
+  ▸ SMPConv: SMPConv自建模式多项式卷积
+  ▸ SMPCNN: SMPCNN：SMPConv卷积神经网络块
+  ▸ SMPCNN_ConvFFN: SMPCNN+卷积前馈网络
+  ▸ SMPBlock: SMPConv块（AAAI2024）：自建模式多项式卷积+FFN
+
+==========================================================================================
+◆ srconvnet.py
+  文件作用: SRCNN风格超分网络组件：FMABlock特征调制注意力块（MeanShift/频域调制，超分/细节增强用）
+  导出(__all__): FMABlock
+  ▸ MeanShift: RGB均值偏移层（超分网络输入归一化，固定参数）
+  ▸ LayerNorm: 层归一化
+  ▸ FourierUnit: 傅里叶单元（FFT域处理：rfft2+卷积+irfft2）
+  ▸ FConvMod: 快速卷积调制（srconvnet组件）
+  ▸ KernelAggregation: 核聚合（srconvnet：多核自适应聚合）
+  ▸ KernelAttention: 核注意力（srconvnet：多卷积核注意力聚合）
+  ▸ DynamicKernelAggregation: 动态核聚合（srconvnet：多卷积核自适应聚合）
+  ▸ DyConv: 动态卷积（srconvnet：核注意力动态加权）
+  ▸ MixFFN: MixFFN混合前馈（MLP+深度卷积，SegFormer风格）
+  ▸ FMABlock: SRCNN风格特征调制注意力块（频域调制）
+
+==========================================================================================
+◆ TinyVIM.py
+  文件作用: TinyVIM（NeurIPS2024）：TViMBlock二维选择性SSM轻量token混合（TinyVIM系列）
+  ▸ Conv2d_BN: Conv2d+BN融合层（部署友好）
+  ▸ RepDW: 重参数深度卷积（TinyVIM）
+  ▸ RepDW_Axias: 轴向重参数深度卷积（TinyVIM）
+  ▸ Rep_Inception: 重参数Inception块（TinyVIM：多尺寸核重参数化）
+  ▸ SelectiveScan: 选择性扫描（Mamba核心SSM扫描算子）
+  ▸ CrossScan: 交叉扫描（四向展开：H/W正反向，SS2D组件）
+  ▸ CrossMerge: 交叉合并（四向序列合并回2D，SS2D组件）
+  ▸ SS2D: SS2D二维选择性扫描（VMamba核心：四向扫描+选择性SSM）
+  ▸ FFN: 前馈网络
+  ▸ TViMBlock: TinyVIM token混合块
+
+==========================================================================================
+◆ transformer.py
+  文件作用: Transformer组件库：AIFI编码器层变体(Assa/Pola/SHSA/EPGO/Mona/DyT等组合)、Mona注意力、DyT动态Tanh、频域块(EDFFN/SEFN/FMFFN)、CSWin/TransNeXt编码器层、MLP变体等
+  导出(__all__): TransformerEncoderLayer_LocalWindowAttention, AIFI_LPE, TransformerEncoderLayer_DAttention, TransformerEncoderLayer_HiLo, TransformerEncoderLayer_EfficientAdditiveAttnetion, AIFI_RepBN, TransformerEncoderLayer_AdditiveTokenMixer, TransformerEncoderLayer_MSMHSA, TransformerEncoderLayer_DHSA, TransformerEncoderLayer_DPB, TransformerEncoderLayer_Pola, TransformerEncoderLayer_TSSA, TransformerEncoderLayer_ASSA, TransformerEncoderLayer_Pola_CGLU, TransformerEncoderLayer_Pola_FMFFN, AIFI_SEFN, TransformerEncoderLayer_Pola_SEFN, TransformerEncoderLayer_ASSA_SEFN, AIFI_Mona, TransformerEncoderLayer_ASSA_SEFN_Mona, TransformerEncoderLayer_Pola_SEFN_Mona, AIFI_DyT, TransformerEncoderLayer_ASSA_SEFN_Mona_DyT, TransformerEncoderLayer_Pola_SEFN_Mona_DyT, AIFI_SEFFN, TransformerEncoderLayer_Pola_SEFFN_Mona_DyT, AIFI_EDFFN, TransformerEncoderLayer_Pola_EDFFN_Mona_DyT, TransformerEncoderLayer_MSLA, TransformerEncoderLayer_EPGO, TransformerEncoderLayer_SHSA, TransformerEncoderLayer_SHSA_EPGO, AIFI_DML
+  ▸ LayerNorm: 层归一化
+  ▸ Conv2d_BN: Conv2d+BN融合层（部署友好）
+  ▸ CascadedGroupAttention: EfficientViT级联组注意力：各头级联处理不同通道子集，缓解注意力冗余
+  ▸ LocalWindowAttention: 局部窗口注意力（Swin风格W-MSA）
+  ▸ TransformerEncoderLayer_LocalWindowAttention: Transformer编码器层变体，注意力/FFN替换为 LocalWindowAttention 组合。组件: 局部窗口注意力（Swin风格W-MSA）
+  ▸ LearnedPositionalEncoding: 可学习位置编码
+  ▸ AIFI_LPE: Defines the AIFI transformer layer.
+  ▸ TransformerEncoderLayer_DAttention: Transformer编码器层变体，注意力/FFN替换为 DAttention 组合。组件: DAT可变形注意力：采样位置可学习偏移的稀疏注意力
+  ▸ TransformerEncoderLayer_HiLo: Transformer编码器层变体，注意力/FFN替换为 HiLo 组合。组件: HiLo：高低频注意力（局部高频+全局低频分解）
+  ▸ TransformerEncoderLayer_EfficientAdditiveAttnetion: Transformer编码器层变体，注意力/FFN替换为 EfficientAdditiveAttnetion 组合。组件: EAA：高效加性注意力（线性复杂度加性token混合）
+  ▸ TransformerEncoderLayer_RepBN: Transformer编码器层变体，注意力/FFN替换为 RepBN 组合
+  ▸ AIFI_RepBN: Defines the AIFI transformer layer.
+  ▸ SpatialOperation: 空间操作（空间重排工具层）
+  ▸ ChannelOperation: 通道操作（通道重排/选择工具层）
+  ▸ AdditiveTokenMixer: 改变了proj函数的输入，不对q+k卷积，而是对融合之后的结果proj
+  ▸ TransformerEncoderLayer_AdditiveTokenMixer: Transformer编码器层变体，注意力/FFN替换为 AdditiveTokenMixer 组合。组件: 改变了proj函数的输入，不对q+k卷积，而是对融合之后的结果proj
+  ▸ MutilScal: 多尺度块（transformer多尺度编码层）
+  ▸ Mutilscal_MHSA: 多尺度MHSA（不同膨胀率）
+  ▸ TransformerEncoderLayer_MSMHSA: Transformer编码器层变体，注意力/FFN替换为 MSMHSA 组合。组件: 多尺度多头自注意力
+  ▸ Attention_histogram: 直方图注意力（分组box统计）
+  ▸ TransformerEncoderLayer_DHSA: Transformer编码器层变体，注意力/FFN替换为 DHSA 组合。组件: 直方图注意力（分组box统计注意力）
+  ▸ DynamicPosBias: DPB module Use a MLP to predict position bias used in attention.
+  ▸ DPB_Attention: DPB动态位置偏置注意力
+  ▸ TransformerEncoderLayer_DPB: Transformer编码器层变体，注意力/FFN替换为 DPB 组合。组件: DPB动态位置偏置注意力（多头+动态位置偏置）
+  ▸ PolaLinearAttention: PolaFormer极化线性注意力实现
+  ▸ ConvolutionalGLU: 卷积门控线性单元（Conv+GLU前馈）
+  ▸ TransformerEncoderLayer_Pola: Transformer编码器层变体，注意力/FFN替换为 Pola 组合。组件: PolaFormer极化线性注意力
+  ▸ TransformerEncoderLayer_Pola_CGLU: Transformer编码器层变体，注意力/FFN替换为 Pola_CGLU 组合。组件: PolaFormer极化线性注意力 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+  ▸ TransformerEncoderLayer_Pola_FMFFN: Transformer编码器层变体，注意力/FFN替换为 Pola_FMFFN 组合。组件: PolaFormer极化线性注意力 + FILC频域混合前馈网络（窗口频域+MLP）
+  ▸ TransformerEncoderLayer_TSSA: Transformer编码器层变体，注意力/FFN替换为 TSSA 组合
+  ▸ TransformerEncoderLayer_ASSA: Transformer编码器层变体，注意力/FFN替换为 ASSA 组合。组件: ASSA自适应稀疏自注意力（CVPR2024 Adapt or Perish）
+  ▸ TransformerEncoderLayer_SEFN: Transformer编码器层变体，注意力/FFN替换为 SEFN 组合。组件: SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN
+  ▸ AIFI_SEFN: Defines the AIFI transformer layer.
+  ▸ TransformerEncoderLayer_Pola_SEFN: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFN 组合。组件: PolaFormer极化线性注意力 + SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN
+  ▸ TransformerEncoderLayer_ASSA_SEFN: Transformer编码器层变体，注意力/FFN替换为 ASSA_SEFN 组合。组件: ASSA自适应稀疏自注意力（CVPR2024 Adapt or Perish） + SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN
+  ▸ TransformerEncoderLayer_Mona: Transformer编码器层变体，注意力/FFN替换为 Mona 组合。组件: Mona注意力（MOCHA）
+  ▸ AIFI_Mona: Defines the AIFI transformer layer.
+  ▸ TransformerEncoderLayer_ASSA_SEFN_Mona: Transformer编码器层变体，注意力/FFN替换为 ASSA_SEFN_Mona 组合。组件: ASSA自适应稀疏自注意力（CVPR2024 Adapt or Perish） + SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN + Mona注意力（MOCHA）
+  ▸ TransformerEncoderLayer_Pola_SEFN_Mona: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFN_Mona 组合。组件: PolaFormer极化线性注意力 + SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN + Mona注意力（MOCHA）
+  ▸ DynamicTanh: DyT动态Tanh（transformer.py内实现）
+  ▸ TransformerEncoderLayer_DyT: Transformer编码器层变体，注意力/FFN替换为 DyT 组合。组件: DyT动态Tanh
+  ▸ AIFI_DyT: Defines the AIFI transformer layer.
+  ▸ TransformerEncoderLayer_ASSA_SEFN_Mona_DyT: Transformer编码器层变体，注意力/FFN替换为 ASSA_SEFN_Mona_DyT 组合。组件: ASSA自适应稀疏自注意力（CVPR2024 Adapt or Perish） + SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN + Mona注意力（MOCHA） + DyT动态Tanh
+  ▸ TransformerEncoderLayer_Pola_SEFN_Mona_DyT: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFN_Mona_DyT 组合。组件: PolaFormer极化线性注意力 + SEMNet语义增强前馈网络（WACV2024）：门控DWConv FFN + Mona注意力（MOCHA） + DyT动态Tanh
+  ▸ TransformerEncoderLayer_SEFFN: Transformer编码器层变体，注意力/FFN替换为 SEFFN 组合
+  ▸ AIFI_SEFFN: Defines the AIFI transformer layer.
+  ▸ TransformerEncoderLayer_Pola_SEFFN_Mona_DyT: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFFN_Mona_DyT 组合。组件: PolaFormer极化线性注意力 + Mona注意力（MOCHA） + DyT动态Tanh
+  ▸ TransformerEncoderLayer_EDFFN: Transformer编码器层变体，注意力/FFN替换为 EDFFN 组合。组件: EDFFN高效分解前馈网络：小波patch感知FFN
+  ▸ AIFI_EDFFN: Defines the AIFI transformer layer.
+  ▸ TransformerEncoderLayer_Pola_EDFFN_Mona_DyT: Transformer编码器层变体，注意力/FFN替换为 Pola_EDFFN_Mona_DyT 组合。组件: PolaFormer极化线性注意力 + EDFFN高效分解前馈网络：小波patch感知FFN + Mona注意力（MOCHA） + DyT动态Tanh
+  ▸ LinearAttention: 线性注意力（核化线性复杂度注意力）
+  ▸ DepthwiseConv: 深度可分离卷积
+  ▸ MSLA: MSLA多尺度线性注意力：通道4分组不同尺度DW conv+线性注意力
+  ▸ TransformerEncoderLayer_MSLA: Transformer编码器层变体，注意力/FFN替换为 MSLA 组合。组件: MSLA多尺度线性注意力：通道4分组不同尺度DW conv+线性注意力
+  ▸ Attention_EPGO: Attention module that performs self-attention on the input tensor. Args: dim (int): The input tensor dimension.
+  ▸ TransformerEncoderLayer_EPGO: Transformer编码器层变体，注意力/FFN替换为 EPGO 组合。组件: EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力
+  ▸ SHSA_GroupNorm: Group Normalization with 1 group. Input: tensor in shape [B, C, H, W]
+  ▸ SHSA: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量）
+  ▸ SHSA_EPGO: Single-Head Self-Attention
+  ▸ TransformerEncoderLayer_SHSA: Transformer编码器层变体，注意力/FFN替换为 SHSA 组合。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量）
+  ▸ TransformerEncoderLayer_SHSA_EPGO: Transformer编码器层变体，注意力/FFN替换为 SHSA_EPGO 组合。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量） + EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力
+  ▸ TransformerEncoderLayer_DML: Transformer编码器层变体，注意力/FFN替换为 DML 组合。组件: DML动态MLP混合注意力
+  ▸ AIFI_DML: Defines the AIFI transformer layer.
+
+==========================================================================================
+◆ transMamba.py
+  文件作用: TransMamba：Transformer与Mamba混合块（并行注意力+SSM双路径）
+  导出(__all__): TransMambaBlock, SpectralEnhancedFFN
+  ▸ ChannelAttention: 通道注意力（GAP+1x1压缩激励，SE风格）
+  ▸ SpatialAttention: 空间注意力
+  ▸ Mamba: Mamba块（选择性状态空间模型S6）
+  ▸ BiasFree_LayerNorm: 无偏置LayerNorm（tsdn）
+  ▸ WithBias_LayerNorm: 带偏置LayerNorm（tsdn）
+  ▸ LayerNorm: 层归一化
+  ▸ SpectralEnhancedFFN: Spectral Enhanced Feed-Forward
+  ▸ Attention: 注意力（文件内部通用注意力）
+  ▸ TransformerBlock: Transformer块（transMamba组件）
+  ▸ MambaBlock: Mamba块包装（UMFormer组件）
+  ▸ DRMamba: TransMamba去噪分支Mamba块
+  ▸ TransMambaBlock: TransMamba块：Transformer注意力与Mamba SSM并行双路径
+
+==========================================================================================
+◆ tsdn.py
+  文件作用: TSDN去噪Transformer（AAAI2025）：DTAB去噪块=MDTA通道注意力+膨胀重叠交叉注意力DilatedOCA
+  导出(__all__): DTAB
+  ▸ RelPosEmb: 相对位置嵌入（RMT风格）
+  ▸ FixedPosEmb: 固定位置嵌入（tsdn）
+  ▸ DilatedMDTA: 膨胀转置通道注意力（tsdn：MDTA+膨胀）
+  ▸ DilatedOCA: 膨胀重叠交叉注意力（TSDN）
+  ▸ FeedForward: 前馈网络（tsdn）
+  ▸ DTAB: TSDN去噪Transformer块（AAAI2025）：MDTA通道注意力+膨胀重叠交叉注意力
+  ▸ BiasFree_LayerNorm: 无偏置LayerNorm（tsdn）
+  ▸ WithBias_LayerNorm: 带偏置LayerNorm（tsdn）
+  ▸ LayerNorm: 层归一化
+
+==========================================================================================
+◆ UMFormer.py
+  文件作用: UMFormer（TGRS2025）：GL_VSS全局-局部视觉状态空间块（全局Mamba+局部卷积门控）
+  导出(__all__): MSAM, GL_VSS
+  ▸ AttentionWeight: 注意力权重生成（UMFormer组件）
+  ▸ IIA: IIA输入交互注意力（UMFormer组件）
+  ▸ Conformity: 一致性融合（UMFormer组件）
+  ▸ IndentityBlock: 恒等块（UMFormer组件）
+  ▸ SelfAttention: 自注意力（UMFormer组件）
+  ▸ MSAM: 多尺度注意力模块（UMFormer组件）
+  ▸ Block: 基础块（文件内部通用块）
+  ▸ Mamba: Mamba块（选择性状态空间模型S6）
+  ▸ Mamba_Block: Mamba块（UMFormer组件变体）
+  ▸ ChannelAttention: 通道注意力（GAP+1x1压缩激励，SE风格）
+  ▸ LocalFeature: 局部特征分支（UMFormer组件）
+  ▸ FeatureEmbedding: 特征嵌入（UMFormer：patch嵌入）
+  ▸ MambaBlock: Mamba块包装（UMFormer组件）
+  ▸ GL_VSS: UMFormer全局-局部视觉状态空间块（TGRS2025）
+
+==========================================================================================
+◆ UniConvNet.py
+  文件作用: UniConvNet（ICLR2025）：UniConvBlock统一卷积块——DCNv3核心算子+大核DW+条带卷积的统一设计
+  文件头注释: Copyright (c) Meta Platforms, Inc. and affiliates.
+  导出(__all__): U, n, i, C, o, n, v, B, l, o, c, k
+  ▸ to_channels_first: NCHW→NHWC布局转换（UniConvNet工具）
+  ▸ to_channels_last: NHWC→NCHW布局转换（UniConvNet工具）
+  ▸ MLPLayer: MLP layer of InternImage Args: in_features (int): number of input features
+  ▸ LayerNorm: 层归一化
+  ▸ ConvMod: 卷积调制（UniConvNet组件）
+  ▸ UniConvBlock: UniConvNet块（ICLR2025）：统一卷积（DCNv3核心+大核DW+条带卷积统一设计）
+
+==========================================================================================
+◆ VSSD.py
+  文件作用: VSSD（CVPR2025）视觉状态空间双主干块：VMAMBA2Block深度可分离SSM扫描
+  ▸ tTensor: tTensor张量包装（VSSD内部工具）
+  ▸ ConvFFN: 卷积前馈网络（DWConv+FFN）
+  ▸ StandardAttention: 标准多头自注意力（VSSD组件）
+  ▸ Mamba2: Mamba2块（SSD状态空间对偶算法，更高效）
+  ▸ Mlp: MLP前馈网络
+  ▸ VMAMBA2Block: VSSD（CVPR2025）块：深度可分离SSM扫描的视觉状态空间块
+
+==========================================================================================
+◆ wtconv2d.py
+  文件作用: WTConv2d小波卷积（ECCV2024）：Haar小波变换域卷积，低成本获得大感受野，按频带分别卷积后逆变换
+  导出(__all__): WTConv2d
+  ▸ WaveletTransform: Define the WaveletTransform class
+  ▸ InverseWaveletTransform: Define the InverseWaveletTransform class
+  ▸ WTConv2d: WTConv2d：小波卷积（ECCV2024），Haar小波变换域卷积获得大感受野
+  ▸ _ScaleModule: 缩放模块（WTConv组件：可学习逐通道缩放）
+
+==========================================================================================
+◆ yolov13.py
+  文件作用: YOLOv13组件：HyperACE超图自适应关联增强、HyperComputeModule超图计算(v→e→v两阶段超图卷积)、DSConv/PSA等，实现端到端placeholder-based特征增强
+  导出(__all__): HyperACE, FullPAD_Tunnel
+  ▸ DSConv_YOLO13: The Basic Depthwise Separable Convolution.
+  ▸ DSBottleneck: An improved bottleneck block using depthwise separable convolutions (DSConv). This class implements a lightweight bottleneck module that replaces standard convolutions with depthwise separable convolutions to reduce parameters and computational cost.
+  ▸ DSC3k: An improved C3k module using DSBottleneck blocks for lightweight feature extraction. This class extends the C3 module by replacing its standard bottleneck blocks with DSBottleneck blocks, which use depthwise separable convolutions.
+  ▸ DSC3k2: An improved C3k2 module that uses lightweight depthwise separable convolution blocks. This class redesigns C3k2 module, replacing its internal processing blocks with either DSBottleneck or DSC3k modules.
+  ▸ AdaHyperedgeGen: Generates an adaptive hyperedge participation matrix from a set of vertex features. This module implements the Adaptive Hyperedge Generation mechanism. It generates dynamic hyperedge prototypes based on the global context of the input nodes and calcu
+  ▸ AdaHGConv: Performs the adaptive hypergraph convolution. This module contains the two-stage message passing process of hypergraph convolution: 1. Generates an adaptive participation matrix using AdaHyperedgeGen.
+  ▸ AdaHGComputation: A wrapper module for applying adaptive hypergraph convolution to 4D feature maps. This class makes the hypergraph convolution compatible with standard CNN architectures. It flattens a 4D input tensor (B, C, H, W) into a sequence of vertices (tokens),
+  ▸ C3AH: YOLOv13 C3+超图注意力瓶颈
+  ▸ FuseModule: A module to fuse multi-scale features for the HyperACE block. This module takes a list of three feature maps from different scales, aligns them to a common spatial resolution by downsampling the first and upsampling the third, and then concatenates
+  ▸ HyperACE: YOLOv13超图自适应关联增强：多尺度融合+双C3AH超图分支+DSConv分支
+  ▸ DownsampleConv: A simple downsampling block with optional channel adjustment. This module uses average pooling to reduce the spatial dimensions (H, W) by a factor of 2. It can optionally include a 1x1 convolution to adjust the number of channels, typically doubling 
+  ▸ FullPAD_Tunnel: A gated fusion module for the Full-Pipeline Aggregation-and-Distribution (FullPAD) paradigm. This module implements a gated residual connection used to fuse features. It takes two inputs: the original feature map and a correlation-enhanced feature ma
+
+==========================================================================================
+子目录（CUDA算子库 / 第三方库）
+------------------------------------------------------------------------------------------
+  ◈ DCNv4_op/: DCNv4可变形卷积v4官方CUDA算子库（含flash_deform_attn）：编译后供DCNV4模块调用
+  ◈ GroupMamba/: GroupMamba（2024）分组SSM算子库：csms6s分组扫描、ss2d二维选择性扫描、GroupMambaLayer
+  ◈ cutlass/: NVIDIA CUTLASS模板库（DCNv4依赖的GEMM底层库，非业务模块）
+  ◈ kan_convs/: KAN卷积库：KANConv2DLayer/FastKANConv2DLayer等可学习样条激活卷积（B样条替代ReLU）
+  ◈ mamba/: Mamba官方SSM库相关（selective_scan绑定）
+  ◈ mobileMamba/: MobileMamba（2025）移动端Mamba主干：MobileMambaBlock全局-局部混合块
+  ◈ ops_dcnv3/: DCNv3可变形卷积v3官方算子库（Intern系列）
+  ◈ ops_dscn/: DSCN中心差分卷积算子库
+  ◈ rational_kat_cu/: Rational KAT（Kolmogorov-Arnold Transformer）CUDA实现：可学习有理函数激活
+  ◈ selective_scan/: selective_scan CUDA算子库：Mamba/VMamba核心选择性扫描核
+
+统计: 60 个模块文件, 共 1101 个类定义

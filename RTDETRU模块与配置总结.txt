@@ -1,0 +1,571 @@
+================================================================================
+RT-DETR (RTDETRU) 创新模块与配置文件完整总结
+================================================================================
+生成日期: 2026-08-31
+代码根目录: e:\RT-DETR\RTDETRU\ultralytics
+输入假设: VisDrone 640x640, batch=B, nc=10（所有 BHW 变化均以此为基准）
+
+涉及文件:
+  [模块] nn/extra_modules/dsawacga.py                  -> DSAWACGA
+  [模块] nn/extra_modules/dsawacga_v2.py               -> DSAWACGAv2 (去cross_gate)
+  [模块] nn/extra_modules/dsadoc_v10.py                -> DSADOC_v10
+  [模块] nn/extra_modules/dsadoc_v11.py                -> DSADOC_v11 (去cross_gate)
+  [模块] nn/extra_modules/hybrid_encoder_p2_spd_okm.py     -> CCFFP2 (基础版)
+  [模块] nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v5.py -> CCFFP2V5
+  [模块] nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py -> CCFFP2V6 (最终版)
+  [配置] cfg/models/rt-detr/rtdetr-r18-DSAWACGA.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-DSAWACGAv2.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-DSADOCv10.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-DSADOCv11.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-P2SPDOKM.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-P2SPDOKMFSV5.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-P2SPDOKMFSV6.yaml
+  [配置] cfg/models/rt-detr/rtdetr-r18-DSAWACGA-P2SPDOKMFSV6.yaml (组合)
+  [配置] cfg/models/rt-detr/rtdetr-r18-DSADOCv10-P2SPDOKMFSV6.yaml (组合)
+
+================================================================================
+第一部分  总体架构与创新体系
+================================================================================
+
+所有配置共享同一个 PResNet-18vd 主干骨架（stem + 4个stage），通道布局固定
+64/128/256/512，输出 strides P2/4, P3/8, P4/16, P5/32。创新分为两个独立维度：
+
+  A. Backbone 创新（改 stage 内部结构，不改通道/stride，与预训练权重兼容）:
+     每个stage的最后一个BasicBlock的 branch2a(3x3卷积) 被创新模块替换，
+     branch2b(3x3) 和残差shortcut保持不变。
+       - DSAWACGA    : DSA(多尺度空间+Scharr边缘) + WACGA(小波感知门控注意力) + cross_gate
+       - DSAWACGAv2  : 同上，但去掉cross_gate（直接Concat+1x1融合）
+       - DSADOC_v10  : DSA(多尺度空间+Scharr边缘) + DOC(Haar小波域校准+FiLM) + cross_gate
+       - DSADOC_v11  : 同上，但去掉cross_gate（直接Concat+1x1融合）
+
+  B. Encoder 创新（HybridEncoder 引入P2层 + CCFF重设计）:
+       - P2SPDOKM     基础版: SPDConv下采样 + OKNet BottleNect大核/频域创新块
+       - P2SPDOKMFSV5 : CCFFBlock = DCFM(差分) + OKNet大核 + FreqScale频域缩放;
+                        PDCBlock带内部残差
+       - P2SPDOKMFSV6 : 同V5，但PDCBlock去掉内部残差（纯差分特征）——最终版本
+
+  C. 组合配置: Backbone创新 + Encoder创新自由组合（两者索引/通道完全对齐，
+     可无冲突组合），已有 DSAWACGA-P2SPDOKMFSV6 和 DSADOCv10-P2SPDOKMFSV6 两个组合。
+
+公共主干骨架（所有配置一致，layer 0~3）:
+  L0 ConvNormLayer( 3->32, 3x3, s2)   B,3,640,640   -> B,32,320,320  (P1/2)
+  L1 ConvNormLayer(32->32, 3x3, s1)   B,32,320,320  -> B,32,320,320
+  L2 ConvNormLayer(32->64, 3x3, s1)   B,32,320,320  -> B,64,320,320
+  L3 nn.MaxPool2d(3, 2, 1)            B,64,320,320  -> B,64,160,160  (P2/4)
+
+4个stage（Blocks或BlocksXXX容器, 每stage 2个block, 通道64/128/256/512）:
+  L4  stage2: B,64,160,160  (stage_num=2, 首block stride=1)
+  L5  stage3: B,128,80,80   (P3/8,  首block stride=2)
+  L6  stage4: B,256,40,40   (P4/16, 首block stride=2)
+  L7  stage5: B,512,20,20   (P5/32, 首block stride=2)
+
+================================================================================
+第二部分  公共组件
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1 ConvNormLayer (ultralytics/nn/modules/block.py)
+--------------------------------------------------------------------------------
+  Conv2d(bias=False) + BatchNorm2d (+ 可选激活)
+  与 rtdetr_pytorch ConvNormLayer 语义完全一致。head中的input_proj/lateral/
+  downsample均用它，保证与原实现1:1。
+
+--------------------------------------------------------------------------------
+2.2 BasicBlock (PResNet, ultralytics/nn/modules/block.py)
+--------------------------------------------------------------------------------
+  branch2a: ConvNormLayer 3x3 (创新模块的替换目标)
+  branch2b: ConvNormLayer 3x3
+  shortcut: stride>1或通道不匹配时 1x1卷积
+  forward: act(branch2b(branch2a(x)) + short(x))
+  创新模块替换branch2a后: act(branch2b(DSAWACGA(x)) + short(x))
+
+--------------------------------------------------------------------------------
+2.3 ScharrEdge（DSAWACGA/DSADOC共用）
+--------------------------------------------------------------------------------
+  固定Scharr算子（不可学习, buffer）分组卷积提取梯度:
+    gx = conv2d(x, scharr_x, groups=C)   gx,gy: [B,C,H,W]
+    gy = conv2d(x, scharr_y, groups=C)
+    magnitude = sqrt(gx^2 + gy^2 + 1e-8) -> [B,C,H,W]
+  使用时通常再减去空间均值: f = f - f.mean(dim=[2,3],keepdim=True)
+
+--------------------------------------------------------------------------------
+2.4 HaarDWT / HaarIDWT（DSADOC v10/v11用, 不可学习）
+--------------------------------------------------------------------------------
+  HaarDWT:  偶数尺寸直接下采样采样点组合:
+            ll/lh/hl/hh 各 [B,C,H/2,W/2]   (奇数尺寸先reflect pad)
+  HaarIDWT: 4子带重组回 [B,C,H,W]
+
+--------------------------------------------------------------------------------
+2.5 LearnableHaarDWT（DSAWACGA的WACGA用, 可学习滤波器）
+--------------------------------------------------------------------------------
+  dec_lo/dec_hi 为 nn.Parameter（初始化为Haar系数, requires_grad=True）。
+  外积构造 2x2 核 [ll,lh,hl,hh], stride=2 分组卷积一次得到4子带:
+    输入 [B,C,H,W] -> 4子带各 [B,C,H/2,W/2]（replicate pad对齐）
+
+--------------------------------------------------------------------------------
+2.6 _SPDConv (space-to-depth, Encoder P2融合共用)
+--------------------------------------------------------------------------------
+  x [B,C,H,W] -> 取4个相位子格 -> cat [B,4C,H/2,W/2] -> ConvNormLayer 3x3
+  -> [B,C_out,H/2,W/2]
+  无损下采样（不丢信息），P2(160x160)进入P3尺度(80x80)的桥梁。
+
+--------------------------------------------------------------------------------
+2.7 CSPRepLayer (rtdetr_pytorch verbatim移植, 用于FPN/PAN/CCFF末端)
+--------------------------------------------------------------------------------
+  conv1(1x1)->bottlenecks(RepVggBlock xN)->(+ conv2(1x1)分路)->conv3(1x1)
+  RepVggBlock: 3x3+1x1双路（部署可融合为单3x3）。
+  注意: RTDETRU自带RepC3(加法融合+RepConv)与它结构不等价, 故不用RepC3。
+
+================================================================================
+第三部分  Backbone 创新模块详解
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 DSAWACGA  (dsawacga.py)  —— DSA + WACGA + cross_gate交叉门控
+--------------------------------------------------------------------------------
+功能: 替换每个stage最后一个BasicBlock的branch2a。半通道分流设计:
+      前半通道走"DSA+WACGA创新支路", 后半通道走"Conv3x3局特征支路",
+      两路Concat后交由branch2b融合。dim=ch_out(64/128/256/512), cr=dim/2。
+
+结构图（以stage5为例: dim=512, cr=256, H=W=20）:
+
+  输入 x [B,512,20,20]
+        │ chunk(2)
+        ├────────────────────────┬─────────────────────────────┐
+        ▼ (前256通道)            ▼ (后256通道)                  │
+   x_dsawacga [B,256,20,20]  x_conv [B,256,20,20]               │
+        │                        │                              │
+   ┌────┴───── DSA分支 ─────────┐│                              │
+   │ f1  = dwconv3   3x3 DW     ││  [B,256,20,20]               │
+   │ f2  = dwconv5   5x5 DW     ││  [B,256,20,20]               │
+   │ f3  = dwconv7   7x7 DW     ││  [B,256,20,20]               │
+   │ f4  = dwconv_d4 3x3 DW d=4 ││  [B,256,20,20]               │
+   │ fs  = scharr边缘-均值       ││  [B,256,20,20]               │
+   │      ↓ cat [B,1280,20,20]  ││                              │
+   │ weight_conv 1x1(1280->5)   ││  [B,5,20,20]                 │
+   │      ↓ softmax(dim=1)      ││                              │
+   │ 加权求和(5路)               ││  [B,256,20,20]               │
+   │ channel_mix 1x1            ││                              │
+   │      ↓ fdsa                ││  [B,256,20,20]               │
+   └────────────────────────────┘│                              │
+   ┌──── WACGA分支 (同一输入) ───┐│                              │
+   │ dwt(LearnableHaarDWT)       ││  ya,yh,yv,yd 各[B,256,10,10] │
+   │ ya_proj 1x1(256->64)+ll_conv│   [B,64,10,10]               │
+   │ yh_conv (1,3)+水平差分核     │   [B,64,10,10]               │
+   │ yv_conv (3,1)+垂直差分核     │   [B,64,10,10]               │
+   │ yd: tanh+1x1+拉普拉斯核     │   [B,64,10,10]               │
+   │ cat [B,256,10,10]           │                              │
+   │ subband_fusion 3x3DW+Sigmoid│   [B,256,10,10]              │
+   │ interpolate双线性->原尺寸    │   [B,256,20,20] 小波注意力图M │
+   │ qkv 1x1(256->768)+dwconv3x3 │   [B,768,20,20]              │
+   │ chunk -> q,k,v              │   各[B,256,20,20]            │
+   │ 4头注意力(q,k先L2归一化,     │                              │
+   │ temperature可学习)          │                              │
+   │ project_out 1x1             │   [B,256,20,20]              │
+   │      ↓ fwacga = out * M     │   [B,256,20,20]              │
+   └────────────────────────────┘│                              │
+   ┌ cross_gate交叉门控 ─────────┐│                              │
+   │ gap(fdsa), gap(fwacga)      │   各[B,256,1,1]              │
+   │ cat -> [B,512,1,1]          │                              │
+   │ 1x1(512->512)+Sigmoid       │   [B,512,1,1] 门控权重        │
+   └────────────────────────────┘│                              │
+   fused = cat([fdsa,fwacga]) * gate   [B,512,20,20]            │
+   dsawacga_fusion: 1x1(512->256)+BN+SiLU  -> [B,256,20,20]     │
+                                                                 │
+   conv_path: Conv3x3+BN+ReLU(x_conv)     -> [B,256,20,20]      │
+                                                                 │
+  out = cat([dsawacga_out, conv_out])      [B,512,20,20] ◄──────┘
+        （随后进入branch2b 3x3 + 残差shortcut + ReLU）
+
+各stage BHW一览:
+  stage2: x[B,64,160,160] -> chunk 32/32 -> DSA/WACGA@32ch,160x160 -> out[B,64,160,160]
+  stage3: x[B,128,80,80]  -> chunk 64/64 -> DSA/WACGA@64ch, 80x80  -> out[B,128,80,80]
+  stage4: x[B,256,40,40]  -> chunk 128/128 -> DSA/WACGA@128ch,40x40-> out[B,256,40,40]
+  stage5: x[B,512,20,20]  -> chunk 256/256 -> DSA/WACGA@256ch,20x20-> out[B,512,20,20]
+
+--------------------------------------------------------------------------------
+3.2 DSAWACGAv2  (dsawacga_v2.py)  —— DSAWACGA 去掉 cross_gate
+--------------------------------------------------------------------------------
+与3.1唯一区别: 删除cross_gate（1x1+Sigmoid全局门控）与GAP信号提取。
+  v1(DSAWACGA): fused = cat([fdsa,fwacga]) * cross_gate(gap信号)
+  v2(DSAWACGAv2): fused = cat([fdsa,fwacga])  （直接拼接）
+改动理由:
+  - 全局门控是"空间盲"的（对VisDrone小目标有害）
+  - 与 dsawacga_fusion 的 1x1卷积+BN+SiLU 功能冗余（后者已做通道选择）
+  - Sigmoid(0,1)纯抑制, 只能削弱不能增强
+参数节省: 每stage移除 2*cr^2 参数, 4个stage合计约174K。
+其余（ScharrEdge/LearnableHaarDWT/WACGA/半通道chunk/BasicBlock容器）与v1完全一致。
+
+结构图差异（对应3.1的cross_gate部分）:
+  v2:  fdsa [B,cr,H,W] ──┐
+                         ├─ cat -> dsawacga_fusion(1x1+BN+SiLU) -> [B,cr/2... 
+  v2:  fwacga [B,cr,H,W] ─┘
+  （即 cat([fdsa,fwacga]) [B,2cr,H,W] -> 1x1(2cr->cr)+BN+SiLU -> [B,cr,H,W]）
+
+--------------------------------------------------------------------------------
+3.3 DSADOC_v10  (dsadoc_v10.py)  —— DSA + DOC(小波域校准+FiLM) + cross_gate
+--------------------------------------------------------------------------------
+功能: 同样替换branch2a、半通道分流。与DSAWACGA的区别是第二创新支路:
+      WACGA(小波注意力) 换成了 DOC(DCC分支: Haar小波域子带校准 + FiLM调制)。
+  DSA分支与DSAWACGA完全相同（多尺度DWConv+Scharr+5路softmax加权+channel_mix）。
+
+结构图（以stage5为例: dim=512, cr=256, H=W=20）:
+
+  输入 x [B,512,20,20]
+        │ chunk(2)
+        ├────────────────────────┬─────────────────────────────┐
+        ▼ (前256通道)            ▼ (后256通道)                  │
+   xs [B,256,20,20]         x_conv [B,256,20,20]                │
+        │                        │                              │
+   ┌────┴─── DSA分支 ────────────┐│  （同DSAWACGA的DSA, 输出fdsa │
+   │ dwconv3/5/7/d4 + scharr     ││   [B,256,20,20]）           │
+   │ 5路softmax加权+channel_mix   ││                             │
+   │      ↓ fdsa                 ││  [B,256,20,20]              │
+   └────────────────────────────┘││                             │
+   ┌──── DCC分支 (DOC核心) ───────┐│                             │
+   │ favg = gap(xs) [B,256,1,1]  ││                             │
+   │ fmax = gmp(xs) [B,256,1,1]  ││                             │
+   │ HaarDWT(xs): ll,lh,hl,hh    ││  各[B,256,10,10]            │
+   │ dwt_ll = gap(ll) [B,256,1,1]││                             │
+   │ fusion_conv 1x1(768->3)+    ││                             │
+   │   softmax -> alpha,beta,gamma [B,3,1,1]                    │
+   │ global_feat = α*favg+β*fmax+γ*dwt_ll  [B,256,1,1]          │
+   │ spatial_mix_ll: 1x1(1024->256)+ReLU (cat4子带) [B,256,10,10]│
+   │ spatial_mix_lh/hl/hh: 1x1(768->256)+ReLU (cat[lh,lh,hh])   │
+   │ cal_xx = 1x1(ll/lh/hl/hh) + global_feat + spatial_xx        │
+   │         各[B,256,10,10]                                    │
+   │ HaarIDWT(cal_ll..cal_hh) -> cal_map [B,256,20,20]          │
+   │ cal_norm GroupNorm(1)                                      │
+   │ film_gen 1x1(256->512) -> gamma_raw,beta_raw 各[B,256,20,20]│
+   │ film_gamma = 1 + s*tanh(gamma_raw)  (s=film_scale可学习,   │
+   │ film_beta  = s*tanh(beta_raw)        初始化为0=恒等启动)    │
+   │      ↓ fdcc = xs*film_gamma + film_beta [B,256,20,20]      │
+   └────────────────────────────┘││                             │
+   ┌ cross_gate ─────────────────┐││                             │
+   │ gap(fdsa),gap(fdcc)->cat    │ │ [B,512,1,1]                │
+   │ 1x1(512->512)+Sigmoid       │ │ [B,512,1,1]                │
+   └────────────────────────────┘││                             │
+   fused = cat([fdsa,fdcc])*gate      [B,512,20,20]             │
+   dsadoc_fusion: 1x1(512->256)+BN+SiLU -> [B,256,20,20]        │
+   conv_path: Conv3x3+BN+ReLU(x_conv)     -> [B,256,20,20]      │
+  out = cat -> [B,512,20,20] -> branch2b + 残差 + ReLU           │
+
+各stage BHW: 与3.1的表完全一致（仅创新支路内部计算不同）。
+
+--------------------------------------------------------------------------------
+3.4 DSADOC_v11  (dsadoc_v11.py)  —— DSADOC_v10 去掉 cross_gate
+--------------------------------------------------------------------------------
+与3.3唯一区别: 删除cross_gate与GAP信号, fdsa与fdcc直接cat进dsadoc_fusion。
+  v10: fused = cat([fdsa,fdcc]) * cross_gate(gap信号)
+  v11: fused = cat([fdsa,fdcc])
+理由与参数节省同3.2（约174K）。其余结构1:1。
+
+================================================================================
+第四部分  Encoder 创新模块详解
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 CCFFP2  (hybrid_encoder_p2_spd_okm.py)  —— 基础版P2融合 (SPD+OKNet BottleNect)
+--------------------------------------------------------------------------------
+功能: 取代标准CCFF的P3融合路径。输入3路: [P2原始, P3原始, y4(FPN中间结果)],
+      输出f3(hidden_dim=256, P3/8尺度)。创新半区使用OKNet BottleNect
+      （FCA->SCA->FGM频域全局分支 + 4路大核深度卷积, fft norm='backward'）。
+
+结构图（P2 head场景, 640输入）:
+
+  p2 [B,64,160,160]          p3 [B,128,80,80]      y4 [B,256,40,40]
+        │                        │                      │
+  SPDConv: 4相位cat                │                Upsample x2(nearest)
+  [B,256,80,80] -> 3x3ConvNorm    │                [B,256,80,80]
+        │                        │                      │
+  p2_spd [B,128,80,80] ──────┐    │    ┌────────────────┘
+                             ▼    ▼    ▼
+                    concat [B,512,80,80]  (128+256+128)
+                             │
+                    cv1: 1x1(512->512)+BN+SiLU   [B,512,80,80]
+                             │ split
+              ┌──────────────┴──────────────────┐
+              ▼ innovation半区                  ▼ identity半区
+        ok_branch [B,128,80,80]          identity [B,384,80,80]
+              │                                  │
+   ┌──────────┴ BottleNect(128, k=31) ──┐        │
+   │ in_conv 1x1+GELU        [B,128,80,80]       │
+   │ FCA: fft2(backward)     [B,128,80,80]复数   │
+   │      x pool->1x1->att 逐点乘频谱           │
+   │      ifft2+abs          [B,128,80,80]       │
+   │ SCA: pool->1x1->att*特征 [B,128,80,80]      │
+   │ FGM: (1x1(x1))*(fft2(1x1(x2))) -> ifft2    │
+   │      ->abs; out*alpha+x*beta [B,128,80,80]  │
+   │ 4路DW大核: dw_1k(1x31)+dw_k1(31x1)+         │
+   │   dw_kk(31x31)+dw_11(1x1)  各[B,128,80,80]  │
+   │ out = x + 4路DW和 + x_sca  (残差求和)        │
+   │ ReLU -> out_conv 1x1      [B,128,80,80]     │
+   └──────────┬───────────────────────┘          │
+              ▼                                  │
+        innovation_out [B,128,80,80]             │
+              └──────────────┬───────────────────┘
+                             ▼
+                    cat [B,512,80,80]
+                             │
+                    cv2: 1x1(512->512)+BN+SiLU
+                             │
+                    CSPRepLayer(512->256, 3块, exp=0.5)
+                             │
+                    f3 [B,256,80,80]  (P3/8)
+
+注意: BottleNect的FGM/FCA用 fft norm='backward'（OKNet原版）,
+      且无最终BN, 无DCFM/FreqScale（这是与V6 CCFFBlock的关键差异）。
+
+--------------------------------------------------------------------------------
+4.2 CCFFP2V5  (hybrid_encoder_p2_spd_okm_fs_v5.py)  —— PDCBlock带内部残差
+--------------------------------------------------------------------------------
+容器数据流（SPD/cat/cv1/split/cv2/CSPRepLayer）与4.1完全相同, 唯一区别:
+  创新半区 ok_branch [B,128,80,80] 走 CCFFBlockV5(128) 而非 BottleNect。
+
+CCFFBlockV5 结构（输入x [B,128,80,80], 三分支并行求和）:
+
+  ┌ 局部分支 ──────────────────────────────────────────────┐
+  │ dcfm = DCFMV5(x)                       [B,128,80,80]  │
+  │   PDCBlockV5(cv): PDCConv3x3DW+BN -> ReLU -> 1x1      │
+  │                  再 + x (内部残差!)     [B,128,80,80]  │
+  │   PDCBlockV5(cd): cd差分卷积(y - θ*中心聚合) 同结构    │
+  │   cat [B,256,80,80] -> attention_fc(1x1+BN+ReLU+1x1)  │
+  │   -> [B,2,80,80] -> softmax -> 逐点加权求和            │
+  │ cat([x, dcfm]) [B,256,80,80]                           │
+  │ small_fuse 1x1(256->128)+BN+SiLU -> small_out          │
+  └─────────────────────────────────────────── [B,128,80,80]┘
+  ┌ 大核分支 ──────────────────────────────────────────────┐
+  │ OKNetLargeKernel(31): 1x1+GELU -> 4路DW大核(1x31/31x1/ │
+  │ 31x31/1x1)求和 -> BN -> ReLU              [B,128,80,80]│
+  └─────────────────────────────────────────── [B,128,80,80]┘
+  ┌ 全局频域分支 ──────────────────────────────────────────┐
+  │ FreqScale(128, group=16, filters=4, base=14):          │
+  │   1x1+BN -> rfft2(ortho) [B,128,80,41]                 │
+  │   路由: GAP->Linear+StarReLU->Linear -> [B,16,4]tanh   │
+  │   复数权重插值到[80,41]并einsum加权频谱 -> irfft2       │
+  │                                        [B,128,80,80]   │
+  │ SCA: pool->1x1->att*特征                [B,128,80,80]  │
+  │ FGM(ortho): 频域门控 out*alpha+x*beta   [B,128,80,80]  │
+  │ global_out 1x1+BN+SiLU                  [B,128,80,80]  │
+  └─────────────────────────────────────────── [B,128,80,80]┘
+  out = small_out + large_out + global_out   [B,128,80,80]
+  fuse_out 1x1+BN+SiLU -> innovation_out     [B,128,80,80]
+
+V5 vs V6 唯一结构差异（PDCBlock内部, stride=1时）:
+  V5: y = conv2(ReLU(BN(PDCConv(x)))) + x    （带内部残差）
+  V6: y = conv2(ReLU(BN(PDCConv(x))))        （纯差分, 无残差）
+
+--------------------------------------------------------------------------------
+4.3 CCFFP2V6  (hybrid_encoder_p2_spd_okm_fs_v6.py)  —— 最终版本
+--------------------------------------------------------------------------------
+与4.2（CCFFP2V5）容器和CCFFBlock数据流完全相同, 唯一区别:
+  PDCBlock无内部残差 -> DCFM输出纯差分特征（边缘/纹理增强信号）。
+  局部分支变为: x -> cat([x, DCFM(x)]) -> small_fuse（x只出现一次,
+  差分特征作为增量信息）。
+其余组件（SPDConv/DCFM的attention_fc/OKNetLargeKernel/FreqScale/SCA/FGM/
+CSPRepLayer/超参数）与V5完全一致。
+超参数（yml默认）: large_kernel=31, fs_group=16, fs_num_filters=4,
+fs_base_size=14, split_ratio=0.25, dcfm_theta=0.875,
+fs_reweight_ratio=0.25, fs_init_scale=1e-5。
+BHW变化与4.2逐行相同。
+
+================================================================================
+第五部分  配置文件详解（逐层BHW表 + 创新点）
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1 rtdetr-r18-DSAWACGA.yaml  （Backbone创新: DSAWACGA + 标准P3/P4/P5头）
+--------------------------------------------------------------------------------
+创新点: 每个stage最后一个BasicBlock的branch2a -> DSAWACGA
+        （DSA多尺度空间+Scharr边缘 + WACGA小波感知门控注意力 + cross_gate交叉门控）
+        通道不变64/128/256/512。头为标准RT-DETR头（input_proj->AIFI->CCFF->Decoder）。
+
+Backbone层表:
+  L0 ConvNormLayer(32,3,2)      B,3,640,640   -> B,32,320,320
+  L1 ConvNormLayer(32,3,1)                    -> B,32,320,320
+  L2 ConvNormLayer(64,3,1)                    -> B,64,320,320
+  L3 MaxPool2d(3,2,1)                         -> B,64,160,160   P2/4
+  L4 BlocksDSAWACGA(64,2块,stage2)            -> B,64,160,160
+     └ 块1: BasicBlock(s=1,shortcut=F) [B,64,160,160]
+     └ 块2: DSAWACGABasicBlock: DSAWACGA(64,cr=32) -> branch2b -> +残差 -> ReLU
+  L5 BlocksDSAWACGA(128,stage3)               -> B,128,80,80    P3/8
+  L6 BlocksDSAWACGA(256,stage4)               -> B,256,40,40    P4/16
+  L7 BlocksDSAWACGA(512,stage5)               -> B,512,20,20    P5/32
+     （每stage末块DSAWACGA内部BHW见3.1）
+
+Head层表（标准P3/P4/P5头, RepC3为RTDETRU自带）:
+  L8  Conv 1x1(512->256) input_proj.2   B,512,20,20  -> B,256,20,20
+  L9  AIFI(1024,8头)                    B,256,20,20  -> B,256,20,20
+  L10 Conv 1x1(256) Y5 lateral          B,256,20,20  -> B,256,20,20
+  L11 Upsample x2 nearest               B,256,20,20  -> B,256,40,40
+  L12 Conv 1x1(256) input_proj.1(P4)    B,256,40,40  -> B,256,40,40
+  L13 Concat(L11,L12)                   -> B,512,40,40
+  L14 RepC3(256,0.5) fpn_blocks.0       -> B,256,40,40
+  L15 Conv 1x1(256) Y4 lateral          -> B,256,40,40
+  L16 Upsample x2                       -> B,256,80,80
+  L17 Conv 1x1(128->256) input_proj.0(P3) B,128,80,80 -> B,256,80,80
+  L18 Concat(L16,L17)                   -> B,512,80,80
+  L19 RepC3(256,0.5) X3                 -> B,256,80,80   (P3特征)
+  L20 Conv 3x3 s2 downsample.0          -> B,256,40,40
+  L21 Concat(L20,L15)                   -> B,512,40,40
+  L22 RepC3(256,0.5) F4                 -> B,256,40,40   (P4特征)
+  L23 Conv 3x3 s2 downsample.1          -> B,256,20,20
+  L24 Concat(L23,L10)                   -> B,512,20,20
+  L25 RepC3(256,0.5) F5                 -> B,256,20,20   (P5特征)
+  L26 RTDETRDecoder([19,22,25], nc=10, 256, 300queries, 4,8,3)
+      -> logits [B,300,10] + boxes [B,300,4]
+
+Backbone创新点结构图（每stage末块, 以stage5为例）:
+  x [B,512,20,20] -> DSAWACGA(512) [B,512,20,20]（内部见3.1结构图）
+    -> branch2b 3x3 [B,512,20,20] -> + x (残差) -> ReLU -> [B,512,20,20]
+
+--------------------------------------------------------------------------------
+5.2 rtdetr-r18-DSAWACGAv2.yaml  （Backbone创新: DSAWACGAv2, 单变量消融版）
+--------------------------------------------------------------------------------
+创新点: 与5.1唯一区别是backbone容器换成BlocksDSAWACGAv2 —— DSAWACGAv2
+        去掉了cross_gate（fdsa与fwacga直接cat进1x1+BN+SiLU融合）,
+        少约174K参数。head与层索引与5.1完全一致（单变量消融设计）。
+BHW: 与5.1逐层完全相同（结构变化不影响张量形状）。
+创新点结构图: 同3.1, 但cross_gate框替换为:
+  cat([fdsa,fwacga]) [B,2cr,H,W] -> dsawacga_fusion(1x1+BN+SiLU) -> [B,cr,H,W]
+
+--------------------------------------------------------------------------------
+5.3 rtdetr-r18-DSADOCv10.yaml  （Backbone创新: DSADOC_v10 + 标准头）
+--------------------------------------------------------------------------------
+创新点: 每个stage末块branch2a -> DSADOC_v10
+        （DSA多尺度空间+Scharr边缘 + DOC/DCC小波域子带校准+FiLM调制
+         + cross_gate交叉门控）。头与层索引与5.1完全一致。
+BHW: 与5.1逐层完全相同。
+创新点结构图: 见3.3（每stage末块: x -> DSADOC_v10 -> branch2b -> +残差 -> ReLU）。
+
+--------------------------------------------------------------------------------
+5.4 rtdetr-r18-DSADOCv11.yaml  （Backbone创新: DSADOC_v11, 去cross_gate消融版）
+--------------------------------------------------------------------------------
+创新点: 与5.3唯一区别是backbone容器换成BlocksDSADOCv11 —— 去掉cross_gate,
+        fdsa与fdcc直接cat进dsadoc_fusion(1x1+BN+SiLU), 少约174K参数。
+BHW: 与5.1/5.3逐层完全相同。
+创新点结构图: 见3.4。
+
+--------------------------------------------------------------------------------
+5.5 rtdetr-r18-P2SPDOKM.yaml  （Encoder创新基础版: P2 + SPD + OKNet BottleNect）
+--------------------------------------------------------------------------------
+创新点:
+  1) 引入P2/4层（backbone 4个stage全部输出）, 小目标检测
+  2) P2/P3/P4原始特征直连（input_proj[0..2]=Identity, 无投影）
+  3) CCFF的P3融合路径重构: CCFFP2 = SPDConv(P2) + concat + split +
+     BottleNect(OKNet频域+大核)创新半区 + CSPRepLayer
+Backbone为纯PResNet-18vd（Blocks, 无backbone创新）。
+
+层表（P2头, 640输入）:
+  L0~L3 同公共骨架                       -> B,64,160,160 (P2)
+  L4  Blocks(64,stage2)                  -> B,64,160,160   <- 给CCFF
+  L5  Blocks(128,stage3)                 -> B,128,80,80    <- 给CCFF
+  L6  Blocks(256,stage4)                 -> B,256,40,40    <- 给FPN
+  L7  Blocks(512,stage5)                 -> B,512,20,20    <- 给input_proj.3
+  --- head ---
+  L8  ConvNormLayer 1x1(512->256) input_proj.3  B,512,20,20 -> B,256,20,20
+  L9  AIFI(1024,8)                       -> B,256,20,20
+  L10 ConvNormLayer 1x1 silu  Y5 lateral -> B,256,20,20
+  L11 Upsample x2                        -> B,256,40,40
+  L12 Concat(L11,L6)                     -> B,512,40,40
+  L13 CSPRepLayer(256,0.5) fpn_blocks.0  -> B,256,40,40
+  L14 ConvNormLayer 1x1 silu  Y4 lateral -> B,256,40,40
+  L15 CCFFP2([L4,L5,L14])                -> f3 B,256,80,80   (创新点, 内部见4.1)
+  L16 ConvNormLayer 3x3 s2 silu ds.0     -> B,256,40,40
+  L17 Concat(L16,L14)                    -> B,512,40,40
+  L18 CSPRepLayer(256,0.5) pan_blocks.0  -> f4 B,256,40,40
+  L19 ConvNormLayer 3x3 s2 silu ds.1     -> B,256,20,20
+  L20 Concat(L19,L10)                    -> B,512,20,20
+  L21 CSPRepLayer(256,0.5) pan_blocks.1  -> f5 B,256,20,20
+  L22 RTDETRDecoder([15,18,21], nc=10, 256, 300, 4,8,3)
+      -> logits [B,300,10] + boxes [B,300,4]
+
+创新点核心结构图（L15 CCFFP2）:
+  P2[B,64,160,160]─SPDConv─>[B,128,80,80]─┐
+  y4[B,256,40,40]──Upsamplex2─>[B,256,80,80]─┤cat─>[B,512,80,80]─cv1─split
+  P3[B,128,80,80]──────────────────────────┘        │
+                            [B,128,80,80]创新半区─BottleNect(31)─┐
+                            [B,384,80,80]恒等半区────────────────┤cat
+                                         -> [B,512,80,80]─cv2─CSPRep─>f3[B,256,80,80]
+
+--------------------------------------------------------------------------------
+5.6 rtdetr-r18-P2SPDOKMFSV5.yaml  （Encoder创新: V5, PDCBlock带残差）
+--------------------------------------------------------------------------------
+与5.5唯一区别: L15换成CCFFP2V5 —— 创新半区为CCFFBlockV5(128):
+  局部: DCFM(PDCBlock带内部残差) + small_fuse
+  大核: OKNetLargeKernel(31)
+  全局: FreqScale -> SCA -> FGM -> global_out
+  三分支求和 -> fuse_out
+BHW与5.5逐层完全相同（CCFFBlockV5内部BHW见4.2）。
+
+--------------------------------------------------------------------------------
+5.7 rtdetr-r18-P2SPDOKMFSV6.yaml  （Encoder创新最终版: V6, PDCBlock纯差分）
+--------------------------------------------------------------------------------
+与5.6唯一区别: L15换成CCFFP2V6 —— PDCBlock去掉内部残差, DCFM输出纯差分特征。
+BHW与5.5逐层完全相同（CCFFBlock内部BHW见4.3）。
+超参: large_kernel=31, fs_group=16, fs_num_filters=4, fs_base_size=14,
+      split_ratio=0.25, dcfm_theta=0.875, fs_reweight_ratio=0.25, fs_init_scale=1e-5。
+实验结论: V6(纯差分) > V5(带残差) > V7(DCFM后加BN, 已废弃删除)。
+
+--------------------------------------------------------------------------------
+5.8 rtdetr-r18-DSAWACGA-P2SPDOKMFSV6.yaml  （组合: Backbone DSAWACGA + Encoder V6）
+--------------------------------------------------------------------------------
+= 5.1的backbone（BlocksDSAWACGA）+ 5.7的head（P2 + CCFFP2V6）。
+两者独立改进, 层索引0~7/8~22完全对齐, 无冲突组合:
+  - DSAWACGA只改stage末块内部结构, 输出通道/stride不变
+    （P2/P3/P4/P5仍为64/128/256/512 @ 160/80/40/20）
+  - V6头消费P2/P3/P4原始特征 + P5投影(512->256)
+BHW: backbone段同5.1的L0~L7, head段同5.7的L8~L22, 逐层一致。
+创新点: DSAWACGA结构图见3.1 + CCFFP2V6结构图见4.3。
+
+--------------------------------------------------------------------------------
+5.9 rtdetr-r18-DSADOCv10-P2SPDOKMFSV6.yaml  （组合: Backbone DSADOCv10 + Encoder V6）
+--------------------------------------------------------------------------------
+= 5.3的backbone（BlocksDSADOCv10）+ 5.7的head（P2 + CCFFP2V6）。
+BHW: backbone段同5.1的L0~L7, head段同5.7的L8~L22, 逐层一致。
+创新点: DSADOC_v10结构图见3.3 + CCFFP2V6结构图见4.3。
+
+================================================================================
+第六部分  版本演进与实验结论（重要）
+================================================================================
+
+1. Encoder CCFF创新块演进:
+   基础版(P2SPDOKM): BottleNect(OKNet) —— 频域FCA/SCA/FGM(norm=backward)+4路大核,
+                     带残差求和, 无DCFM/FreqScale
+        ↓ 重设计
+   V5(P2SPDOKMFSV5): CCFFBlock三分支(局部DCFM+大核OKM+全局FreqScale->SCA->FGM),
+                     PDCBlock带内部残差 —— 次优
+        ↓ 去残差
+   V6(P2SPDOKMFSV6): PDCBlock纯差分（无内部残差）—— 最优, 最终版本
+   (V7: DCFM输出后加BN —— 最差, 已删除。差分特征幅值携带边缘强弱信息,
+        BN归一化破坏语义, 且batch=4时BN统计不稳定)
+
+2. Backbone创新块演进:
+   DSAWACGA(DSA+WACGA+cross_gate) -> DSAWACGAv2(去cross_gate)
+   DSADOC_v10(DSA+DOC+cross_gate) -> DSADOC_v11(去cross_gate)
+   结论: 逐通道sigmoid门控(cross_gate)被验证为冗余 ——
+        融合路径的1x1卷积+下游分支已能自适应调节特征贡献, 门控增加过拟合风险;
+        全局门控空间盲(对小目标有害); Sigmoid(0,1)纯抑制。
+
+3. 硬约束（实验得出, 不可违反）:
+   - DSA模块内部禁止残差连接（避免退化为恒等映射）
+   - PDCBlock内部禁止残差连接（CCFFBlock外层已有identity直通+三分支求和双保底）
+   - 禁止scale缩放因子压缩模块输出（过拟合）
+   - DCC的fusion_conv必须用标量权重(->3)而非逐通道权重（低维逐通道softmax过拟合）
+   - 训练轮次350
+
+4. 设计约定:
+   - DSA与DCC/WACGA并行独立计算后直接Concat+1x1融合
+   - 创新模块放在每个stage最后一个BasicBlock的branch2a位置
+     （保持预训练权重兼容, stage输出通道/stride不变）
+   - P2/P3/P4原始特征直连进encoder（Identity投影）, 仅P5做1x1+BN投影到256
+
+================================================================================
+附: 三类Head的输入输出对比（640输入）
+================================================================================
+  标准头(5.1~5.4): Decoder输入 X3/F4/F5 = [B,256,80,80]/[B,256,40,40]/[B,256,20,20]
+  P2头(5.5~5.9):   Decoder输入 f3/f4/f5 = [B,256,80,80]/[B,256,40,40]/[B,256,20,20]
+  （形状相同, 但P2头的f3由P2/P3/y4三路CCFF融合而来, 包含P2/4尺度信息,
+   小目标特征保留更完整; 代价是backbone的P2层(160x160)参与计算, 计算量增大）
+
+（完）

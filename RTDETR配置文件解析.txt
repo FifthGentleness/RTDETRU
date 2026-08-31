@@ -1,0 +1,3387 @@
+RT-DETR 配置文件解析总览
+================================================================================
+目录: ultralytics/cfg/models/rt-detr
+说明: 每个条目含 [配置文件作用] [使用的关键模块] [模块来源文件] [模块具体作用]
+      标准模块(Conv/Concat/AIFI/CSPRepLayer/RTDETRDecoder等)为RT-DETR基础组件，不再赘述
+
+共 371 个配置文件
+
+================================================================================
+◆ rtdetr-AIFI-ASSA-SEFN-Mona-DyT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_ASSA_SEFN_Mona_DyT
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_ASSA_SEFN_Mona_DyT, [1024, 8]] # 9
+    作用: AIFI编码器层变体：ASSA + SEFN + Mona + DyT动态Tanh归一化组合
+
+================================================================================
+◆ rtdetr-AIFI-ASSA-SEFN-Mona.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_ASSA_SEFN_Mona
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_ASSA_SEFN_Mona, [1024, 8]] # 9
+    作用: AIFI编码器层变体：ASSA + SEFN + Mona注意力组合
+
+================================================================================
+◆ rtdetr-AIFI-ASSA-SEFN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_ASSA_SEFN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_ASSA_SEFN, [1024, 8]] # 9
+    作用: AIFI编码器层变体：注意力/FFN替换为 ASSA自适应稀疏注意力 + SEFN语义增强前馈
+
+================================================================================
+◆ rtdetr-AIFI-ASSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_ASSA
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_ASSA, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 ASSA 组合。组件: ASSA自适应稀疏自注意力（CVPR2024 Adapt or Perish）：稀疏Token选择+特征细化
+
+================================================================================
+◆ rtdetr-AIFI-DAttention.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_DAttention
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_DAttention, [1024]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 DAttention 组合。组件: DAT可变形注意力：采样位置可学习偏移的稀疏注意力
+
+================================================================================
+◆ rtdetr-AIFI-DHSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_DHSA
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_DHSA, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 DHSA 组合。组件: 直方图注意力（Attention_histogram）：分组box统计注意力
+
+================================================================================
+◆ rtdetr-AIFI-DML.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_DML
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_DML, [1024, 8]] # 9
+    作用: AIFI变体：DML动态MLP注意力
+
+================================================================================
+◆ rtdetr-AIFI-DPB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_DPB
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_DPB, [1024]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 DPB 组合。组件: DPB动态位置偏置注意力（多头+动态位置偏置）
+
+================================================================================
+◆ rtdetr-AIFI-DyT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_DyT
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_DyT, [1024, 8]] # 9
+    作用: AIFI变体：DyT动态Tanh归一化
+
+================================================================================
+◆ rtdetr-AIFI-EDFFN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_EDFFN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_EDFFN, [1024, 8]] # 9
+    作用: AIFI变体：EDFFN高效分解前馈
+
+================================================================================
+◆ rtdetr-AIFI-EPGO.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_EPGO
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_EPGO, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 EPGO 组合。组件: EPGO动态稀疏注意力（ACM MM2025）：gate预测dynamic_k后topk掩码稀疏注意力
+
+================================================================================
+◆ rtdetr-AIFI-EfficientAdditive.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_EfficientAdditiveAttnetion
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_EfficientAdditiveAttnetion, [1024]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 EfficientAdditiveAttnetion 组合。组件: 高效加性注意力（轻量线性复杂度）
+
+================================================================================
+◆ rtdetr-AIFI-HiLo.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_HiLo
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_HiLo, [1024]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 HiLo 组合。组件: HiLo高低频注意力：高频（局部）+低频（全局）分解注意力
+
+================================================================================
+◆ rtdetr-AIFI-LPE.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_LPE
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_LPE, [1024, 8, 400]] # 9
+    作用: Defines the AIFI transformer layer.
+
+================================================================================
+◆ rtdetr-AIFI-MSLA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_MSLA
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_MSLA, [1024]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 MSLA 组合。组件: MSLA多尺度线性注意力：通道4分组不同尺度DW conv+线性注意力
+
+================================================================================
+◆ rtdetr-AIFI-MSMHSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_MSMHSA
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_MSMHSA, [1024]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 MSMHSA 组合。组件: 多尺度多头自注意力：不同膨胀率感受野的MHSA
+
+================================================================================
+◆ rtdetr-AIFI-Mona.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_Mona
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_Mona, [1024, 8]] # 9
+    作用: Defines the AIFI transformer layer.
+
+================================================================================
+◆ rtdetr-AIFI-SEFFN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_SEFFN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_SEFFN, [1024, 8]] # 9
+    作用: Defines the AIFI transformer layer.
+
+================================================================================
+◆ rtdetr-AIFI-SEFN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_SEFN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_SEFN, [1024, 8]] # 9
+    作用: Defines the AIFI transformer layer.
+
+================================================================================
+◆ rtdetr-AIFI-SHSA-EPGO.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_SHSA_EPGO
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_SHSA_EPGO, [1024, 8]] # 9
+    作用: AIFI编码器层变体：SHSA+EPGO动态稀疏注意力
+
+================================================================================
+◆ rtdetr-AIFI-SHSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_SHSA
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_SHSA, [1024, 8]] # 9
+    作用: AIFI编码器层变体：SHSA单头自注意力（EfficientViT）
+
+================================================================================
+◆ rtdetr-AIFI-TSSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_TSSA
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_TSSA, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 TSSA 组合。组件: TSSA Token统计注意力（ICLR2025 Token Statistics Transformer）
+
+================================================================================
+◆ rtdetr-AIFIRepBN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AIFI_RepBN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, AIFI_RepBN, [1024, 8]] # 9
+    作用: Defines the AIFI transformer layer.
+
+================================================================================
+◆ rtdetr-AKConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_AKConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_AKConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 AKConv（AKConv任意核卷积：为每个采样点学习任意形状/数量的偏移）
+
+================================================================================
+◆ rtdetr-ASF-Dynamic.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: - [[19, -1], 1, asf_attention_model, []] # 27
+  ▸ 模块: Zoom_cat
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6, -2], 1, Zoom_cat, []] # 13
+    作用: Zoom_cat拼接模块：目标尺寸自适应缩放对齐后拼接（U-Net v2跳跃连接）
+  ▸ 模块: DynamicScalSeq
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 8], 1, DynamicScalSeq, [256]] # 26
+    作用: Gold-YOLO GD动态收集模块：多尺度对齐后用3D卷积跨尺度聚合
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[19, -1], 1, Add, []] # 27
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-ASF-P2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Zoom_cat
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6, -2], 1, Zoom_cat, []] # 13
+    作用: Zoom_cat拼接模块：目标尺寸自适应缩放对齐后拼接（U-Net v2跳跃连接）
+  ▸ 模块: ScalSeq
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 8], 1, ScalSeq, [128]] # 26
+    作用: Gold-YOLO GD收集模块：多尺度特征池化对齐后拼接（Low-Middle-High尺度序列）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[19, -1], 1, Add, []] # 27
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-ASF.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: - [[19, -1], 1, asf_attention_model, []] # 27
+  ▸ 模块: Zoom_cat
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6, -2], 1, Zoom_cat, []] # 13
+    作用: Zoom_cat拼接模块：目标尺寸自适应缩放对齐后拼接（U-Net v2跳跃连接）
+  ▸ 模块: ScalSeq
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 8], 1, ScalSeq, [256]] # 26
+    作用: Gold-YOLO GD收集模块：多尺度特征池化对齐后拼接（Low-Middle-High尺度序列）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[19, -1], 1, Add, []] # 27
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-ASSR.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AttentiveLayer
+    来源: ultralytics/nn/extra_modules/mambaIR.py
+     用法: - [-1, 1, AttentiveLayer, [[20, 20]]] # 9
+    作用: MambaIR窗口注意力层：窗口MHSA+Mamba SSM混合（attentive-to-plain渐进）
+
+================================================================================
+◆ rtdetr-AdditiveTokenMixer.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_AdditiveTokenMixer
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_AdditiveTokenMixer, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 AdditiveTokenMixer 组合。组件: Meta加性token mixer：深度卷积(q+k)逐元素乘v
+
+================================================================================
+◆ rtdetr-AggregatedAtt.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: P2/4 sr_ratio=8 | P3/8 sr_ratio=4 | P4/16 sr_ratio=2 | P5/32 sr_ratio=1
+  ▸ 模块: BasicBlock_AggregatedAtt
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [256, BasicBlock_AggregatedAtt, 2, 4, 'relu', 40, 2]] # 6-P4/16
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 AggregatedAtt（聚合多尺度注意力（P2/4~P5/32分级sr_ratio））
+
+================================================================================
+◆ rtdetr-BIMAFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Fusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Fusion, [fusion_mode]] # 15
+    作用: 通用特征融合模块（fusion_mode指定融合方式：逐元素相加/拼接等）
+  ▸ 模块: node_mode
+    来源: ultralytics/(未在 nn 源码中找到定义，可能为tasks.py内联或由名称引用)
+     用法: - [-1, 3, node_mode, [head_channel, 0.5]] # 16-P5/32
+    作用: YAML间接引用符：解析时被替换为yaml头部 node_mode: 键指定的真实模块（如C2f/Faster），一份C2f模板配置多种改进；head_channel同理
+
+================================================================================
+◆ rtdetr-C2f-AP.yaml
+  ▸ 模块: C2f_AP
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_AP, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 AP 模块。组件: AP风车卷积瓶颈（Pinwheel-shaped Convolution，红外小目标检测）：旋转对称风车形卷积
+
+================================================================================
+◆ rtdetr-C2f-AddutuveBlock-CGLU.yaml
+  ▸ 模块: C2f_AdditiveBlock_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_AdditiveBlock_CGLU, [128]]
+    作用: C2f结构，bottleneck替换为AdditiveBlock加性token mixer+CGLU
+
+================================================================================
+◆ rtdetr-C2f-AddutuveBlock.yaml
+  ▸ 模块: C2f_AdditiveBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_AdditiveBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 AdditiveBlock 模块。组件: AdditiveBlock（Meta MetaFormer）：加性token mixer：dwc(q+k)*v
+
+================================================================================
+◆ rtdetr-C2f-CAMixer.yaml
+  ▸ 模块: C2f_CAMixer
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_CAMixer, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 CAMixer 模块
+
+================================================================================
+◆ rtdetr-C2f-CFBlock.yaml
+  ▸ 模块: C2f_CFBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_CFBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 CFBlock 模块。组件: The CFBlock implementation based on PaddlePaddle. Args: in_channels (int, optional): The input channels.
+
+================================================================================
+◆ rtdetr-C2f-CSI.yaml
+  ▸ 模块: C2f_CSI
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_CSI, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 CSI 模块。组件: CSI模块：通道切分Mamba混合（1/4通道走Mamba SSM，其余走卷积分支）
+
+================================================================================
+◆ rtdetr-C2f-ConvAttn.yaml
+  ▸ 模块: C2f_ConvAttn
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_ConvAttn, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 ConvAttn 模块。组件: 卷积注意力瓶颈（Bottleneck_ConvAttn：卷积+注意力）
+
+================================================================================
+◆ rtdetr-C2f-Converse2D.yaml
+  ▸ 模块: C2f_Converse2D
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_Converse2D, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 Converse2D 模块。组件: Converse2D（图像修复）：转置卷积风格的逆卷积算子
+
+================================================================================
+◆ rtdetr-C2f-ConverseB.yaml
+  ▸ 模块: C2f_ConverseB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_ConverseB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 ConverseB 模块
+
+================================================================================
+◆ rtdetr-C2f-DBlock.yaml
+  ▸ 模块: C2f_DBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DBlock 模块。组件: DarkIR DBlock：多膨胀率深度卷积分支块（图像修复）
+
+================================================================================
+◆ rtdetr-C2f-DIMB-HyperACE.yaml
+  ▸ 模块: C2f_DCMB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DCMB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DCMB 模块。组件: DCMB动态卷积混合块
+  ▸ 模块: HyperACE
+    来源: ultralytics/nn/extra_modules/yolov13.py
+     用法: - [[3, -1, -2], 2, HyperACE, [256, 8, True, True, 0.5, 1, "both"]] # P4/16
+    作用: YOLOv13超图关联增强
+  ▸ 模块: FullPAD_Tunnel
+    来源: ultralytics/nn/extra_modules/yolov13.py
+     用法: - [[12, 13], 1, FullPAD_Tunnel, []]  # 16 P4
+    作用: A gated fusion module for the Full-Pipeline Aggregation-and-Distribution (FullPAD) paradigm. This module implements a gated residual connection used to fuse features. It takes two inputs: the original feature map and a correlation-enhanced feature map. It then computes `output = original + gate * en
+
+================================================================================
+◆ rtdetr-C2f-DIMB-KAN.yaml
+  ▸ 模块: C2f_DCMB_KAN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DCMB_KAN, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DCMB_KAN 模块。组件: DCMB动态卷积混合块 + KAT Kolmogorov–Arnold Transformer：可学习样条激活（GroupKAN）替代ReLU
+
+================================================================================
+◆ rtdetr-C2f-DIMB.yaml
+  ▸ 模块: C2f_DCMB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DCMB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DCMB 模块。组件: DCMB动态卷积混合块
+
+================================================================================
+◆ rtdetr-C2f-DSA.yaml
+  ▸ 模块: C2f_DSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DSA, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DSA 模块。组件: DSA空间门控注意力：proj+DSCNPair中心差分空间门控单元
+
+================================================================================
+◆ rtdetr-C2f-DSAN-EDFFN.yaml
+  ▸ 模块: C2f_DSAN_EDFFN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DSAN_EDFFN, [128]]
+    作用: C2f结构，bottleneck替换为DSAN双重空间注意力+EDFFN
+
+================================================================================
+◆ rtdetr-C2f-DSAN.yaml
+  ▸ 模块: C2f_DSAN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DSAN, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DSAN 模块。组件: DSAN双重空间注意力网络块：DSA空间注意力+FFN残差
+
+================================================================================
+◆ rtdetr-C2f-DTAB.yaml
+  ▸ 模块: C2f_DTAB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DTAB, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DTAB 模块。组件: DTAB去噪Transformer块（AAAI2025）：通道MDTA+膨胀重叠交叉注意力DilatedOCA
+
+================================================================================
+◆ rtdetr-C2f-DynamicFilter.yaml
+  ▸ 模块: C2f_DynamicFilter
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_DynamicFilter, [128, 160]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 DynamicFilter 模块。组件: Meta动态过滤器token mixer：预测输入自适应的空间滤波器做token混合
+
+================================================================================
+◆ rtdetr-C2f-EBlock.yaml
+  ▸ 模块: C2f_EBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_EBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 EBlock 模块。组件: EBlock：编码器基础块（恢复网络）
+
+================================================================================
+◆ rtdetr-C2f-ELGCA-CGLU.yaml
+  ▸ 模块: C2f_ELGCA_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_ELGCA_CGLU, [128]]
+    作用: C2f结构，bottleneck替换为ELGCA局部全局注意力+CGLU
+
+================================================================================
+◆ rtdetr-C2f-ELGCA.yaml
+  ▸ 模块: C2f_ELGCA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_ELGCA, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 ELGCA 模块。组件: ELGCA高效局部全局上下文聚合注意力（多头局部门控）
+
+================================================================================
+◆ rtdetr-C2f-ESC.yaml
+  ▸ 模块: C2f_ESC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_ESC, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 ESC 模块。组件: ESCBlock（ICCV2025）：高效自校准卷积块
+
+================================================================================
+◆ rtdetr-C2f-ETB.yaml
+  ▸ 模块: C2f_ETB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_ETB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 ETB 模块。组件: ETB频域-空间双注意力Transformer块：Attention_S空间+Attention_F频域双分支
+
+================================================================================
+◆ rtdetr-C2f-EVS.yaml
+  ▸ 模块: C2f_EVS
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_EVS, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 EVS 模块
+
+================================================================================
+◆ rtdetr-C2f-EfficientVIM-CGLU.yaml
+  ▸ 模块: C2f_EfficientVIM_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_EfficientVIM_CGLU, [128]]
+    作用: C2f结构，bottleneck替换为EfficientVIM+CGLU
+
+================================================================================
+◆ rtdetr-C2f-EfficientVIM.yaml
+  ▸ 模块: C2f_EfficientVIM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_EfficientVIM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 EfficientVIM 模块。组件: EfficientVIM：移动端视觉Mamba（TinyVIM系列2D SSM）
+
+================================================================================
+◆ rtdetr-C2f-FAT.yaml
+  ▸ 模块: C2f_FAT
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FAT, [256]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FAT 模块。组件: FAT块（ICLR2024 FTIC）：频域token交互块
+
+================================================================================
+◆ rtdetr-C2f-FCA.yaml
+  ▸ 模块: C2f_FCA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FCA, [384, 40]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FCA 模块
+
+================================================================================
+◆ rtdetr-C2f-FDConv.yaml
+  ▸ 模块: C2f_FDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FDConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FDConv 模块。组件: FDConv频域可分解卷积：FBM频带分解自适应多频卷积（需注意max_size适配特征图）
+
+================================================================================
+◆ rtdetr-C2f-FDT.yaml
+  ▸ 模块: C2f_FDT
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FDT, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FDT 模块。组件: 频域Transformer块（FFDNet风格）：窗口频域注意力+空间注意力混合，残差共享深度
+
+================================================================================
+◆ rtdetr-C2f-FFCM.yaml
+  ▸ 模块: C2f_FFCM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FFCM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FFCM 模块。组件: 频域特征通道混合模块（FFT+通道交互）
+
+================================================================================
+◆ rtdetr-C2f-FMABlock.yaml
+  ▸ 模块: C2f_FMABlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FMABlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FMABlock 模块
+
+================================================================================
+◆ rtdetr-C2f-FMB.yaml
+  ▸ 模块: C2f_FMB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FMB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FMB 模块。组件: 特征混合块：SMFA（尺度感知多频聚合）+PCFN（并联卷积前馈）
+
+================================================================================
+◆ rtdetr-C2f-Faster-KAN.yaml
+  ▸ 模块: C2f_Faster_KAN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_Faster_KAN, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 Faster_KAN 模块。组件: FasterNet系列：PConv部分卷积+PWConv极简高效结构 + KAT Kolmogorov–Arnold Transformer：可学习样条激活（GroupKAN）替代ReLU
+
+================================================================================
+◆ rtdetr-C2f-FasterFDConv.yaml
+  ▸ 模块: C2f_FasterFDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FasterFDConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FasterFDConv 模块
+
+================================================================================
+◆ rtdetr-C2f-FasterSFSConv.yaml
+  ▸ 模块: C2f_FasterSFSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FasterSFSConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FasterSFSConv 模块
+
+================================================================================
+◆ rtdetr-C2f-FourierConv.yaml
+  ▸ 模块: C2f_FourierConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_FourierConv, [128, [160, 160]]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 FourierConv 模块。组件: 傅里叶卷积：FFT频域全局逐点卷积，获得全局感受野
+
+================================================================================
+◆ rtdetr-C2f-GCConv.yaml
+  ▸ 模块: C2f_GCConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_GCConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 GCConv 模块。组件: GCConv全局上下文卷积：简化自注意力式全局建模卷积
+
+================================================================================
+◆ rtdetr-C2f-GLVSS.yaml
+  ▸ 模块: C2f_GLVSS
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_GLVSS, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 GLVSS 模块。组件: GLVSS：全局-局部视觉状态空间块（UMFormer，TGRS2025）
+
+================================================================================
+◆ rtdetr-C2f-GlobalFilter.yaml
+  ▸ 模块: C2f_GlobalFilter
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_GlobalFilter, [128, 160]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 GlobalFilter 模块。组件: GFNet全局滤波器：频域可学习全局滤波替代自注意力
+
+================================================================================
+◆ rtdetr-C2f-GroupMamba.yaml
+  ▸ 模块: C2f_GroupMamba
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_GroupMamba, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 GroupMamba 模块。组件: GroupMamba主干：分组SSM（csms6s）扫描实现线性复杂度视觉Mamba
+
+================================================================================
+◆ rtdetr-C2f-GroupMambaBlock.yaml
+  ▸ 模块: C2f_GroupMambaBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_GroupMambaBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 GroupMambaBlock 模块。组件: 分组Mamba块（csms6s分组SSM扫描）
+
+================================================================================
+◆ rtdetr-C2f-HDRAB.yaml
+  ▸ 模块: C2f_HDRAB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_HDRAB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 HDRAB 模块。组件: HDRAB混合双残差注意力块：CAB通道注意力+双残差（图像去雾）
+
+================================================================================
+◆ rtdetr-C2f-HFERB.yaml
+  ▸ 模块: C2f_HFERB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_HFERB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 HFERB 模块。组件: CRAFT高频增强残差块（ICCV2023）：显式高频分支增强
+
+================================================================================
+◆ rtdetr-C2f-IEL.yaml
+  ▸ 模块: C2f_IEL
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_IEL, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 IEL 模块。组件: IEL强度增强层（SEGNet）：门控DWConv前馈
+
+================================================================================
+◆ rtdetr-C2f-JDPM.yaml
+  ▸ 模块: C2f_JDPM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_JDPM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 JDPM 模块。组件: JDPM联合域感知模块（ECCV2024频空纠缠学习）：频域+空间域联合调制
+
+================================================================================
+◆ rtdetr-C2f-KAT.yaml
+  ▸ 模块: C2f_KAT
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_KAT, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 KAT 模块
+
+================================================================================
+◆ rtdetr-C2f-LEGM.yaml
+  ▸ 模块: C2f_LEGM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_LEGM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 LEGM 模块
+
+================================================================================
+◆ rtdetr-C2f-LFEM.yaml
+  ▸ 模块: C2f_LFEM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_LFEM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 LFEM 模块。组件: LFEM轻量特征增强模块
+
+================================================================================
+◆ rtdetr-C2f-LGLB.yaml
+  ▸ 模块: C2f_LGLB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_LGLB, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 LGLB 模块
+
+================================================================================
+◆ rtdetr-C2f-LSBlock.yaml
+  ▸ 模块: C2f_LSBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_LSBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 LSBlock 模块。组件: MambaYOLO的LS块（DW卷积+BN+GELU+1x1的瓶颈结构）
+
+================================================================================
+◆ rtdetr-C2f-LWGA.yaml
+  ▸ 模块: C2f_LWGA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_LWGA, [128, 0]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 LWGA 模块
+
+================================================================================
+◆ rtdetr-C2f-MBRConv3.yaml
+  ▸ 模块: C2f_MBRConv3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MBRConv3, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MBRConv3 模块。组件: MobileIE多分支重参数3x3卷积（推理时分支合并）
+
+================================================================================
+◆ rtdetr-C2f-MBRConv5.yaml
+  ▸ 模块: C2f_MBRConv5
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MBRConv5, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MBRConv5 模块。组件: MobileIE多分支重参数5x5卷积（含十字形分支，推理时合并）
+
+================================================================================
+◆ rtdetr-C2f-MSM.yaml
+  ▸ 模块: C2f_MSM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MSM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MSM 模块。组件: MSM多尺度混合模块：DeepPoolLayer多尺度池化
+
+================================================================================
+◆ rtdetr-C2f-MSMHSA-CGLU.yaml
+  ▸ 模块: C2f_MSMHSA_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MSMHSA_CGLU, [128]]
+    作用: C2f结构，bottleneck替换为多尺度MHSA+CGLU
+
+================================================================================
+◆ rtdetr-C2f-MambaVision.yaml
+  ▸ 模块: C2f_MambaVision
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaVision, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaVision 模块
+
+================================================================================
+◆ rtdetr-C2f-MobileMamba.yaml
+  ▸ 模块: C2f_MobileMamba
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MobileMamba, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MobileMamba 模块。组件: MobileMamba主干
+
+================================================================================
+◆ rtdetr-C2f-MogaBlock.yaml
+  ▸ 模块: C2f_MogaBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MogaBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MogaBlock 模块。组件: MogaNet块：门控空间上下文聚合+FFN（混合卷积门控注意力）
+
+================================================================================
+◆ rtdetr-C2f-PFDConv.yaml
+  ▸ 模块: C2f_PFDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_PFDConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 PFDConv 模块。组件: FDConv的P变体（并行频带）
+
+================================================================================
+◆ rtdetr-C2f-PKI.yaml
+  ▸ 模块: C2f_PKIModule
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_PKIModule, [128, [3, 5, 7, 9, 11], 1.0, True, 11, True]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 PKIModule 模块。组件: PKINet多核聚合块：3/5/7/9/11多尺度DW卷积+CAA上下文锚点注意力
+
+================================================================================
+◆ rtdetr-C2f-PPA.yaml
+  ▸ 模块: C2f_PPA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_PPA, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 PPA 模块。组件: HCFNet并行像素注意力（金字塔拼接+通道/空间注意力）
+
+================================================================================
+◆ rtdetr-C2f-PSFSConv.yaml
+  ▸ 模块: C2f_PSFSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_PSFSConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 PSFSConv 模块。组件: SFSConv的P变体：并行尺度频域卷积
+
+================================================================================
+◆ rtdetr-C2f-RAB.yaml
+  ▸ 模块: C2f_RAB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_RAB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 RAB 模块。组件: RAB残差注意力块（RADN去噪网络：卷积残差+通道注意力）
+
+================================================================================
+◆ rtdetr-C2f-RCB.yaml
+  ▸ 模块: C2f_RCB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_RCB, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 RCB 模块
+
+================================================================================
+◆ rtdetr-C2f-RMB.yaml
+  ▸ 模块: C2f_RMB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_RMB, [384, [40, 40]]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 RMB 模块
+
+================================================================================
+◆ rtdetr-C2f-SAVSS.yaml
+  ▸ 模块: C2f_SAVSS
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SAVSS, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 SAVSS 模块。组件: SAVSS：空间聚合视觉状态空间块
+
+================================================================================
+◆ rtdetr-C2f-SBSM.yaml
+  ▸ 模块: C2f_SBSM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SBSM, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 SBSM 模块。组件: Snake Bi-Directional Sequence Modelling (SBSM)
+
+================================================================================
+◆ rtdetr-C2f-SFHF.yaml
+  ▸ 模块: C2f_SFHF
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SFHF, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 SFHF 模块。组件: 空间-频域混合融合块
+
+================================================================================
+◆ rtdetr-C2f-SFSConv.yaml
+  ▸ 模块: C2f_SFSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SFSConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 SFSConv 模块。组件: SFSConv（ICLR2025）：尺度序列频域卷积，可学习频域滤波+空间卷积联合
+
+================================================================================
+◆ rtdetr-C2f-SHSA-CGLU.yaml
+  ▸ 模块: C2f_SHSA_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SHSA_CGLU, [384]]
+    作用: C2f结构，bottleneck替换为SHSA单头注意力+CGLU
+
+================================================================================
+◆ rtdetr-C2f-SHSA-EPGO-CGLU.yaml
+  ▸ 模块: C2f_SHSA_EPGO_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SHSA_EPGO_CGLU, [384]]
+    作用: C2f结构，bottleneck替换为SHSA+EPGO+CGLU
+
+================================================================================
+◆ rtdetr-C2f-SHSA-EPGO.yaml
+  ▸ 模块: C2f_SHSA_EPGO
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SHSA_EPGO, [384]]
+    作用: C2f结构，bottleneck替换为SHSA单头注意力+EPGO动态稀疏注意力
+
+================================================================================
+◆ rtdetr-C2f-SHSA.yaml
+  ▸ 模块: C2f_SHSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SHSA, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 SHSA 模块。组件: EfficientViT单头自注意力（部分通道做qk注意力，降低计算量）
+
+================================================================================
+◆ rtdetr-C2f-SMAFB-CGLU.yaml
+  ▸ 模块: C2f_SMAFB_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SMAFB_CGLU, [384]]
+    作用: C2f结构，bottleneck替换为SMAFB+CGLU
+
+================================================================================
+◆ rtdetr-C2f-SMAFB.yaml
+  ▸ 模块: C2f_SMAFB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, C2f_SMAFB, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 SMAFB 模块。组件: SMAFB：软混合聚合前馈块
+
+================================================================================
+◆ rtdetr-C2f-SMPCGLU.yaml
+  ▸ 模块: C2f_SMPCGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_SMPCGLU, [128, 13]]
+    作用: C2f结构，bottleneck替换为SMP块+CGLU门控前馈
+
+================================================================================
+◆ rtdetr-C2f-Strip.yaml
+  ▸ 模块: C2f_Strip
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_Strip, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 Strip 模块。组件: Strip条带注意力块（1×k条带注意力）
+
+================================================================================
+◆ rtdetr-C2f-StripCGLU.yaml
+  ▸ 模块: C2f_StripCGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_StripCGLU, [128]]
+    作用: C2f结构，bottleneck替换为Strip条带注意力+CGLU
+
+================================================================================
+◆ rtdetr-C2f-TVIM.yaml
+  ▸ 模块: C2f_TVIM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_TVIM, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 TVIM 模块。组件: TinyVIM token混合块
+
+================================================================================
+◆ rtdetr-C2f-TransMamba.yaml
+  ▸ 模块: C2f_TransMamba
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_TransMamba, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 TransMamba 模块。组件: TransMamba：Transformer与Mamba混合块
+
+================================================================================
+◆ rtdetr-C2f-UniConvBlock.yaml
+  ▸ 模块: C2f_UniConvBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_UniConvBlock, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 UniConvBlock 模块。组件: UniConvNet块（DCNv3核心算子）
+
+================================================================================
+◆ rtdetr-C2f-VSSD.yaml
+  ▸ 模块: C2f_VSSD
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_VSSD, [384]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 VSSD 模块
+
+================================================================================
+◆ rtdetr-C2f-gConv.yaml
+  ▸ 模块: C2f_gConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_gConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 gConv 模块。组件: gConv门控卷积块
+
+================================================================================
+◆ rtdetr-C2f-mambaout-DSA.yaml
+  ▸ 模块: C2f_MambaOut_DSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaOut_DSA, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaOut_DSA 模块。组件: MambaOut主干（门控CNN） + DSA空间门控注意力：proj+DSCNPair中心差分空间门控单元
+
+================================================================================
+◆ rtdetr-C2f-mambaout-FDConv.yaml
+  ▸ 模块: C2f_MambaOut_FDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaOut_FDConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaOut_FDConv 模块。组件: MambaOut主干（门控CNN） + FDConv频域可分解卷积：FBM频带分解自适应多频卷积（需注意max_size适配特征图）
+
+================================================================================
+◆ rtdetr-C2f-mambaout-LSConv.yaml
+  ▸ 模块: C2f_MambaOut_LSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaOut_LSConv, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaOut_LSConv 模块。组件: MambaOut主干（门控CNN）
+
+================================================================================
+◆ rtdetr-C2f-mambaout-SFSC.yaml
+  ▸ 模块: C2f_MambaOut_SFSC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaOut_SFSC, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaOut_SFSC 模块。组件: MambaOut主干（门控CNN）
+
+================================================================================
+◆ rtdetr-C2f-mambaout-UniRepLK.yaml
+  ▸ 模块: C2f_MambaOut_UniRepLK
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaOut_UniRepLK, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaOut_UniRepLK 模块。组件: MambaOut主干（门控CNN）
+
+================================================================================
+◆ rtdetr-C2f-mambaout.yaml
+  ▸ 模块: C2f_MambaOut
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_MambaOut, [128]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 MambaOut 模块。组件: MambaOut主干（门控CNN）
+
+================================================================================
+◆ rtdetr-C2f-vHeat.yaml
+  ▸ 模块: C2f_Heat
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_Heat, [384, 40]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 Heat 模块。组件: vHeat块（CVPR2025 vHeat）：基于热传导方程的视觉Mamba（热扩散状态空间模型HeatBlock）
+
+================================================================================
+◆ rtdetr-C2f-wConv.yaml
+  ▸ 模块: C2f_wConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, C2f_wConv, [128, [0.9]]]
+    作用: C2f瓶颈结构，内部bottleneck替换为 wConv 模块。组件: wConv加宽卷积变体
+
+================================================================================
+◆ rtdetr-CA-HSFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CA_HSFPN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CA_HSFPN, []] # 11
+    作用: HS-FPN+CA坐标注意力：高效尺度序列FPN加入坐标注意力
+  ▸ 模块: Multiply
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, Multiply, []] # 17
+    作用: 逐元素相乘（门控加权）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Add, []] # 18
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-CAA-HSFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CAA_HSFPN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CAA_HSFPN, []] # 11
+    作用: HS-FPN+CAA上下文锚点注意力
+  ▸ 模块: Multiply
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, Multiply, []] # 17
+    作用: 逐元素相乘（门控加权）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Add, []] # 18
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-CAB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CrossAttentionBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-2, -1], 1, CrossAttentionBlock, []] # 13
+    作用: Cross Attention Block
+
+================================================================================
+◆ rtdetr-CAFMFusion.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CAFMFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[26, 19], 1, CAFMFusion, [2]] # 29 (P3/8-small)
+    作用: CAFM通道注意力融合：CAFM注意力+像素注意力双重加权融合两路特征
+
+================================================================================
+◆ rtdetr-CARAFE.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CARAFE
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CARAFE, []] # 11
+    作用: CARAFE内容感知上采样：子网络预测重组核进行上采样
+
+================================================================================
+◆ rtdetr-CDFA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ContrastDrivenFeatureAggregation
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ContrastDrivenFeatureAggregation, []] # 11
+    作用: 对比驱动特征聚合（MFDS-DETR CDC）：小波低频/高频分离+对比度驱动注意力，增强小目标对比度
+
+================================================================================
+◆ rtdetr-CFPT-P3456.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CrossLayerChannelAttention
+    来源: ultralytics/nn/extra_modules/cfpt.py
+     用法: - [[12, 11, 10], 1, CrossLayerChannelAttention, []] # 13
+    作用: 跨层通道注意力：对多层级特征做跨层通道交互
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [13, 1, GetIndexOutput, [0]] # 14-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+  ▸ 模块: CrossLayerSpatialAttention
+    来源: ultralytics/nn/extra_modules/cfpt.py
+     用法: - [[14, 15, 16], 1, CrossLayerSpatialAttention, []] # 17
+    作用: 跨层空间注意力：对多层级特征做跨层空间交互
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[12, 18], 1, Add, []] # 21-P3/8
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-CFPT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CrossLayerChannelAttention
+    来源: ultralytics/nn/extra_modules/cfpt.py
+     用法: - [[12, 11, 10], 1, CrossLayerChannelAttention, []] # 13
+    作用: 跨层通道注意力：对多层级特征做跨层通道交互
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [13, 1, GetIndexOutput, [0]] # 14-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+  ▸ 模块: CrossLayerSpatialAttention
+    来源: ultralytics/nn/extra_modules/cfpt.py
+     用法: - [[14, 15, 16], 1, CrossLayerSpatialAttention, []] # 17
+    作用: 跨层空间注意力：对多层级特征做跨层空间交互
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[12, 18], 1, Add, []] # 21-P3/8
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-CGAFusion.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CGAFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[26, 19], 1, CGAFusion, []] # 29 (P3/8-small)
+    作用: CGA内容引导注意力融合：一路特征生成空间注意力图加权另一路
+
+================================================================================
+◆ rtdetr-CGRFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: PyramidContextExtraction
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 10], 1, PyramidContextExtraction, []] # 11
+    作用: 金字塔上下文提取（PCE）：多尺度池化聚合+RCA上下文建模
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [11, 1, GetIndexOutput, [0]] # 12-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+  ▸ 模块: RCM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [10, 1, RCM, []] # 15-P5/32
+    作用: MetaNeXtBlock Block Args: dim (int): Number of input channels.
+  ▸ 模块: FuseBlockMulti
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 14], 1, FuseBlockMulti, []] # 16-P5/32
+    作用: 多特征融合块：多路特征RCA聚合后按通道split分发
+  ▸ 模块: DynamicInterpolationFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 16], 1, DynamicInterpolationFusion, []] # 18-P4/16
+    作用: 动态插值融合：sigmoid门控+双线性插值加权融合两路特征
+
+================================================================================
+◆ rtdetr-CSFCN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: CFC_CRB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CFC_CRB, []] # 26 (P5/32-large)
+    作用: CFCNet上下文反馈卷积块：多grid金字塔上下文+空间注意力
+  ▸ 模块: SFC_G2
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[19, -1], 1, SFC_G2, []] # 27 (P3/8-small)
+    作用: 空间上下文融合模块（2组）：非局部上下文生成+局部注意力增强
+
+================================================================================
+◆ rtdetr-CSP-FreqSpatial.yaml
+  ▸ 模块: CSP_FreqSpatial
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSP_FreqSpatial, [128]]
+    作用: CSP频域-空间模块：小波分解低频/高频分离后分别处理再融合
+
+================================================================================
+◆ rtdetr-CSP-MutilScaleEdgeInformationEnhance.yaml
+  ▸ 模块: CSP_MutilScaleEdgeInformationEnhance
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSP_MutilScaleEdgeInformationEnhance, [128]]
+    作用: CSP多尺度边缘信息增强：Sobel边缘特征多尺度融合增强
+
+================================================================================
+◆ rtdetr-CSP-MutilScaleEdgeInformationSelect.yaml
+  ▸ 模块: CSP_MutilScaleEdgeInformationSelect
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSP_MutilScaleEdgeInformationSelect, [128]]
+    作用: CSP多尺度边缘信息选择：对多尺度边缘特征做选择性融合
+
+================================================================================
+◆ rtdetr-CSP-PMSFA.yaml
+  ▸ 模块: CSP_PMSFA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSP_PMSFA, [128]]
+    作用: CSP部分多尺度特征聚合（PMSFA）：分流多尺度卷积融合
+
+================================================================================
+◆ rtdetr-CSwomTramsformer.yaml
+  ▸ 模块: CSWin_tiny
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, CSWin_tiny, []]  # 4
+    作用: CSWin Transformer-Tiny 主干（十字形窗口自注意力）
+
+================================================================================
+◆ rtdetr-CTrans.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ChannelTransformer
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [[5, 6, 7], 1, ChannelTransformer, []] # 8
+    作用: 通道Transformer：将通道视为token做自注意力
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [8, 1, GetIndexOutput, [0]] # 9-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+
+================================================================================
+◆ rtdetr-CascadedGroupAttention.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_LocalWindowAttention
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_LocalWindowAttention, [1024, 4]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 LocalWindowAttention 组合。组件: Local Window Attention. Args: dim (int): Number of input channels.
+
+================================================================================
+◆ rtdetr-ContextGuideFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ContextGuideFusionModule
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-2, -1], 1, ContextGuideFusionModule, []] # 13
+    作用: 上下文引导融合模块（CGFusion）：局部/全局上下文联合引导融合
+
+================================================================================
+◆ rtdetr-ContextGuided.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_ContextGuided
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_ContextGuided, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 ContextGuided（上下文引导块（CGBlock：局部+全局上下文联合引导））
+  ▸ 模块: ContextGuidedBlock_Down
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ContextGuidedBlock_Down, []]   # 20, downsample_convs.0
+    作用: the size of feature map divided 2, (H,W,C)---->(H/2, W/2, 2C)
+
+================================================================================
+◆ rtdetr-ContextGuidedDown.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ContextGuidedBlock_Down
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ContextGuidedBlock_Down, []]   # 20, downsample_convs.0
+    作用: the size of feature map divided 2, (H,W,C)---->(H/2, W/2, 2C)
+
+================================================================================
+◆ rtdetr-Conv3XC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Conv3XC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Conv3XC, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Conv3XC（Conv3XC三分支卷积（1x1/1x1-KxK/恒等，ICLR2023 DEConv系））
+
+================================================================================
+◆ rtdetr-Conv3XCC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Conv3XCC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, Conv3XCC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为Conv3XC三分支卷积
+
+================================================================================
+◆ rtdetr-Conv3XCNCSPELAN.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: Conv3XCNCSPELAN4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Conv3XCNCSPELAN4, [128, 64, 32, 1]]  # 2-P2/4
+    作用: YOLOv10 ELAN CSP结构，bottleneck替换为Conv3XC三分支卷积
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [256]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-Converse2D.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Converse2D
+    来源: ultralytics/nn/extra_modules/ConverseNet.py
+     用法: - [-1, 1, Converse2D, [256, 3, 2]] # 11
+    作用: Converse2D（图像修复）：转置卷积风格的逆卷积算子
+
+================================================================================
+◆ rtdetr-Converse2DC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Converse2DC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, Converse2DC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为Converse2D逆卷积算子
+
+================================================================================
+◆ rtdetr-DBB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DBB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_DBB, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DBB（DiverseBranchBlock多分支卷积：训练多分支（1x1/1x1-KxK/均值），推理等价合并）
+
+================================================================================
+◆ rtdetr-DBBC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DBBC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, DBBC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为DBB多分支卷积块
+
+================================================================================
+◆ rtdetr-DBBNCSPELAN.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: DBBNCSPELAN4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DBBNCSPELAN4, [128, 64, 32, 1]]  # 2-P2/4
+    作用: YOLOv10 ELAN CSP结构，bottleneck替换为DBB多分支卷积
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [256]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-DCNV2-Dynamic.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DCNv2_Dynamic
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BasicBlock_DCNv2_Dynamic, 2, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2_Dynamic
+
+================================================================================
+◆ rtdetr-DCNV2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DCNv2
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BasicBlock_DCNv2, 2, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2
+
+================================================================================
+◆ rtdetr-DCNV3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DCNv3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BasicBlock_DCNv3, 2, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv3（DCNv3可变形卷积v3：分组可变形采样+归一化调制）
+
+================================================================================
+◆ rtdetr-DCNV4.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DCNv4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BasicBlock_DCNv4, 2, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv4（DCNv4可变形卷积v4：v3加速版，去除softmax归一化提升表达能力）
+
+================================================================================
+◆ rtdetr-DEConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DEConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_DEConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DEConv（DEConv差分卷积：详情差分/边界差分等四种差分卷积并联（可重参数化合并））
+
+================================================================================
+◆ rtdetr-DGCST.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DGCST
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DGCST, [256]]  # 14, fpn_blocks.0
+    作用: DGCST动态组卷积Shuffle Transformer：组卷积+空间shuffle跨组交互
+
+================================================================================
+◆ rtdetr-DGCST2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DGCST2
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DGCST2, [256]]  # 14, fpn_blocks.0
+    作用: DGCST变体2：DGSM动态组shuffle混合
+
+================================================================================
+◆ rtdetr-DPCF.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DPCF
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-2, -1], 1, DPCF, [256]] # 13
+    作用: DPCF动态参数融合
+
+================================================================================
+◆ rtdetr-DRB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DRB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_DRB, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DRB（DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联）
+
+================================================================================
+◆ rtdetr-DRBC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DRBC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, DRBC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为DRB膨胀残差块
+
+================================================================================
+◆ rtdetr-DRBNCSPELAN.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: DRBNCSPELAN4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DRBNCSPELAN4, [128, 64, 32, 1, 13]]  # 2-P2/4
+    作用: YOLOv10 ELAN CSP结构，bottleneck替换为DRB膨胀残差块
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [256]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-DTAB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DTAB
+    来源: ultralytics/nn/extra_modules/tsdn.py
+     用法: - [-1, 1, DTAB, []] # 9
+    作用: DTAB去噪Transformer块（AAAI2025）：通道MDTA+膨胀重叠交叉注意力DilatedOCA
+
+================================================================================
+◆ rtdetr-DWRC3-DRB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DWRC3_DRB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, DWRC3_DRB, [512, 2]] # 7-P5/32
+    作用: DWRC3+DRB：DWR模块+膨胀残差块
+
+================================================================================
+◆ rtdetr-DWRC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DWRC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, DWRC3, [512, 2]] # 7-P5/32
+    作用: C3结构bottleneck替换为DWR膨胀卷积（DWR分割网络）
+
+================================================================================
+◆ rtdetr-DeepDBB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DeepDBB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_DeepDBB, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DeepDBB（深度版DBB：更多层使用多分支卷积块）
+
+================================================================================
+◆ rtdetr-DualConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DualConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_DualConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DualConv（DualConv：3x3与1x1卷积并联的轻量卷积组）
+
+================================================================================
+◆ rtdetr-DySample.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DySample
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DySample, [2, 'lp']] # 11
+    作用: DySample动态上采样：偏移生成器学习采样点，轻量上采样
+
+================================================================================
+◆ rtdetr-DySnake.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_DySnakeConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BasicBlock_DySnakeConv, 2, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DySnake（DySnake动态蛇形卷积：可变形蛇形卷积，适合细长/管状目标）
+
+================================================================================
+◆ rtdetr-ELA-HSFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ELA_HSFPN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ELA_HSFPN, []] # 11
+    作用: HS-FPN+ELA高效局部注意力
+  ▸ 模块: Multiply
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, Multiply, []] # 17
+    作用: 逐元素相乘（门控加权）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Add, []] # 18
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-EMBSFPN-SC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Fusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Fusion, [fusion_mode]] # 15
+    作用: 通用特征融合模块（fusion_mode指定融合方式：逐元素相加/拼接等）
+  ▸ 模块: node_mode
+    来源: ultralytics/(未在 nn 源码中找到定义，可能为tasks.py内联或由名称引用)
+     用法: - [-1, 3, node_mode, [head_channel, [5,7,9]]] # 16-P5/32
+    作用: YAML间接引用符：解析时被替换为yaml头部 node_mode: 键指定的真实模块（如C2f/Faster），一份C2f模板配置多种改进；head_channel同理
+  ▸ 模块: EUCB_SC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, EUCB_SC, []] # 17-P4/16
+    作用: EUCB+SC空间上下文：上采样+DW卷积+注意力
+
+================================================================================
+◆ rtdetr-EMBSFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Fusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Fusion, [fusion_mode]] # 15
+    作用: 通用特征融合模块（fusion_mode指定融合方式：逐元素相加/拼接等）
+  ▸ 模块: node_mode
+    来源: ultralytics/(未在 nn 源码中找到定义，可能为tasks.py内联或由名称引用)
+     用法: - [-1, 3, node_mode, [head_channel, [5,7,9]]] # 16-P5/32
+    作用: YAML间接引用符：解析时被替换为yaml头部 node_mode: 键指定的真实模块（如C2f/Faster），一份C2f模板配置多种改进；head_channel同理
+  ▸ 模块: EUCB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, EUCB, []] # 17-P4/16
+    作用: EUCB高效上采样卷积块：上采样+DW卷积+SCA（EMA风格）
+
+================================================================================
+◆ rtdetr-ETB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ETB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ETB, [8]] # 9
+    作用: ETB频域-空间双注意力Transformer块：Attention_S空间+Attention_F频域双分支
+
+================================================================================
+◆ rtdetr-EUCB-SC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: EUCB_SC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, EUCB_SC, []] # 11
+    作用: EUCB+SC空间上下文：上采样+DW卷积+注意力
+
+================================================================================
+◆ rtdetr-EUCB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: EUCB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, EUCB, []] # 11
+    作用: EUCB高效上采样卷积块：上采样+DW卷积+SCA（EMA风格）
+
+================================================================================
+◆ rtdetr-EfficientFormerv2.yaml
+  ▸ 模块: efficientformerv2_s0
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, efficientformerv2_s0, []]  # 4
+    作用: EfficientFormerV2-S0 主干（维度一致的全Transformer）
+
+================================================================================
+◆ rtdetr-EfficientViT.yaml
+  ▸ 模块: EfficientViT_M0
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, EfficientViT_M0, []]  # 4
+    作用: EfficientViT-M0 主干（MIT轻量多尺度注意力）
+
+================================================================================
+◆ rtdetr-FCM.yaml
+  ▸ 模块: FCM_3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FCM_3, []]
+    作用: FCM变体3（sigmoid门控输出）
+  ▸ 模块: FCM_2
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FCM_2, []]
+    作用: FCM变体2（通道比3:1切分）
+  ▸ 模块: FCM_1
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FCM_1, []]
+    作用: FCM变体1（分组比例不同）
+  ▸ 模块: Pzconv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Pzconv, []] # 9-P4/16
+    作用: 分组卷积+空间/通道注意力交叉增强模块（FCM系）
+  ▸ 模块: FCM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FCM, []]
+    作用: 频域通道混合块：通道分组+空间/通道注意力交叉（FCM，通道比1:3切分）
+
+================================================================================
+◆ rtdetr-FDConvC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: FDConvC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, FDConvC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为FDConv频域可分解卷积
+
+================================================================================
+◆ rtdetr-FDPN-DASI.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DASI
+    来源: ultralytics/nn/extra_modules/hcfnet.py
+     用法: - [[10, 6, 5], 1, DASI, [256]] # 11-P4/16
+    作用: HCFNet维度感知选择性集成
+
+================================================================================
+◆ rtdetr-FDPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: FocusFeature
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[10, 6, 5], 1, FocusFeature, []] # 11-P4/16
+    作用: 聚焦特征模块（FFM）
+
+================================================================================
+◆ rtdetr-FDT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: FDT
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FDT, [8]] # 9
+    作用: 频域Transformer块（FFDNet风格）：窗口频域注意力+空间注意力混合，残差共享深度
+
+================================================================================
+◆ rtdetr-Faster-EMA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Faster_Block_EMA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Faster_Block_EMA, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_EMA
+
+================================================================================
+◆ rtdetr-Faster-Rep-EMA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Faster_Block_Rep_EMA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Faster_Block_Rep_EMA, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep_EMA
+
+================================================================================
+◆ rtdetr-Faster-Rep.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Faster_Block_Rep
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Faster_Block_Rep, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep
+
+================================================================================
+◆ rtdetr-Faster.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Faster_Block
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Faster_Block, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block
+
+================================================================================
+◆ rtdetr-FourierConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: FourierConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FourierConv, [256, [40, 40], 2]]   # 20, downsample_convs.0
+    作用: 傅里叶卷积：FFT频域全局逐点卷积，获得全局感受野
+
+================================================================================
+◆ rtdetr-FreqFFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: FreqFusion
+    来源: ultralytics/nn/extra_modules/FreqFusion.py
+     用法: - [[11, 10], 1, FreqFusion, []] # 13 P4/16
+    作用: FreqFusion频率感知融合：生成低通（去混叠平滑）+高通（锐化）核修正特征融合的上/下采样
+
+================================================================================
+◆ rtdetr-GCConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GCConv
+    来源: ultralytics/nn/extra_modules/gcconv.py
+     用法: - [-1, 1, GCConv, [256, 3, 2]]   # 20, downsample_convs.0
+    作用: GCConv全局上下文卷积：简化自注意力式全局建模卷积
+
+================================================================================
+◆ rtdetr-GCConvC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GCConvC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, GCConvC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为GCConv全局上下文卷积
+
+================================================================================
+◆ rtdetr-GDSAFusion.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GDSAFusion
+    来源: ultralytics/nn/backbone/overlock.py
+     用法: - [[-2, -1], 1, GDSAFusion, []] # 13
+    作用: GDSA全局细节空间注意力融合（OverLoCK）：全局-细节双分支融合
+
+================================================================================
+◆ rtdetr-GLSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GLSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GLSA, [256]]  # 10, Y5, lateral_convs.0
+    作用: GLSA全局-局部空间注意力：局部/全局双分支+sigmoid空间门控
+
+================================================================================
+◆ rtdetr-GlobalEdgeInformationTransfer1.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MutilScaleEdgeInfoGenetator
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, MutilScaleEdgeInfoGenetator, [[64, 128, 256]]] # 4
+    作用: 多尺度边缘信息生成器：Sobel算子(3D卷积实现)提取边缘+逐级最大池化生成多尺度边缘特征
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [4, 1, GetIndexOutput, [0]] # 5-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+  ▸ 模块: ConvEdgeFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, -1], 1, ConvEdgeFusion, [128]] # 10-P3/8
+    作用: 边缘特征融合：多尺度边缘信息与主干特征卷积融合
+
+================================================================================
+◆ rtdetr-GlobalEdgeInformationTransfer2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MutilScaleEdgeInfoGenetator
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, MutilScaleEdgeInfoGenetator, [[64, 128, 256]]] # 4
+    作用: 多尺度边缘信息生成器：Sobel算子(3D卷积实现)提取边缘+逐级最大池化生成多尺度边缘特征
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [4, 1, GetIndexOutput, [0]] # 5-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+  ▸ 模块: ConvEdgeFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, -1], 1, ConvEdgeFusion, [128]] # 10-P3/8
+    作用: 边缘特征融合：多尺度边缘信息与主干特征卷积融合
+
+================================================================================
+◆ rtdetr-GlobalEdgeInformationTransfer3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MutilScaleEdgeInfoGenetator
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, MutilScaleEdgeInfoGenetator, [[64, 128, 256]]] # 4
+    作用: 多尺度边缘信息生成器：Sobel算子(3D卷积实现)提取边缘+逐级最大池化生成多尺度边缘特征
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [4, 1, GetIndexOutput, [0]] # 5-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+  ▸ 模块: ConvEdgeFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, -1], 1, ConvEdgeFusion, [128]] # 10-P3/8
+    作用: 边缘特征融合：多尺度边缘信息与主干特征卷积融合
+
+================================================================================
+◆ rtdetr-HAFB-1.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: HAFB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 19], 1, HAFB, [256, True]] # 26 (P3/8-small)
+    作用: HAFB层次注意力融合块：LocalGlobalAttention局部-全局双分支融合
+
+================================================================================
+◆ rtdetr-HAFB-2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: HAFB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-2, -1], 1, HAFB, [256, False]] # 13
+    作用: HAFB层次注意力融合块：LocalGlobalAttention局部-全局双分支融合
+
+================================================================================
+◆ rtdetr-HS-FPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: HFP
+    来源: ultralytics/nn/extra_modules/HSFPN.py
+     用法: - [-1, 1, HFP, [None, [8, 8], False]] # 11-P5
+    作用: ------------------------------------------------------------------# | High Frequency Perception Module HFP | ------------------------------------------------------------------#
+  ▸ 模块: SDP
+    来源: ultralytics/nn/extra_modules/HSFPN.py
+     用法: - [[-1, 12], 1, SDP, [256, [20, 20]]] # 14-P4
+    作用: ------------------------------------------------------------------# | Spatial Dependency Perception Module SDP | ------------------------------------------------------------------#
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 14], 1, Add, []] # 20-P4
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-HSFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ChannelAttention_HSFPN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ChannelAttention_HSFPN, []] # 11
+    作用: ChannelAttention_HSFPN: HS-FPN高效尺度序列特征金字塔：UMU上/下采样混合单元+AGAF特征聚合 的组合模块
+  ▸ 模块: Multiply
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, Multiply, []] # 17
+    作用: 逐元素相乘（门控加权）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Add, []] # 18
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-HSPAN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ChannelAttention_HSFPN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ChannelAttention_HSFPN, []] # 11
+    作用: ChannelAttention_HSFPN: HS-FPN高效尺度序列特征金字塔：UMU上/下采样混合单元+AGAF特征聚合 的组合模块
+  ▸ 模块: Multiply
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, Multiply, []] # 17
+    作用: 逐元素相乘（门控加权）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 13], 1, Add, []] # 18
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-HWD.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: HWD
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, HWD, [256]]   # 20, downsample_convs.0
+    作用: Haar小波下采样：pytorch_wavelets DWT分解+1x1卷积融合
+
+================================================================================
+◆ rtdetr-HyperACE.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: HyperACE
+    来源: ultralytics/nn/extra_modules/yolov13.py
+     用法: - [[-1 ,6, -2], 2, HyperACE, [256, 8, True, True, 0.5, 1, "both"]] # P4/16
+    作用: YOLOv13超图关联增强
+  ▸ 模块: FullPAD_Tunnel
+    来源: ultralytics/nn/extra_modules/yolov13.py
+     用法: - [[6, 12], 1, FullPAD_Tunnel, []]  # 15 P4
+    作用: A gated fusion module for the Full-Pipeline Aggregation-and-Distribution (FullPAD) paradigm. This module implements a gated residual connection used to fuse features. It takes two inputs: the original feature map and a correlation-enhanced feature map. It then computes `output = original + gate * en
+
+================================================================================
+◆ rtdetr-HyperCompute-MFM.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: Semantic Collecting | Hypergraph Computation | Semantic Collecting
+  ▸ 模块: MFM
+    来源: ultralytics/nn/extra_modules/DCMPNet.py
+     用法: - [[11, 12, 13, 6, 14], 1, MFM, [256]]  # cat 15
+    作用: MFM多尺度特征融合模块（DCMPNet）：GAP+MLP生成通道注意力对多路输入加权（HS-FPN核心）
+  ▸ 模块: HyperComputeModule
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, HyperComputeModule, [256, 10]] # 17
+    作用: 超图计算模块（YOLOv13）：v→e→v两阶段超图卷积建模高阶关联
+  ▸ 模块: MANet
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MANet, [256, True, 2, 3]] # 18
+    作用: MANet：多尺度注意力网络（MSDA多尺度特征融合+空间/通道注意力）
+
+================================================================================
+◆ rtdetr-HyperCompute.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: Semantic Collecting | Hypergraph Computation | Semantic Collecting
+  ▸ 模块: HyperComputeModule
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, HyperComputeModule, [256, 10]] # 17
+    作用: 超图计算模块（YOLOv13）：v→e→v两阶段超图卷积建模高阶关联
+  ▸ 模块: MANet
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MANet, [256, True, 2, 3]] # 18
+    作用: MANet：多尺度注意力网络（MSDA多尺度特征融合+空间/通道注意力）
+
+================================================================================
+◆ rtdetr-IELC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: IELC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, IELC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为IEL强度增强层
+
+================================================================================
+◆ rtdetr-KAN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_KAN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [256, BasicBlock_KAN, 2, 4, 'relu', None, None, None, 'KAGNConv2DLayer']] # 6-P4/16
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 KAN（KAT Kolmogorov–Arnold Transformer：可学习样条激活（GroupKAN）替代ReLU）
+
+================================================================================
+◆ rtdetr-KANC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: KANC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, KANC3, [256, 'KAGNConv2DLayer', 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为KAN（可学习样条激活MLP）
+
+================================================================================
+◆ rtdetr-LDConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: LDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, LDConv, [64, 6, 2]] # 3-P2/4
+    作用: LDConv可学习卷积：可学习偏移量获得任意形状感受野
+
+================================================================================
+◆ rtdetr-LFEC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: LFEC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, LFEC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为LFE轻量增强块
+
+================================================================================
+◆ rtdetr-LoGStem.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: LoGStem
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, LoGStem, [64]] # 0-P2/4
+    作用: LoGNet的Stem：多分支卷积下采样头
+
+================================================================================
+◆ rtdetr-MAFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-MAN-Faster.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MANet_FasterBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MANet_FasterBlock, [256, False, 2, 3]]  # 14, fpn_blocks.0
+    作用: MANet+FasterBlock混合：部分卷积瓶颈
+
+================================================================================
+◆ rtdetr-MAN-FasterCGLU.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MANet_FasterCGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MANet_FasterCGLU, [256, False, 2, 3]]  # 14, fpn_blocks.0
+    作用: MANet+FasterBlock+ConvGlu
+
+================================================================================
+◆ rtdetr-MAN-Star.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MANet_Star
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MANet_Star, [256, False, 2, 3]]  # 14, fpn_blocks.0
+    作用: MANet+StarReLU轻量块
+
+================================================================================
+◆ rtdetr-MAN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MANet
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MANet, [256, False, 2, 3]]  # 14, fpn_blocks.0
+    作用: MANet：多尺度注意力网络（MSDA多尺度特征融合+空间/通道注意力）
+
+================================================================================
+◆ rtdetr-MBRConv3C3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MBRConv3C3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MBRConv3C3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为MBRConv3多分支重参数卷积
+
+================================================================================
+◆ rtdetr-MBRConv5C3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MBRConv5C3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, MBRConv5C3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为MBRConv5多分支重参数卷积
+
+================================================================================
+◆ rtdetr-MFM.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MFM
+    来源: ultralytics/nn/extra_modules/DCMPNet.py
+     用法: - [[-2, -1], 1, MFM, [256]] # 13
+    作用: MFM多尺度特征融合模块（DCMPNet）：GAP+MLP生成通道注意力对多路输入加权（HS-FPN核心）
+
+================================================================================
+◆ rtdetr-MFMMAFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MFM
+    来源: ultralytics/nn/extra_modules/DCMPNet.py
+     用法: - [[-1, 10], 1, MFM, [256]] # 12
+    作用: MFM多尺度特征融合模块（DCMPNet）：GAP+MLP生成通道注意力对多路输入加权（HS-FPN核心）
+
+================================================================================
+◆ rtdetr-MobileMamba.yaml
+  ▸ 模块: MobileMamba_T2
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, MobileMamba_T2, []]  # 4
+    作用: MobileMamba-T2 主干（移动端Mamba混合架构）
+
+================================================================================
+◆ rtdetr-MutilBackbone-DAF.yaml
+  主干: HGNetV2主干
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [64, 3, 2, 1, False]]  # 5-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+  ▸ 模块: DynamicAlignFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[3, 6], 1, DynamicAlignFusion, [64]] # 7-P3/8
+    作用: 动态对齐融合：可学习对齐两路特征后融合
+
+================================================================================
+◆ rtdetr-MutilBackbone-HAFB.yaml
+  主干: HGNetV2主干
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [64, 3, 2, 1, False]]  # 5-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+  ▸ 模块: HAFB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[3, 6], 1, HAFB, [64, True]] # 7-P3/8
+    作用: HAFB层次注意力融合块：LocalGlobalAttention局部-全局双分支融合
+
+================================================================================
+◆ rtdetr-MutilBackbone-MSGA.yaml
+  主干: HGNetV2主干
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [64, 3, 2, 1, False]]  # 5-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+  ▸ 模块: MultiScaleGatedAttn
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[3, 6], 1, MultiScaleGatedAttn, []] # 7-P3/8
+    作用: 多尺度门控注意力：局部+全局分支门控融合
+
+================================================================================
+◆ rtdetr-OREPANCSPELAN.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: OREPANCSPELAN4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, OREPANCSPELAN4, [128, 64, 32, 1]]  # 2-P2/4
+    作用: OREPAN轻量ELAN CSP结构
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [256]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-Ortho.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Ortho
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Ortho, 2, 2, 'relu', 64]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Ortho（Ortho正交卷积：正交约束卷积核降低冗余）
+
+================================================================================
+◆ rtdetr-PACAPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AttentionUpsample
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, AttentionUpsample, []] # 11
+    作用: 注意力上采样：全局池化门控+双分支上采样
+  ▸ 模块: CSP_PAC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSP_PAC, [256]]  # 14, fpn_blocks.0
+    作用: CSP Bottleneck with ParallelAtrousConv.
+  ▸ 模块: AttentionDownsample
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, AttentionDownsample, []]   # 20, downsample_convs.0
+    作用: 注意力下采样：全局池化门控+双分支下采样
+
+================================================================================
+◆ rtdetr-PConv-Rep.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_PConv_Rep
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_PConv_Rep, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 PConv_Rep
+
+================================================================================
+◆ rtdetr-PConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_PConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_PConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 PConv（PConv部分卷积（FasterNet）：只对部分通道卷积，其余恒等传递）
+
+================================================================================
+◆ rtdetr-PSConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: PSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, PSConv, [256, 3, 2]]   # 20, downsample_convs.0
+    作用: PSConv多尺度卷积：不同组不同空洞率并联
+
+================================================================================
+◆ rtdetr-PSFM.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: PSFM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[26, 19], 1, PSFM, []] # 29 (P3/8-small)
+    作用: PSFM像素级空间特征融合：DenseLayer密集连接+GEFM门控融合（多模态）
+
+================================================================================
+◆ rtdetr-PST.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: PST
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 10], 2, PST, [256, 2, 0.5]]  # 14, fpn_blocks.0
+    作用: Pyramid Sparse Transformer (PST) module for enhanced feature fusion with attention mechanisms. This module integrates Pyramid Sparse Attention (PSA) blocks to fuse features from different scales, leveraging cross-attention and dynamic token selection for efficient computation. It is designed to
+
+================================================================================
+◆ rtdetr-Pola-CGLU.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_CGLU
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_CGLU, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola_CGLU 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力 + ConvGlu卷积门控线性单元：深度卷积版GLU FFN
+
+================================================================================
+◆ rtdetr-Pola-EDFFN-Mona-DyT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_EDFFN_Mona_DyT
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_EDFFN_Mona_DyT, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola_EDFFN_Mona_DyT 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力 + EDFFN高效分解前馈网络：小波patch感知FFN + Mona注意力（MOCHA）：多顺序嵌套二维轻量注意力 + DyT动态Tanh：可学习缩放tanh替代LayerNorm（Transformers without Normalization）
+
+================================================================================
+◆ rtdetr-Pola-FMFFN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_FMFFN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_FMFFN, [1024, 8]] # 9
+    作用: AIFI编码器层变体：Pola极化线性注意力 + FMFFN频域混合前馈
+
+================================================================================
+◆ rtdetr-Pola-SEFFN-Mona-DyT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_SEFFN_Mona_DyT
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_SEFFN_Mona_DyT, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFFN_Mona_DyT 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力 + Mona注意力（MOCHA）：多顺序嵌套二维轻量注意力 + DyT动态Tanh：可学习缩放tanh替代LayerNorm（Transformers without Normalization）
+
+================================================================================
+◆ rtdetr-Pola-SEFN-Mona-DyT.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_SEFN_Mona_DyT
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_SEFN_Mona_DyT, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFN_Mona_DyT 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力 + SEFN语义增强前馈网络（WACV2024 SEMNet）：门控DWConv FFN + Mona注意力（MOCHA）：多顺序嵌套二维轻量注意力 + DyT动态Tanh：可学习缩放tanh替代LayerNorm（Transformers without Normalization）
+
+================================================================================
+◆ rtdetr-Pola-SEFN-Mona.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_SEFN_Mona
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_SEFN_Mona, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFN_Mona 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力 + SEFN语义增强前馈网络（WACV2024 SEMNet）：门控DWConv FFN + Mona注意力（MOCHA）：多顺序嵌套二维轻量注意力
+
+================================================================================
+◆ rtdetr-Pola-SEFN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola_SEFN
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola_SEFN, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola_SEFN 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力 + SEFN语义增强前馈网络（WACV2024 SEMNet）：门控DWConv FFN
+
+================================================================================
+◆ rtdetr-Pola.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: TransformerEncoderLayer_Pola
+    来源: ultralytics/nn/extra_modules/transformer.py
+     用法: - [-1, 1, TransformerEncoderLayer_Pola, [1024, 8]] # 9
+    作用: Transformer编码器层变体，注意力/FFN替换为 Pola 组合。组件: PolaFormer极化线性注意力：通道/空间两分支极化注意力
+
+================================================================================
+◆ rtdetr-RFAConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_RFAConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_RFAConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 RFAConv（RFAConv感受野注意力卷积：对空间每个感受野位置生成注意力）
+
+================================================================================
+◆ rtdetr-RFCAConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_RFCAConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_RFCAConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 RFCAConv（RFCAConv：结合坐标注意力的感受野注意力卷积）
+
+================================================================================
+◆ rtdetr-RFCBAMConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_RFCBAMConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_RFCBAMConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 RFCBAMConv（RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积）
+
+================================================================================
+◆ rtdetr-RFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SNI
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, SNI, [2]] # 11
+    作用: https://github.com/AlanLi1997/rethinking-fpn soft nearest neighbor interpolation for up-sampling secondary features aligned
+  ▸ 模块: GSConvE
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GSConvE, [256, 3, 2]]   # 20, downsample_convs.0
+    作用: GSConv enhancement for representation learning: generate various receptive-fields and texture-features only in one Conv module https://github.com/AlanLi1997/slim-neck-by-gsconv
+
+================================================================================
+◆ rtdetr-RGCSPELAN.yaml
+  ▸ 模块: RGCSPELAN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, RGCSPELAN, [128, 0.5]]
+    作用: RGC-ELAN：分组卷积ELAN CSP结构（轻量）
+
+================================================================================
+◆ rtdetr-ReCalibrationFPN-P2345.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SBA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6], 1, SBA, []] # 11
+    作用: HCFNet边界注意力模块：融合局部细节与全局上下文，增强目标边界响应
+
+================================================================================
+◆ rtdetr-ReCalibrationFPN-P345.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SBA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6], 1, SBA, []] # 11
+    作用: HCFNet边界注意力模块：融合局部细节与全局上下文，增强目标边界响应
+
+================================================================================
+◆ rtdetr-ReCalibrationFPN-P3456.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SBA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 7], 1, SBA, []] # 12
+    作用: HCFNet边界注意力模块：融合局部细节与全局上下文，增强目标边界响应
+
+================================================================================
+◆ rtdetr-RepHMS.yaml
+  ▸ 模块: RepHMS
+    来源: ultralytics/nn/extra_modules/mhafyolo.py
+     用法: - [-1, 1, RepHMS, [128, 2, 1, 3, 3]] # 2-P2/4
+    作用: 重参数化HMS混合多尺度块
+
+================================================================================
+◆ rtdetr-RepNCSPELAN-CAA.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: RepNCSPELAN4_CAA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, RepNCSPELAN4_CAA, [128, 64, 32, 1]]  # 2-P2/4
+    作用: YOLOv10 ELAN CSP结构+CAA上下文锚点注意力
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [128]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-RepNCSPELAN.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: RepNCSPELAN4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, RepNCSPELAN4, [128, 64, 32, 1]]  # 2-P2/4
+    作用: YOLOv10 ELAN CSP重参数结构（RepVGG分支，部署合并）
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [128]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-RepStem.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: RepStem
+    来源: ultralytics/nn/extra_modules/RepStem.py
+     用法: - [-1, 1, RepStem, [64]] # 0-P2/4
+    作用: 重参数化Stem：多分支下采样头（部署时合并）
+
+================================================================================
+◆ rtdetr-RetBlockC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: RetBlockC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, RetBlockC3, [256, 0.5, 'chunk', 8]]  # 14, fpn_blocks.0
+    作用: C3瓶颈结构，内部bottleneck替换为 RetBlock 模块
+
+================================================================================
+◆ rtdetr-SDFM.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SDFM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[26, 19], 1, SDFM, []] # 29 (P3/8-small)
+    作用: superficial detail fusion module
+
+================================================================================
+◆ rtdetr-SDI.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SDI
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-2, -1], 1, SDI, []] # 13
+    作用: SDI：语义差异感知融合（Semantic Difference Infusion，双向融合上下文/细节）
+
+================================================================================
+◆ rtdetr-SOEP-MFM-RFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SNI
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, SNI, [2]] # 11
+    作用: https://github.com/AlanLi1997/rethinking-fpn soft nearest neighbor interpolation for up-sampling secondary features aligned
+  ▸ 模块: MFM
+    来源: ultralytics/nn/extra_modules/DCMPNet.py
+     用法: - [[-2, -1], 1, MFM, [256]] # 13
+    作用: MFM多尺度特征融合模块（DCMPNet）：GAP+MLP生成通道注意力对多路输入加权（HS-FPN核心）
+  ▸ 模块: SPDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [4, 1, SPDConv, [128]] # 17
+    作用: SPDConv空间到深度下采样：切分为4子图拼接，无信息丢失的下采样
+  ▸ 模块: CSPOmniKernel
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSPOmniKernel, []] # 19
+    作用: CSP版OmniKernel：频域FCA注意力+1x1/3x3/13x1/31x1大核深度卷积全局建模
+  ▸ 模块: GSConvE
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GSConvE, [256, 3, 2]] # 21
+    作用: GSConv enhancement for representation learning: generate various receptive-fields and texture-features only in one Conv module https://github.com/AlanLi1997/slim-neck-by-gsconv
+
+================================================================================
+◆ rtdetr-SOEP-MFM.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MFM
+    来源: ultralytics/nn/extra_modules/DCMPNet.py
+     用法: - [[-2, -1], 1, MFM, [256]] # 13
+    作用: MFM多尺度特征融合模块（DCMPNet）：GAP+MLP生成通道注意力对多路输入加权（HS-FPN核心）
+  ▸ 模块: SPDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [4, 1, SPDConv, [128]] # 17
+    作用: SPDConv空间到深度下采样：切分为4子图拼接，无信息丢失的下采样
+  ▸ 模块: CSPOmniKernel
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSPOmniKernel, []] # 19
+    作用: CSP版OmniKernel：频域FCA注意力+1x1/3x3/13x1/31x1大核深度卷积全局建模
+
+================================================================================
+◆ rtdetr-SOEP-PST.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SPDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [4, 1, SPDConv, [128]] # 17
+    作用: SPDConv空间到深度下采样：切分为4子图拼接，无信息丢失的下采样
+  ▸ 模块: PST
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6], 1, PST, [256, 2, 0.5]] # 19
+    作用: Pyramid Sparse Transformer (PST) module for enhanced feature fusion with attention mechanisms. This module integrates Pyramid Sparse Attention (PSA) blocks to fuse features from different scales, leveraging cross-attention and dynamic token selection for efficient computation. It is designed to
+
+================================================================================
+◆ rtdetr-SOEP-RFPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SNI
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, SNI, [2]] # 11
+    作用: https://github.com/AlanLi1997/rethinking-fpn soft nearest neighbor interpolation for up-sampling secondary features aligned
+  ▸ 模块: SPDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [4, 1, SPDConv, [128]] # 17
+    作用: SPDConv空间到深度下采样：切分为4子图拼接，无信息丢失的下采样
+  ▸ 模块: CSPOmniKernel
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSPOmniKernel, []] # 19
+    作用: CSP版OmniKernel：频域FCA注意力+1x1/3x3/13x1/31x1大核深度卷积全局建模
+  ▸ 模块: GSConvE
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GSConvE, [256, 3, 2]] # 21
+    作用: GSConv enhancement for representation learning: generate various receptive-fields and texture-features only in one Conv module https://github.com/AlanLi1997/slim-neck-by-gsconv
+
+================================================================================
+◆ rtdetr-SOEP.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SPDConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [4, 1, SPDConv, [128]] # 17
+    作用: SPDConv空间到深度下采样：切分为4子图拼接，无信息丢失的下采样
+  ▸ 模块: CSPOmniKernel
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSPOmniKernel, []] # 19
+    作用: CSP版OmniKernel：频域FCA注意力+1x1/3x3/13x1/31x1大核深度卷积全局建模
+
+================================================================================
+◆ rtdetr-SRFD.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SRFD
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, SRFD, [64]] # 0-P2/4
+    作用: 轻量下采样块：空间重标记（split+多分支卷积强化），来自轻量骨干stem设计
+  ▸ 模块: DRFD
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DRFD, [256]]   # 17, downsample_convs.0
+    作用: Deep feature downsampling
+
+================================================================================
+◆ rtdetr-SWC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_SWC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_SWC, 2, 2, 'relu', None, None, 9]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 SWC（SWC滑窗卷积（图像去雾Rethinking论文））
+
+================================================================================
+◆ rtdetr-Star.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Star
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Star, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Star（星形操作块（StarNet：两路卷积逐元素乘法融合））
+
+================================================================================
+◆ rtdetr-SwinTransformer.yaml
+  主干: SwinTransformer主干
+  ▸ 模块: SwinTransformer_Tiny
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, SwinTransformer_Tiny, []]  # 4
+    作用: Swin Transformer-Tiny 主干（移位窗口注意力）
+
+================================================================================
+◆ rtdetr-TransNeXt.yaml
+  文件注释: 0-P1/2 | 1-P2/4 | 2-P3/8 | 3-P4/16 | 4-P5/32
+  ▸ 模块: transnext_micro
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, transnext_micro, []]  # 4
+    作用: TransNeXt-Micro 主干（聚合注意力+卷积value）
+
+================================================================================
+◆ rtdetr-VSS.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_VSS
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [256, BasicBlock_VSS, 2, 4, 'relu']] # 6-P4/16
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 VSS（VSS视觉状态空间Mamba块（VMamba））
+
+================================================================================
+◆ rtdetr-VanillaNet.yaml
+  ▸ 模块: vanillanet_5
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, vanillanet_5, []]  # 4
+    作用: VanillaNet-5 主干（极简少量卷积堆叠）
+
+================================================================================
+◆ rtdetr-WDBB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_WDBB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_WDBB, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 WDBB（加宽版多分支卷积块）
+
+================================================================================
+◆ rtdetr-WFU.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: WFU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, WFU, []] # 12
+    作用: 小波特征上采样单元：Haar小波正/逆变换实现上采样+残差融合
+
+================================================================================
+◆ rtdetr-WTConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_WTConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_WTConv, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 WTConv
+  ▸ 模块: WTConv2d
+    来源: ultralytics/nn/extra_modules/wtconv2d.py
+     用法: - [-1, 1, WTConv2d, [256, 5, 2]]   # 20, downsample_convs.0
+    作用: 小波卷积：Haar小波变换域卷积，低成本获得大感受野
+
+================================================================================
+◆ rtdetr-WaveletPool.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: WaveletPool
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, WaveletPool, []] # 3-P2/4
+    作用: Haar小波池化下采样（LL/LH/HL/HH四子带）
+  ▸ 模块: WaveletUnPool
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, WaveletUnPool, []] # 11
+    作用: Haar小波逆池化上采样
+
+================================================================================
+◆ rtdetr-attention.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Attention
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [256, BasicBlock_Attention, 2, 4, 'relu']] # 6-P4/16
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Attention
+
+================================================================================
+◆ rtdetr-bifpn-GLSA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GLSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [5, 1, GLSA, [head_channel]]  # 11-P3/8
+    作用: GLSA全局-局部空间注意力：局部/全局双分支+sigmoid空间门控
+  ▸ 模块: Fusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 12], 1, Fusion, [fusion_mode]] # 15
+    作用: 通用特征融合模块（fusion_mode指定融合方式：逐元素相加/拼接等）
+  ▸ 模块: node_mode
+    来源: ultralytics/(未在 nn 源码中找到定义，可能为tasks.py内联或由名称引用)
+     用法: - [-1, 3, node_mode, [head_channel, 0.5]] # 16-P4/16
+    作用: YAML间接引用符：解析时被替换为yaml头部 node_mode: 键指定的真实模块（如C2f/Faster），一份C2f模板配置多种改进；head_channel同理
+
+================================================================================
+◆ rtdetr-bifpn.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Fusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 12], 1, Fusion, [fusion_mode]] # 15
+    作用: 通用特征融合模块（fusion_mode指定融合方式：逐元素相加/拼接等）
+  ▸ 模块: node_mode
+    来源: ultralytics/(未在 nn 源码中找到定义，可能为tasks.py内联或由名称引用)
+     用法: - [-1, 3, node_mode, [head_channel, 0.5]] # 16-P4/16
+    作用: YAML间接引用符：解析时被替换为yaml头部 node_mode: 键指定的真实模块（如C2f/Faster），一份C2f模板配置多种改进；head_channel同理
+
+================================================================================
+◆ rtdetr-convnextv2.yaml
+  ▸ 模块: convnextv2_atto
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, convnextv2_atto, []]  # 4
+    作用: ConvNeXt V2-Atto 主干（GRN全局响应归一化）
+
+================================================================================
+◆ rtdetr-fadc.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_FADC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BasicBlock_FADC, 2, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 FADC
+
+================================================================================
+◆ rtdetr-faster-CGLU.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_Faster_Block_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_Faster_Block_CGLU, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_CGLU
+
+================================================================================
+◆ rtdetr-fasternet.yaml
+  ▸ 模块: fasternet_t0
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, fasternet_t0, []]  # 4
+    作用: FasterNet-T0 主干（PConv部分卷积）
+
+================================================================================
+◆ rtdetr-fsa.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: FSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FSA, [20]] # 11-P5/32
+    作用: FSA频域空间注意力：自适应全局滤波(AGF)+空间注意力(SA)并联
+
+================================================================================
+◆ rtdetr-gConvC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: gConvC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, gConvC3, [256, 0.5]]  # 14, fpn_blocks.0
+    作用: C3结构，bottleneck替换为gConv门控卷积
+
+================================================================================
+◆ rtdetr-goldyolo-asf.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: - [[20, -1], 1, asf_attention_model, []] # 30
+  ▸ 模块: SimFusion_4in
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[4, 5, 6, 7], 1, SimFusion_4in, []] # 11
+    作用: Gold-YOLO浅层四输入简单融合（池化对齐后拼接）
+  ▸ 模块: IFM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, IFM, [[64, 32]]] # 12
+    作用: Gold-YOLO中间特征模块：RepVGG块堆叠，将聚合特征映射为多路尺度特征
+  ▸ 模块: SimFusion_3in
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, -1], 1, SimFusion_3in, [256]] # 14
+    作用: Gold-YOLO三输入简单融合（下采样对齐后拼接）
+  ▸ 模块: InjectionMultiSum_Auto_pool
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 12], 1, InjectionMultiSum_Auto_pool, [256, [64, 32], 0]] # 15
+    作用: Gold-YOLO注入模块：全局信息经自适应池化多尺度求和后注入局部特征
+  ▸ 模块: PyramidPoolAgg
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[20, 16, 10], 1, PyramidPoolAgg, [352, 2]] # 21
+    作用: Gold-YOLO金字塔池化聚合：跨尺度自适应平均池化对齐
+  ▸ 模块: TopBasicLayer
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, TopBasicLayer, [352, [64, 128]]] # 22
+    作用: Gold-YOLO顶层Transformer层（多头注意力+MLP）
+  ▸ 模块: AdvPoolFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[20, 17], 1, AdvPoolFusion, []] # 23
+    作用: Gold-YOLO自适应平均池化融合两路特征
+  ▸ 模块: ScalSeq
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 8], 1, ScalSeq, [256]] # 29
+    作用: Gold-YOLO GD收集模块：多尺度特征池化对齐后拼接（Low-Middle-High尺度序列）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[20, -1], 1, Add, []] # 30
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-goldyolo.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SimFusion_4in
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[4, 5, 6, 7], 1, SimFusion_4in, []] # 11
+    作用: Gold-YOLO浅层四输入简单融合（池化对齐后拼接）
+  ▸ 模块: IFM
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, IFM, [[64, 32]]] # 12
+    作用: Gold-YOLO中间特征模块：RepVGG块堆叠，将聚合特征映射为多路尺度特征
+  ▸ 模块: SimFusion_3in
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, -1], 1, SimFusion_3in, [256]] # 14
+    作用: Gold-YOLO三输入简单融合（下采样对齐后拼接）
+  ▸ 模块: InjectionMultiSum_Auto_pool
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 12], 1, InjectionMultiSum_Auto_pool, [256, [64, 32], 0]] # 15
+    作用: Gold-YOLO注入模块：全局信息经自适应池化多尺度求和后注入局部特征
+  ▸ 模块: PyramidPoolAgg
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[20, 16, 10], 1, PyramidPoolAgg, [352, 2]] # 21
+    作用: Gold-YOLO金字塔池化聚合：跨尺度自适应平均池化对齐
+  ▸ 模块: TopBasicLayer
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, TopBasicLayer, [352, [64, 128]]] # 22
+    作用: Gold-YOLO顶层Transformer层（多头注意力+MLP）
+  ▸ 模块: AdvPoolFusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[20, 17], 1, AdvPoolFusion, []] # 23
+    作用: Gold-YOLO自适应平均池化融合两路特征
+
+================================================================================
+◆ rtdetr-iRMB-Cascaded.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_iRMB_Cascaded
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_iRMB_Cascaded, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_Cascaded
+
+================================================================================
+◆ rtdetr-iRMB-DRB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_iRMB_DRB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_iRMB_DRB, 2, 2, 'relu', None, None, 13]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_DRB
+
+================================================================================
+◆ rtdetr-iRMB-SWC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_iRMB_SWC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_iRMB_SWC, 2, 2, 'relu', None, None, 7]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_SWC
+
+================================================================================
+◆ rtdetr-iRMB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BasicBlock_iRMB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BasicBlock_iRMB, 2, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB（iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量））
+
+================================================================================
+◆ rtdetr-l-GhostHGNetV2.yaml
+  主干: HGNetV2主干
+  ▸ 模块: Ghost_HGBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 6, Ghost_HGBlock, [48, 128, 3]]  # stage 1
+    作用: HG_Block of PPHGNetV2 with 2 convolutions and LightConv. https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [128, 3, 2, 1, False]]  # 2-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+
+================================================================================
+◆ rtdetr-l-RepHGNetV2.yaml
+  主干: HGNetV2主干
+  ▸ 模块: Rep_HGBlock
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 6, Rep_HGBlock, [48, 128, 3]]  # stage 1
+    作用: HG_Block of PPHGNetV2 with 2 convolutions and LightConv. https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [128, 3, 2, 1, False]]  # 2-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+
+================================================================================
+◆ rtdetr-l-attention.yaml
+  主干: HGNetV2主干
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [128, 3, 2, 1, False]]  # 2-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+  ▸ 模块: HGBlock_Attention
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 6, HGBlock_Attention, [384, 2048, 5, True, False]]  # stage 4
+    作用: HG_Block of PPHGNetV2 with 2 convolutions and LightConv. https://github.com/PaddlePaddle/PaddleDetection/blob/develop/ppdet/modeling/backbones/hgnet_v2.py
+
+================================================================================
+◆ rtdetr-l.yaml
+  主干: HGNetV2主干
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [128, 3, 2, 1, False]]  # 2-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+
+================================================================================
+◆ rtdetr-lsknet.yaml
+  ▸ 模块: lsknet_t
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, lsknet_t, []]  # 4
+    作用: LSKNet-T 主干（大选择性核卷积，遥感/UAV检测）
+
+================================================================================
+◆ rtdetr-lsnet.yaml
+  ▸ 模块: lsnet_t
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, lsnet_t, []]  # 4
+    作用: LSNet-T 主干（大选择核网络）
+
+================================================================================
+◆ rtdetr-mamba-B.yaml
+  文件注释: Mamba-YOLO backbone | Mamba-YOLO PAFPN
+  ▸ 模块: SimpleStem
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 1, SimpleStem, [128, 3]]   # 0-P2/4
+    作用: MambaYOLO轻量Stem下采样头（卷积→2倍下采样）
+  ▸ 模块: VSSBlock_YOLO
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 3, VSSBlock_YOLO, [128]]               # 1
+    作用: MambaYOLO视觉状态空间块：LSBlock+SS2D二维选择性扫描
+  ▸ 模块: VisionClueMerge
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 1, VisionClueMerge, [256]]      # 2 p3/8
+    作用: MambaYOLO视觉线索合并模块（多路特征卷积合并）
+  ▸ 模块: XSSBlock
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 3, XSSBlock, [512]]  # 11
+    作用: MambaYOLO跨扫描状态空间块（XSS，MLP分支+SS2D）
+
+================================================================================
+◆ rtdetr-mamba-L.yaml
+  文件注释: Mamba-YOLO backbone | Mamba-YOLO PAFPN
+  ▸ 模块: SimpleStem
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 1, SimpleStem, [128, 3]]   # 0-P2/4
+    作用: MambaYOLO轻量Stem下采样头（卷积→2倍下采样）
+  ▸ 模块: VSSBlock_YOLO
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 3, VSSBlock_YOLO, [128]]               # 1
+    作用: MambaYOLO视觉状态空间块：LSBlock+SS2D二维选择性扫描
+  ▸ 模块: VisionClueMerge
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 1, VisionClueMerge, [256]]      # 2 p3/8
+    作用: MambaYOLO视觉线索合并模块（多路特征卷积合并）
+  ▸ 模块: XSSBlock
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 3, XSSBlock, [512]]  # 11
+    作用: MambaYOLO跨扫描状态空间块（XSS，MLP分支+SS2D）
+
+================================================================================
+◆ rtdetr-mamba-T.yaml
+  文件注释: Mamba-YOLO backbone | Mamba-YOLO PAFPN
+  ▸ 模块: SimpleStem
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 1, SimpleStem, [128, 3]]   # 0-P2/4
+    作用: MambaYOLO轻量Stem下采样头（卷积→2倍下采样）
+  ▸ 模块: VSSBlock_YOLO
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 3, VSSBlock_YOLO, [128]]               # 1
+    作用: MambaYOLO视觉状态空间块：LSBlock+SS2D二维选择性扫描
+  ▸ 模块: VisionClueMerge
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 1, VisionClueMerge, [256]]      # 2 p3/8
+    作用: MambaYOLO视觉线索合并模块（多路特征卷积合并）
+  ▸ 模块: XSSBlock
+    来源: ultralytics/nn/extra_modules/mamba_yolo.py
+     用法: - [-1, 3, XSSBlock, [512]]  # 11
+    作用: MambaYOLO跨扫描状态空间块（XSS，MLP分支+SS2D）
+
+================================================================================
+◆ rtdetr-mambaout.yaml
+  ▸ 模块: mambaout_femto
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, mambaout_femto, []]  # 4
+    作用: MambaOut-Femto 主干（门控CNN，质疑Mamba必要性）
+
+================================================================================
+◆ rtdetr-mobilenetv4.yaml
+  ▸ 模块: MobileNetV4ConvSmall
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, MobileNetV4ConvSmall, []]  # 4
+    作用: MobileNetV4-Conv-Small 主干（通用MobileNet第四代）
+
+================================================================================
+◆ rtdetr-mpcafsa.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MultiScalePCA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, MultiScalePCA, []] # 12
+    作用: 多尺度并联坐标注意力模块
+  ▸ 模块: FSA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, FSA, [40]] # 13
+    作用: FSA频域空间注意力：自适应全局滤波(AGF)+空间注意力(SA)并联
+  ▸ 模块: MultiScalePCA_Down
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[15, -1], 1, MultiScalePCA_Down, []] # 20
+    作用: 多尺度并联坐标注意力下采样融合
+
+================================================================================
+◆ rtdetr-msga.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: MultiScaleGatedAttn
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[26, 19], 1, MultiScaleGatedAttn, []] # 29 (P3/8-small)
+    作用: 多尺度门控注意力：局部+全局分支门控融合
+
+================================================================================
+◆ rtdetr-overlock.yaml
+  ▸ 模块: overlock_xt
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, overlock_xt, []]  # 4
+    作用: OverLoCK-XT 主干（过视野上下文认知主干）
+
+================================================================================
+◆ rtdetr-p2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-p6-CTrans.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: ChannelTransformer
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [[5, 6, 7, 8], 1, ChannelTransformer, []] # 9
+    作用: 通道Transformer：将通道视为token做自注意力
+  ▸ 模块: GetIndexOutput
+    来源: ultralytics/nn/extra_modules/CTrans.py
+     用法: - [9, 1, GetIndexOutput, [0]] # 10-P3/8
+    作用: 从多输出模块中按索引取指定特征（常用于取backbone某一stage输出）
+
+================================================================================
+◆ rtdetr-pkinet.yaml
+  ▸ 模块: PKINET_T
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, PKINET_T, []]  # 4
+    作用: PKINet-T 主干（多核聚合 inception + 上下文锚点注意力CAA）
+
+================================================================================
+◆ rtdetr-r101.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-r18-DSADOCv10-P2SPDOKMFSV6.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 + DSADOCv10 backbone + HybridEncoderP2SPDOKMFSV6 encoder | Combination of rtdetr-r18-DSADOCv10.yaml (backbone) and rtdetr-r18-P2SPDOKMFSV6.yaml (head) | Backbone (from DSADOCv10, ported 1:1 from rtdetr_pytorch PResNet_DSADOC_v10): | - PResNet-18vd stem/stages, channels unchanged: 64/128/256/512 | - In each of the 4 stages, the LAST BasicBlock has branch2a (3x3) replaced by | DSADOC_v10 (DSA multi-scale spatial + Scharr edge + DOC Haar DWT wavelet FiLM);
+  ▸ 模块: BlocksDSADOCv10
+    来源: ultralytics/nn/extra_modules/dsadoc_v10.py
+     用法: - [-1, 1, BlocksDSADOCv10, [64, BasicBlock, 2, 2, 'relu']] # 4  P2/4  (64)  <- consumed by CCFF
+    作用: Stage container replicating rtdetr_pytorch PResNet_DSADOC_v10._insert_dsadcc. All blocks are the vanilla `block` (BasicBlock) except the LAST block of the stage, which is DSADOCv10BasicBlock (DSADOC_v10 replaces branch2a).
+  ▸ 模块: CSPRepLayer
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+    作用: RT-DETR官方CCFF的CSP模块（3个RepVggBlock，部署时可重参数化为单3x3卷积），自rtdetr_pytorch逐行移植
+  ▸ 模块: CCFFP2V6
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [[4, 5, 14], 1, CCFFP2V6, [256]] # 15  f3
+    作用: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKMFSV6. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+================================================================================
+◆ rtdetr-r18-DSADOCv10.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 with DSADOC_v10 backbone blocks (port of rtdetr_pytorch PResNet_DSADOC_v10) | DSADOC_v10: DSA (multi-scale spatial + Scharr edge) + DOC (Haar DWT wavelet calibration + FiLM) | Ported 1:1 from rtdetr_pytorch configs/rtdetr/rtdetr_r18vd_6x_visdrone_dsadoc_v10.yml: | - Backbone is PResNet-18vd (identical stem/stages as rtdetr-r18.yaml below) | - In each of the 4 stages, the LAST BasicBlock has branch2a (3x3) replaced by | DSADOC_v10; branch2b and the residual shortcut are unchanged
+  ▸ 模块: BlocksDSADOCv10
+    来源: ultralytics/nn/extra_modules/dsadoc_v10.py
+     用法: - [-1, 1, BlocksDSADOCv10, [64, BasicBlock, 2, 2, 'relu']] # 4
+    作用: Stage container replicating rtdetr_pytorch PResNet_DSADOC_v10._insert_dsadcc. All blocks are the vanilla `block` (BasicBlock) except the LAST block of the stage, which is DSADOCv10BasicBlock (DSADOC_v10 replaces branch2a).
+
+================================================================================
+◆ rtdetr-r18-DSADOCv11.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 with DSADOC_v11 backbone blocks | DSADOC_v11: Based on v10 with cross_gate mechanism removed. | - Removed: cross_gate (Conv1x1 + Sigmoid global gating) and GAP signal generation | - Reason: Global gating is spatial-blind (harmful for small objects on VisDrone), | redundant with dsadoc_fusion (Conv1x1+BN+SiLU already handles channel selection), | and Sigmoid(0,1) is purely inhibitory (can only suppress, not enhance).
+  ▸ 模块: BlocksDSADOCv11
+    来源: ultralytics/nn/extra_modules/dsadoc_v11.py
+     用法: - [-1, 1, BlocksDSADOCv11, [64, BasicBlock, 2, 2, 'relu']] # 4
+    作用: Stage container: vanilla BasicBlocks + last-block DSADOC_v11.
+
+================================================================================
+◆ rtdetr-r18-DSAWACGA-P2SPDOKMFSV6.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 + DSAWACGA backbone + HybridEncoderP2SPDOKMFSV6 encoder | Combination of: | - rtdetr-r18-DSAWACGA.yaml  (backbone: DSAWACGA replaces branch2a of the LAST | BasicBlock in each of the 4 stages, channels unchanged 64/128/256/512) | - rtdetr-r18-P2SPDOKMFSV6.yaml  (encoder: P2 introduced + CCFF redesigned with | SPD downsample + DCFM/OKNet/FreqScale innovation block)
+  ▸ 模块: BlocksDSAWACGA
+    来源: ultralytics/nn/extra_modules/dsawacga.py
+     用法: - [-1, 1, BlocksDSAWACGA, [64, BasicBlock, 2, 2, 'relu']] # 4  P2/4  (64)  <- consumed by CCFF
+    作用: Stage container replicating rtdetr_pytorch PResNet_DSAWACGA._insert_dsawacga. All blocks are the vanilla `block` (BasicBlock) except the LAST block of the stage, which is DSAWACGABasicBlock (DSAWACGA replaces branch2a).
+  ▸ 模块: CSPRepLayer
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+    作用: RT-DETR官方CCFF的CSP模块（3个RepVggBlock，部署时可重参数化为单3x3卷积），自rtdetr_pytorch逐行移植
+  ▸ 模块: CCFFP2V6
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [[4, 5, 14], 1, CCFFP2V6, [256]] # 15  f3
+    作用: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKMFSV6. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+================================================================================
+◆ rtdetr-r18-DSAWACGA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 with DSAWACGA backbone blocks (port of rtdetr_pytorch PResNet_DSAWACGA) | DSAWACGA: DSA (multi-scale spatial + Scharr edge) + WACGA (wavelet-aware convolutional gating attention) | Ported 1:1 from rtdetr_pytorch configs/rtdetr/rtdetr_r18vd_6x_visdrone_dsawacga.yml: | - Backbone is PResNet-18vd (identical stem/stages as rtdetr-r18.yaml below) | - In each of the 4 stages, the LAST BasicBlock has branch2a (3x3) replaced by | DSAWACGA; branch2b and the residual shortcut are unchanged
+  ▸ 模块: BlocksDSAWACGA
+    来源: ultralytics/nn/extra_modules/dsawacga.py
+     用法: - [-1, 1, BlocksDSAWACGA, [64, BasicBlock, 2, 2, 'relu']] # 4
+    作用: Stage container replicating rtdetr_pytorch PResNet_DSAWACGA._insert_dsawacga. All blocks are the vanilla `block` (BasicBlock) except the LAST block of the stage, which is DSAWACGABasicBlock (DSAWACGA replaces branch2a).
+
+================================================================================
+◆ rtdetr-r18-P2SPDOKM.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 + HybridEncoderP2SPDOKM (port of rtdetr_pytorch base-version encoder) | P2 introduced + CCFF redesigned (SPD downsample + OKNet BottleNect innovation block) | Ported 1:1 from rtdetr_pytorch configs/rtdetr/rtdetr_r18vd_6x_visdrone_p2_spd_okm.yml: | - Backbone: PResNet-18vd, return_idx [0,1,2,3] (all four stages consumed) | - in_channels [64, 128, 256, 512]: input_proj[0..2] = Identity (P2/P3/P4 consumed RAW, | no projection), input_proj[3] = Conv1x1(bias=False)+BN (512 -> 256, no act)
+  ▸ 模块: CSPRepLayer
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+    作用: RT-DETR官方CCFF的CSP模块（3个RepVggBlock，部署时可重参数化为单3x3卷积），自rtdetr_pytorch逐行移植
+  ▸ 模块: CCFFP2
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm.py
+     用法: - [[4, 5, 14], 1, CCFFP2, [256]] # 15  f3
+    作用: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKM. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+================================================================================
+◆ rtdetr-r18-P2SPDOKMFSV5.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 + HybridEncoderP2SPDOKMFSV5 (port of rtdetr_pytorch encoder v5) | P2 introduced + CCFF redesigned (SPD downsample, DCFM/OKNet/FreqScale innovation block) | Ported 1:1 from rtdetr_pytorch configs/rtdetr/rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v5.yml: | - Backbone: PResNet-18vd, return_idx [0,1,2,3] (all four stages consumed) | - in_channels [64, 128, 256, 512]: input_proj[0..2] = Identity (P2/P3/P4 consumed RAW, | no projection), input_proj[3] = Conv1x1(bias=False)+BN (512 -> 256, no act)
+  ▸ 模块: CSPRepLayer
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+    作用: RT-DETR官方CCFF的CSP模块（3个RepVggBlock，部署时可重参数化为单3x3卷积），自rtdetr_pytorch逐行移植
+  ▸ 模块: CCFFP2V5
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v5.py
+     用法: - [[4, 5, 14], 1, CCFFP2V5, [256]] # 15  f3
+    作用: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKMFSV5. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+================================================================================
+◆ rtdetr-r18-P2SPDOKMFSV6.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: RT-DETR-r18 + HybridEncoderP2SPDOKMFSV6 (port of rtdetr_pytorch encoder v6) | P2 introduced + CCFF redesigned (SPD downsample, DCFM/OKNet/FreqScale innovation block) | Ported 1:1 from rtdetr_pytorch configs/rtdetr/rtdetr_r18vd_6x_visdrone_p2_spd_okm_fs_v6.yml: | - Backbone: PResNet-18vd, return_idx [0,1,2,3] (all four stages consumed) | - in_channels [64, 128, 256, 512]: input_proj[0..2] = Identity (P2/P3/P4 consumed RAW, | no projection), input_proj[3] = Conv1x1(bias=False)+BN (512 -> 256, no act)
+  ▸ 模块: CSPRepLayer
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [-1, 3, CSPRepLayer, [256, 0.5]] # 13  fpn_blocks[0]: CSPRepLayer(512 -> 256)
+    作用: RT-DETR官方CCFF的CSP模块（3个RepVggBlock，部署时可重参数化为单3x3卷积），自rtdetr_pytorch逐行移植
+  ▸ 模块: CCFFP2V6
+    来源: ultralytics/nn/extra_modules/hybrid_encoder_p2_spd_okm_fs_v6.py
+     用法: - [[4, 5, 14], 1, CCFFP2V6, [256]] # 15  f3
+    作用: Replicates the CCFF part of rtdetr_pytorch HybridEncoderP2SPDOKMFSV6. Inputs (from yaml): [p2 (raw backbone P2, 64ch), p3 (raw backbone P3, 128ch), y4 (256ch)] Output: f3 (hidden_dim=256ch, P3 stride)
+
+================================================================================
+◆ rtdetr-r18.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-r34.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-r50-AKConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_AKConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_AKConv, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 AKConv（AKConv任意核卷积：为每个采样点学习任意形状/数量的偏移）
+
+================================================================================
+◆ rtdetr-r50-ASF.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Zoom_cat
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6, -2], 1, Zoom_cat, []] # 13
+    作用: Zoom_cat拼接模块：目标尺寸自适应缩放对齐后拼接（U-Net v2跳跃连接）
+  ▸ 模块: ScalSeq
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 8], 1, ScalSeq, [256]] # 26
+    作用: Gold-YOLO GD收集模块：多尺度特征池化对齐后拼接（Low-Middle-High尺度序列）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[19, -1], 1, Add, []] # 27
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-r50-AggregatedAtt.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  文件注释: P2/4 sr_ratio=8 | P3/8 sr_ratio=4 | P4/16 sr_ratio=2 | P5/32 sr_ratio=1
+  ▸ 模块: BottleNeck_AggregatedAtt
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_AggregatedAtt, 3, 5, 'relu', 20, 1]] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 AggregatedAtt（聚合多尺度注意力（P2/4~P5/32分级sr_ratio））
+
+================================================================================
+◆ rtdetr-r50-ContextGuided.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_ContextGuided
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_ContextGuided, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 ContextGuided（上下文引导块（CGBlock：局部+全局上下文联合引导））
+  ▸ 模块: ContextGuidedBlock_Down
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ContextGuidedBlock_Down, []]   # 20, downsample_convs.0
+    作用: the size of feature map divided 2, (H,W,C)---->(H/2, W/2, 2C)
+
+================================================================================
+◆ rtdetr-r50-Conv3XC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Conv3XC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Conv3XC, 3, 2, 'relu', 64]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Conv3XC（Conv3XC三分支卷积（1x1/1x1-KxK/恒等，ICLR2023 DEConv系））
+
+================================================================================
+◆ rtdetr-r50-DBB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DBB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_DBB, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DBB（DiverseBranchBlock多分支卷积：训练多分支（1x1/1x1-KxK/均值），推理等价合并）
+
+================================================================================
+◆ rtdetr-r50-DCNV2-Dynamic.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DCNv2_Dynamic
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_DCNv2_Dynamic, 3, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2_Dynamic
+
+================================================================================
+◆ rtdetr-r50-DCNV2.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DCNv2
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_DCNv2, 3, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv2
+
+================================================================================
+◆ rtdetr-r50-DCNV3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DCNv3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_DCNv3, 3, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv3（DCNv3可变形卷积v3：分组可变形采样+归一化调制）
+
+================================================================================
+◆ rtdetr-r50-DCNV4.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DCNv4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_DCNv4, 3, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DCNv4（DCNv4可变形卷积v4：v3加速版，去除softmax归一化提升表达能力）
+
+================================================================================
+◆ rtdetr-r50-DEConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DEConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_DEConv, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DEConv（DEConv差分卷积：详情差分/边界差分等四种差分卷积并联（可重参数化合并））
+
+================================================================================
+◆ rtdetr-r50-DGCST.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: DGCST
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DGCST, [256]]  # 14, fpn_blocks.0
+    作用: DGCST动态组卷积Shuffle Transformer：组卷积+空间shuffle跨组交互
+
+================================================================================
+◆ rtdetr-r50-DRB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DRB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_DRB, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DRB（DRB膨胀残差块（图像去雾Rethinking论文）：多膨胀率并联）
+
+================================================================================
+◆ rtdetr-r50-DeepDBB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DeepDBB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_DeepDBB, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DeepDBB（深度版DBB：更多层使用多分支卷积块）
+
+================================================================================
+◆ rtdetr-r50-DualConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DualConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_DualConv, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DualConv（DualConv：3x3与1x1卷积并联的轻量卷积组）
+
+================================================================================
+◆ rtdetr-r50-DySnake.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_DySnakeConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_DySnakeConv, 3, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 DySnake（DySnake动态蛇形卷积：可变形蛇形卷积，适合细长/管状目标）
+
+================================================================================
+◆ rtdetr-r50-Faster-EMA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Faster_Block_EMA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Faster_Block_EMA, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_EMA
+
+================================================================================
+◆ rtdetr-r50-Faster-Rep-EMA.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Faster_Block_Rep_EMA
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Faster_Block_Rep_EMA, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep_EMA
+
+================================================================================
+◆ rtdetr-r50-Faster-Rep.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Faster_Block_Rep
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Faster_Block_Rep, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_Rep
+
+================================================================================
+◆ rtdetr-r50-Faster.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Faster_Block
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Faster_Block, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block
+
+================================================================================
+◆ rtdetr-r50-KAN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_KAN
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [256, BottleNeck_KAN, 6, 4, 'relu', None, None, None, 'KAGNConv2DLayer']] # 6-P4/16
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 KAN（KAT Kolmogorov–Arnold Transformer：可学习样条激活（GroupKAN）替代ReLU）
+
+================================================================================
+◆ rtdetr-r50-Ortho.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Ortho
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Ortho, 3, 2, 'relu', 64]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Ortho（Ortho正交卷积：正交约束卷积核降低冗余）
+
+================================================================================
+◆ rtdetr-r50-PACAPN.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: AttentionUpsample
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, AttentionUpsample, []] # 11
+    作用: 注意力上采样：全局池化门控+双分支上采样
+  ▸ 模块: CSP_PAC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, CSP_PAC, [256]]  # 14, fpn_blocks.0
+    作用: CSP Bottleneck with ParallelAtrousConv.
+  ▸ 模块: AttentionDownsample
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, AttentionDownsample, []]   # 20, downsample_convs.0
+    作用: 注意力下采样：全局池化门控+双分支下采样
+
+================================================================================
+◆ rtdetr-r50-PConv-Rep.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_PConv_Rep
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_PConv_Rep, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 PConv_Rep
+
+================================================================================
+◆ rtdetr-r50-PConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_PConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_PConv, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 PConv（PConv部分卷积（FasterNet）：只对部分通道卷积，其余恒等传递）
+
+================================================================================
+◆ rtdetr-r50-RFAConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_RFAConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_RFAConv, 3, 2, 'relu', 64]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 RFAConv（RFAConv感受野注意力卷积：对空间每个感受野位置生成注意力）
+
+================================================================================
+◆ rtdetr-r50-RFCAConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_RFCAConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_RFCAConv, 3, 2, 'relu', 64]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 RFCAConv（RFCAConv：结合坐标注意力的感受野注意力卷积）
+
+================================================================================
+◆ rtdetr-r50-RFCBAMConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_RFCBAMConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_RFCBAMConv, 3, 2, 'relu', 64]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 RFCBAMConv（RFCBAMConv：结合CBAM通道注意力的感受野注意力卷积）
+
+================================================================================
+◆ rtdetr-r50-RepNCSPELAN.yaml
+  文件注释: avg-conv down | elan-2 block | avg-conv down | elan-2 block | avg-conv down | elan-2 block
+  ▸ 模块: RepNCSPELAN4
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, RepNCSPELAN4, [128, 64, 32, 1]]  # 2-P2/4
+    作用: YOLOv10 ELAN CSP重参数结构（RepVGG分支，部署合并）
+  ▸ 模块: ADown
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, ADown, [256]]  # 3-P3/8
+    作用: YOLOv9高效下采样：平均池化+1x1 与 3x3 stride2卷积两路并联
+
+================================================================================
+◆ rtdetr-r50-RetBlockC3.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: RetBlockC3
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, RetBlockC3, [256, 1, 'chunk', 8]]  # 14, fpn_blocks.0
+    作用: C3瓶颈结构，内部bottleneck替换为 RetBlock 模块
+
+================================================================================
+◆ rtdetr-r50-SRFD.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: SRFD
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, SRFD, [64]] # 0-P2/4
+    作用: 轻量下采样块：空间重标记（split+多分支卷积强化），来自轻量骨干stem设计
+  ▸ 模块: DRFD
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, DRFD, [256]]   # 17, downsample_convs.0
+    作用: Deep feature downsampling
+
+================================================================================
+◆ rtdetr-r50-SWC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_SWC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_SWC, 3, 2, 'relu', None, None, 9]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 SWC（SWC滑窗卷积（图像去雾Rethinking论文））
+
+================================================================================
+◆ rtdetr-r50-Star.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Star
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Star, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Star（星形操作块（StarNet：两路卷积逐元素乘法融合））
+
+================================================================================
+◆ rtdetr-r50-VSS.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_VSS
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [256, BottleNeck_VSS, 6, 4, 'relu']] # 6-P4/16
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 VSS（VSS视觉状态空间Mamba块（VMamba））
+
+================================================================================
+◆ rtdetr-r50-WDBB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_WDBB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_WDBB, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 WDBB（加宽版多分支卷积块）
+
+================================================================================
+◆ rtdetr-r50-WTConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_WTConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_WTConv, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 WTConv
+
+================================================================================
+◆ rtdetr-r50-attention.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Attention
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Attention, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Attention
+
+================================================================================
+◆ rtdetr-r50-bifpn.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: Fusion
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 12], 1, Fusion, [fusion_mode]] # 15
+    作用: 通用特征融合模块（fusion_mode指定融合方式：逐元素相加/拼接等）
+  ▸ 模块: node_mode
+    来源: ultralytics/(未在 nn 源码中找到定义，可能为tasks.py内联或由名称引用)
+     用法: - [-1, 3, node_mode, [head_channel]] # 16-P4/16
+    作用: YAML间接引用符：解析时被替换为yaml头部 node_mode: 键指定的真实模块（如C2f/Faster），一份C2f模板配置多种改进；head_channel同理
+
+================================================================================
+◆ rtdetr-r50-fadc.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_FADC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [512, BottleNeck_FADC, 3, 5, 'relu']] # 7-P5/32
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 FADC
+
+================================================================================
+◆ rtdetr-r50-faster-CGLU.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_Faster_Block_CGLU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_Faster_Block_CGLU, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 Faster_Block_CGLU
+
+================================================================================
+◆ rtdetr-r50-iRMB-Cascaded.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_iRMB_Cascaded
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_iRMB_Cascaded, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_Cascaded
+
+================================================================================
+◆ rtdetr-r50-iRMB-DRB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_iRMB_DRB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_iRMB_DRB, 3, 2, 'relu', None, None, 13]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_DRB
+
+================================================================================
+◆ rtdetr-r50-iRMB-SWC.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_iRMB_SWC
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_iRMB_SWC, 3, 2, 'relu', None, None, 7]] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB_SWC
+
+================================================================================
+◆ rtdetr-r50-iRMB.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: BottleNeck_iRMB
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, Blocks, [64, BottleNeck_iRMB, 3, 2, 'relu']] # 4
+    作用: PResNet残差瓶颈变体：3x3卷积替换为 iRMB（iRMB（EABNet）反转残差Mobile块：倒残差+窗口注意力（轻量））
+
+================================================================================
+◆ rtdetr-r50-m.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-r50-timm.yaml
+  文件注释: 0-P1/2 | 1-P2/4 | 2-P3/8 | 3-P4/16 | 4-P5/32
+  ▸ 模块: mobilenetv3_small_100
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, mobilenetv3_small_100, [False]]  # 4
+    作用: MobileNetV3-Small 主干（timm加载）
+
+================================================================================
+◆ rtdetr-r50.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  (基线配置：无自定义改进模块，标准RT-DETR结构)
+
+================================================================================
+◆ rtdetr-repvit.yaml
+  ▸ 模块: repvit_m0_9
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, repvit_m0_9, []]  # 4
+    作用: RepViT-M0.9 主干（面向端侧的重参数化ViT）
+
+================================================================================
+◆ rtdetr-rmt.yaml
+  ▸ 模块: RMT_T
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, RMT_T, []]  # 4
+    作用: RMT-T 主干（Retention机制Transformer）
+
+================================================================================
+◆ rtdetr-slimneck-ASF.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GSConv, [256, 1, 1, None, 1, 1, False]]  # 8 input_proj.2
+    作用: GSConv：分组+深度可分离卷积轻量卷积（slim-neck核心算子）
+  ▸ 模块: Zoom_cat
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, 6, -2], 1, Zoom_cat, []] # 13
+    作用: Zoom_cat拼接模块：目标尺寸自适应缩放对齐后拼接（U-Net v2跳跃连接）
+  ▸ 模块: VoVGSCSP
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, VoVGSCSP, [256]]  # 14, fpn_blocks.0
+    作用: GSConv轻量neck（slim-neck-by-GSConv）：GSBottleneck替代标准卷积，显著降低neck计算量
+  ▸ 模块: ScalSeq
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[5, 6, 8], 1, ScalSeq, [256]] # 26
+    作用: Gold-YOLO GD收集模块：多尺度特征池化对齐后拼接（Low-Middle-High尺度序列）
+  ▸ 模块: Add
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[19, -1], 1, Add, []] # 27
+    作用: 逐元素相加融合（element-wise add，两路特征相加）
+
+================================================================================
+◆ rtdetr-slimneck-WFU.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GSConv, [256, 1, 1, None, 1, 1, False]]  # 8 input_proj.2
+    作用: GSConv：分组+深度可分离卷积轻量卷积（slim-neck核心算子）
+  ▸ 模块: WFU
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [[-1, -2], 1, WFU, []] # 12
+    作用: 小波特征上采样单元：Haar小波正/逆变换实现上采样+残差融合
+  ▸ 模块: VoVGSCSP
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, VoVGSCSP, [256]]  # 13, fpn_blocks.0
+    作用: GSConv轻量neck（slim-neck-by-GSConv）：GSBottleneck替代标准卷积，显著降低neck计算量
+
+================================================================================
+◆ rtdetr-slimneck.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: GSConv
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, GSConv, [256, 1, 1, None, 1, 1, False]]  # 8 input_proj.2
+    作用: GSConv：分组+深度可分离卷积轻量卷积（slim-neck核心算子）
+  ▸ 模块: VoVGSCSP
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 3, VoVGSCSP, [256]]  # 14, fpn_blocks.0
+    作用: GSConv轻量neck（slim-neck-by-GSConv）：GSBottleneck替代标准卷积，显著降低neck计算量
+
+================================================================================
+◆ rtdetr-starnet.yaml
+  ▸ 模块: starnet_s2
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, starnet_s2, [False]]  # 4
+    作用: StarNet-S2 主干（星形逐元素乘法操作）
+
+================================================================================
+◆ rtdetr-timm.yaml
+  文件注释: 0-P1/2 | 1-P2/4 | 2-P3/8 | 3-P4/16 | 4-P5/32
+  ▸ 模块: mobilenetv3_small_100
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, mobilenetv3_small_100, [False]]  # 4
+    作用: MobileNetV3-Small 主干（timm加载）
+
+================================================================================
+◆ rtdetr-unireplknet.yaml
+  ▸ 模块: unireplknet_a
+    来源: timm库（tasks.py通过timm.create_model加载）
+     用法: - [-1, 1, unireplknet_a, []]  # 4
+    作用: UniRepLKNet-A 主干（通用大核卷积网络）
+
+================================================================================
+◆ rtdetr-wConv.yaml
+  主干: PResNet主干（ResNet-18/50vd结构，RT-DETR官方）
+  ▸ 模块: wConv2d
+    来源: ultralytics/nn/extra_modules/block.py
+     用法: - [-1, 1, wConv2d, [256, 3, [0.9], 2]]   # 20, downsample_convs.0
+    作用: wConv 2D加宽卷积变体
+
+================================================================================
+◆ rtdetr-x.yaml
+  主干: HGNetV2主干
+  ▸ 模块: DWConv
+    来源: ultralytics/nn/backbone/lsknet.py
+     用法: - [-1, 1, DWConv, [128, 3, 2, 1, False]]  # 2-P3/8
+    作用: 深度可分离卷积（depthwise conv）
+
+================================================================================
+附1: 未定位到源码定义的模块
+  node_mode (出现6次)
+
+附2: 仍缺少描述的模块（人工补充清单）
