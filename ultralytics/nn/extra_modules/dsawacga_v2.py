@@ -1,22 +1,28 @@
-# DSAWACGA_v2: Based on DSAWACGA with cross_gate mechanism removed.
+# DSAWACGA_v2: Wavelet-modulated DSA (SME-DETR DPF-style modulation).
+#
+# Key design (aligned with SME-DETR DPF paradigm):
+#   - WaveletModulation generates spatial-channel attention map A [B,cr,H,W]
+#     from DWT subbands (no QKV attention, pure wavelet-based).
+#   - DSA produces multi-scale spatial features fdsa [B,cr,H,W].
+#   - Fusion: output = A ⊙ fdsa + fdsa  (modulation + residual).
+#     Equivalent to (1 + A) ⊙ fdsa, where A ∈ [0,1] via Sigmoid.
+#     Residual ensures DSA information is preserved; modulation enhances
+#     spatial-channel selective regions identified by wavelet analysis.
 #
 # Changes from DSAWACGA (dsawacga.py):
-#   - Removed: cross_gate (Conv1x1 + Sigmoid global gating)
-#   - Removed: GAP on fdsa/fwacga for gate signal generation
-#   - Reason (same rationale as DSADOC_v11 vs v10):
-#     Global gating is spatial-blind (harmful for small objects),
-#     redundant with dsawacga_fusion (Conv1x1+BN+SiLU already does channel
-#     selection), and Sigmoid(0,1) is purely inhibitory.
-#   - Effect: fdsa and fwacga are concatenated directly into dsawacga_fusion
-#     without prior channel-wise suppression. dsawacga_fusion alone handles
-#     DSA-WACGA cross-channel interaction and compression (2cr -> cr).
-#   - Parameter savings per stage (cr=ch_out//2):
-#       cross_gate Conv1x1: 2cr * 2cr = 2*cr^2 params removed
-#       Stage2(64): 2048, Stage3(128): 8192, Stage4(256): 32768, Stage5(512): 131072
-#       Total: ~174K params removed
+#   - Removed: cross_gate, QKV attention from WACGA
+#   - WACGA → WaveletModulation: pure wavelet attention map generator
+#   - Fusion: cat→fusion replaced by wavelet_attn ⊙ fdsa + fdsa
+#   - Advantage over SME-DETR DCA: spatial-channel modulation (not channel-only)
+#     is more fine-grained and better for small objects.
 #
-# Everything else (ScharrEdge / LearnableHaarDWT / WACGA / half-channel
-# chunk design / BasicBlock / Blocks container) is identical to dsawacga.py.
+# DSA redesign (6-branch multi-scale DWConv, no Scharr, no dilated conv):
+#   - DW1x1, DW3x3, DW5x5, DW7x7, DW9x9, DW11x11 (6 branches)
+#   - Removed: Scharr edge branch (fixed kernel, competes with learnable
+#     branches under softmax and tends to be suppressed over training)
+#   - Removed: dilated DWConv (replaced by larger standard kernels DW9x9/DW11x11
+#     for cleaner multi-scale coverage without gridding artifacts)
+#   - Spatial-adaptive softmax weighting preserved (6-way)
 
 import torch
 import torch.nn as nn
@@ -26,28 +32,6 @@ from ..modules.block import BasicBlock
 from ..modules.conv import Conv
 
 __all__ = ['DSAWACGAv2', 'DSAWACGAv2BasicBlock', 'BlocksDSAWACGAv2']
-
-
-class ScharrEdge(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.channels = channels
-
-        scharr_x = torch.tensor(
-            [[-3, 0, 3], [-10, 0, 10], [-3, 0, 3]], dtype=torch.float32
-        ).reshape(1, 1, 3, 3) / 16.0
-        scharr_y = torch.tensor(
-            [[-3, -10, -3], [0, 0, 0], [3, 10, 3]], dtype=torch.float32
-        ).reshape(1, 1, 3, 3) / 16.0
-
-        self.register_buffer('kernel_x', scharr_x.repeat(channels, 1, 1, 1))
-        self.register_buffer('kernel_y', scharr_y.repeat(channels, 1, 1, 1))
-
-    def forward(self, x):
-        gx = F.conv2d(x, self.kernel_x, padding=1, groups=self.channels)
-        gy = F.conv2d(x, self.kernel_y, padding=1, groups=self.channels)
-        magnitude = torch.sqrt(gx * gx + gy * gy + 1e-8)
-        return magnitude
 
 
 # ============================================================
@@ -123,18 +107,19 @@ class LearnableHaarDWT(nn.Module):
 
 
 # ============================================================
-# WACGA: Wavelet-Aware Convolutional Gating Attention
+# WaveletModulation: Pure wavelet-based spatial-channel attention map
 # ============================================================
 
-class WACGA(nn.Module):
-    def __init__(self, dim, num_heads=4, bias=True):
-        super().__init__()
-        self.num_heads = num_heads
-        self.temperature = nn.Parameter(torch.ones(num_heads, 1, 1))
+class WaveletModulation(nn.Module):
+    """Generates a spatial-channel attention map [B, dim, H, W] from DWT
+    subbands. No QKV attention -- purely wavelet-driven modulation weights.
 
-        self.qkv = nn.Conv2d(dim, dim * 3, kernel_size=1, bias=bias)
-        self.qkv_dwconv = nn.Conv2d(dim * 3, dim * 3, kernel_size=3, stride=1, padding=1, groups=dim * 3, bias=bias)
-        self.project_out = nn.Conv2d(dim, dim, kernel_size=1, bias=bias)
+    Output is Sigmoid-normalized to [0,1], suitable for:
+        output = wavelet_attn * fdsa + fdsa  (SME-DETR DPF-style)
+    """
+
+    def __init__(self, dim, bias=True):
+        super().__init__()
 
         self.dwt = LearnableHaarDWT(level=1)
 
@@ -176,8 +161,6 @@ class WACGA(nn.Module):
         return horizontal_conv, vertical_conv, diagonal_conv
 
     def forward(self, x):
-        b, c, h, w = x.shape
-
         ya, (yh, yv, yd) = self.dwt(x)
 
         ya_proc = self.ya_proj(ya)
@@ -203,42 +186,26 @@ class WACGA(nn.Module):
             align_corners=False
         )
 
-        qkv = self.qkv_dwconv(self.qkv(x))
-        q, k, v = qkv.chunk(3, dim=1)
-
-        head_dim = c // self.num_heads
-        q = q.reshape(b, self.num_heads, head_dim, h * w)
-        k = k.reshape(b, self.num_heads, head_dim, h * w)
-        v = v.reshape(b, self.num_heads, head_dim, h * w)
-
-        q = F.normalize(q, dim=-1)
-        k = F.normalize(k, dim=-1)
-
-        attn = (q @ k.transpose(-2, -1)) * self.temperature
-        attn = attn.softmax(dim=-1)
-        out = attn @ v
-
-        out = out.reshape(b, c, h, w)
-        out = self.project_out(out)
-
-        out = out * wavelet_attention_map
-        return out
+        return wavelet_attention_map
 
 
 # ============================================================
-# DSAWACGAv2: DSA + WACGA, direct concat fusion (no cross_gate)
+# DSAWACGAv2: Wavelet-modulated DSA (SME-DETR DPF-style)
 # ============================================================
 
 class DSAWACGAv2(nn.Module):
-    """DSAWACGAv2: DSAWACGA with cross_gate removed.
+    """DSAWACGAv2: Wavelet-modulated DSA with residual.
 
-    Half-channel split design, DSA + WACGA:
-    - First half  -> DSA + WACGA innovative branch (parallel, direct concat)
+    Half-channel split design:
+    - First half  -> DSA (6-branch multi-scale DWConv) modulated by
+                     WaveletModulation: output = wavelet_attn ⊙ fdsa + fdsa
     - Second half -> Conv3x3 for local feature extraction
-    - fdsa and fwacga are concatenated directly into dsawacga_fusion
-      (Conv1x1+BN+SiLU) without global gating, letting the fusion layer
-      handle cross-channel interaction.
     - dim = ch_out of the block (64/128/256/512), cr = dim // 2.
+
+    Modulation paradigm (aligned with SME-DETR DPF):
+        wavelet_attn = WaveletModulation(xs)   # [B, cr, H, W], Sigmoid [0,1]
+        fdsa = DSA(xs)                         # [B, cr, H, W]
+        dsawacga_out = wavelet_attn * fdsa + fdsa  # (1 + A) ⊙ fdsa
     """
 
     def __init__(self, dim, num_heads=4):
@@ -250,27 +217,22 @@ class DSAWACGAv2(nn.Module):
         cr = half_dim
         self.cr = cr
 
-        # --- DSA: Multi-scale DWConv ---
+        # --- DSA: 6-branch multi-scale DWConv ---
+        self.dwconv1 = nn.Conv2d(cr, cr, 1, groups=cr, bias=False)
         self.dwconv3 = nn.Conv2d(cr, cr, 3, padding=1, groups=cr, bias=False)
         self.dwconv5 = nn.Conv2d(cr, cr, 5, padding=2, groups=cr, bias=False)
         self.dwconv7 = nn.Conv2d(cr, cr, 7, padding=3, groups=cr, bias=False)
-        self.dwconv_d4 = nn.Conv2d(cr, cr, 3, padding=4, dilation=4, groups=cr, bias=False)
-
-        # --- DSA: Scharr edge detection branch ---
-        self.scharr = ScharrEdge(cr)
+        self.dwconv9 = nn.Conv2d(cr, cr, 9, padding=4, groups=cr, bias=False)
+        self.dwconv11 = nn.Conv2d(cr, cr, 11, padding=5, groups=cr, bias=False)
 
         # --- DSA: Channel mixing ---
         self.channel_mix = nn.Conv2d(cr, cr, 1, bias=False)
 
-        # --- DSA: Spatial-adaptive weights (5-way) ---
-        self.weight_conv = nn.Conv2d(cr * 5, 5, 1, bias=False)
+        # --- DSA: Spatial-adaptive weights (6-way) ---
+        self.weight_conv = nn.Conv2d(cr * 6, 6, 1, bias=False)
 
-        # --- WACGA: Wavelet-Aware Convolutional Gating Attention ---
-        self.wacga = WACGA(cr, num_heads=num_heads, bias=True)
-
-        # --- DSAWACGAv2 internal fusion: Concat -> Conv1x1+BN+SiLU ---
-        # No cross_gate: fdsa and fwacga are concatenated directly
-        self.dsawacga_fusion = Conv(cr * 2, half_dim, 1, 1)
+        # --- WaveletModulation: generates spatial-channel attention map ---
+        self.wavelet_mod = WaveletModulation(cr, bias=True)
 
         # --- Conv path: Conv3x3+BN+ReLU ---
         self.conv_path = Conv(half_dim, half_dim, 3, 1, act=nn.ReLU())
@@ -281,29 +243,27 @@ class DSAWACGAv2(nn.Module):
         # === DSA path (first half) ===
         xs = x_dsawacga
 
+        f0 = self.dwconv1(xs)
         f1 = self.dwconv3(xs)
         f2 = self.dwconv5(xs)
         f3 = self.dwconv7(xs)
-        f4 = self.dwconv_d4(xs)
-        f_scharr = self.scharr(xs)
-        f_scharr = f_scharr - f_scharr.mean(dim=[2, 3], keepdim=True)
+        f4 = self.dwconv9(xs)
+        f5 = self.dwconv11(xs)
 
-        spatial_cat = torch.cat([f1, f2, f3, f4, f_scharr], dim=1)
+        spatial_cat = torch.cat([f0, f1, f2, f3, f4, f5], dim=1)
         spatial_weights = F.softmax(self.weight_conv(spatial_cat), dim=1)
 
-        fdsa = (spatial_weights[:, 0:1] * f1 +
-                spatial_weights[:, 1:2] * f2 +
-                spatial_weights[:, 2:3] * f3 +
-                spatial_weights[:, 3:4] * f4 +
-                spatial_weights[:, 4:5] * f_scharr)
+        fdsa = (spatial_weights[:, 0:1] * f0 +
+                spatial_weights[:, 1:2] * f1 +
+                spatial_weights[:, 2:3] * f2 +
+                spatial_weights[:, 3:4] * f3 +
+                spatial_weights[:, 4:5] * f4 +
+                spatial_weights[:, 5:6] * f5)
         fdsa = self.channel_mix(fdsa)
 
-        # === WACGA path (first half, same input as DSA) ===
-        fwacga = self.wacga(xs)
-
-        # === DSAWACGAv2 internal fusion (no cross_gate) ===
-        fused = torch.cat([fdsa, fwacga], dim=1)
-        dsawacga_out = self.dsawacga_fusion(fused)
+        # === Wavelet modulation (SME-DETR DPF-style) ===
+        wavelet_attn = self.wavelet_mod(xs)
+        dsawacga_out = wavelet_attn * fdsa + fdsa
 
         # === Conv path (second half) ===
         conv_out = self.conv_path(x_conv)

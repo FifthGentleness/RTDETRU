@@ -208,7 +208,7 @@ class DSADOC_v11(nn.Module):
         all_cat = torch.cat([ll, lh, hl, hh], dim=1)
         spatial_ll = self.spatial_mix_ll(all_cat)
 
-        high_cat = torch.cat([lh, lh, hh], dim=1)
+        high_cat = torch.cat([lh, hl, hh], dim=1)
         spatial_lh = self.spatial_mix_lh(high_cat)
         spatial_hl = self.spatial_mix_hl(high_cat)
         spatial_hh = self.spatial_mix_hh(high_cat)

@@ -1,15 +1,22 @@
 # RT-DETR-r18 with DSAWACGAv2 backbone blocks (DSAWACGA without cross_gate)
-# DSAWACGAv2: DSA (multi-scale spatial + Scharr edge) + WACGA (wavelet-aware
-# convolutional gating attention), fused by DIRECT concat + Conv1x1+BN+SiLU
+# DSAWACGAv2: DSA (6-branch multi-scale DWConv: 1x1,3x3,5x5,7x7,9x9,11x11)
+#   + WACGA (wavelet-aware convolutional gating attention),
+#   fused by DIRECT concat + Conv1x1+BN+SiLU
 #
-# Based on rtdetr-r18-DSAWACGA.yaml, single change:
-#   - cross_gate (Conv1x1 + Sigmoid global gating) REMOVED:
-#     fdsa and fwacga are concatenated directly into dsawacga_fusion,
-#     letting the 1x1 fusion layer handle cross-channel interaction
-#   - Same rationale as DSADOC_v11 vs v10: global gating is spatial-blind
-#     (harmful for small objects), redundant with the 1x1 fusion layer,
-#     and Sigmoid(0,1) is purely inhibitory
-#   - ~174K params removed (2*cr^2 per stage, cr = ch_out//2)
+# Changes from rtdetr-r18-DSAWACGA.yaml:
+#   1. cross_gate (Conv1x1 + Sigmoid global gating) REMOVED:
+#      fdsa and fwacga are concatenated directly into dsawacga_fusion,
+#      letting the 1x1 fusion layer handle cross-channel interaction
+#      Rationale: global gating is spatial-blind (harmful for small objects),
+#      redundant with the 1x1 fusion layer, and Sigmoid(0,1) is purely inhibitory
+#      ~174K params removed (2*cr^2 per stage, cr = ch_out//2)
+#   2. DSA redesigned: 5-branch -> 6-branch multi-scale DWConv
+#      - Added: DW1x1, DW9x9, DW11x11
+#      - Removed: Scharr edge branch (fixed kernel, tends to be suppressed
+#        under softmax competition with learnable branches)
+#      - Removed: dilated DWConv (replaced by DW9x9/DW11x11 for cleaner
+#        multi-scale coverage without gridding artifacts)
+#      - Spatial-adaptive softmax weighting preserved (now 6-way)
 #
 # Everything else identical to rtdetr-r18-DSAWACGA.yaml:
 #   - Backbone PResNet-18vd; in each of the 4 stages the LAST BasicBlock has
