@@ -783,7 +783,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
                  C2f_PSFSConv, C2f_FasterSFSConv, C2f_GroupMamba, C2f_GroupMambaBlock, C2f_MambaVision, C2f_FourierConv, FourierConv, C2f_wConv, wConv2d,
                  C2f_GLVSS, C2f_ESC, C2f_MBRConv3, C2f_MBRConv5, MBRConv3C3, MBRConv5C3, C2f_VSSD, C2f_TVIM, C2f_CSI, C2f_SHSA_EPGO, C2f_SHSA_EPGO_CGLU, C2f_ConvAttn,
                  C2f_UniConvBlock, C2f_LGLB, C2f_ConverseB, C2f_Converse2D, Converse2DC3, Converse2D, RepStem, C2f_GCConv, GCConvC3, GCConv, C2f_CFBlock, C2f_FMABlock,
-                 C2f_LWGA):
+                 C2f_LWGA, CSFH_Block):
             if args[0] == 'head_channel':
                 args[0] = d[args[0]]
             c1, c2 = ch[f], args[0]
@@ -818,7 +818,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
                      C2f_PFDConv, C2f_FasterFDConv, FDConvC3, C2f_DSAN, C2f_DSAN_EDFFN, C2f_MambaOut_DSA, C2f_DSA, C2f_RMB, C2f_SFSConv, C2f_MambaOut_SFSC,
                      C2f_PSFSConv, C2f_FasterSFSConv, C2f_GroupMamba, C2f_GroupMambaBlock, C2f_MambaVision, C2f_FourierConv, C2f_wConv, C2f_GLVSS, C2f_ESC,
                      C2f_MBRConv3, C2f_MBRConv5, MBRConv3C3, MBRConv5C3, C2f_VSSD, C2f_TVIM, C2f_CSI, C2f_SHSA_EPGO, C2f_SHSA_EPGO_CGLU, C2f_ConvAttn, C2f_UniConvBlock,
-                     C2f_LGLB, C2f_ConverseB, C2f_Converse2D, Converse2DC3, C2f_GCConv, GCConvC3, C2f_CFBlock, C2f_FMABlock, C2f_LWGA):
+                     C2f_LGLB, C2f_ConverseB, C2f_Converse2D, Converse2DC3, C2f_GCConv, GCConvC3, C2f_CFBlock, C2f_FMABlock, C2f_LWGA, CSFH_Block):
                 args.insert(2, n)  # number of repeats
                 n = 1
         elif m in (AIFI, AIFI_LPE, TransformerEncoderLayer_LocalWindowAttention, TransformerEncoderLayer_DAttention, TransformerEncoderLayer_HiLo, 
