@@ -1,18 +1,13 @@
-# DSADOC_v11: Based on DSADOC_v10 with cross_gate mechanism removed.
+# DSADOC_v11: DSA upgraded to DSAWACGAv2-style 6-branch, DOC (DCC) preserved.
 #
-# Changes from v10:
-#   - Removed: cross_gate (Conv1x1 + Sigmoid global gating)
-#   - Removed: GAP on fdsa/fdcc for gate signal generation
-#   - Reason: Global gating is spatial-blind (harmful for small objects),
-#     redundant with dsadoc_fusion (Conv1x1+BN+SiLU already does channel
-#     selection), and Sigmoid(0,1) is purely inhibitory.
-#   - Effect: fdsa and fdcc are concatenated directly into dsadoc_fusion
-#     without prior channel-wise suppression. dsadoc_fusion alone handles
-#     DSA-DCC cross-channel interaction and compression (2cr -> cr).
-#   - Parameter savings per stage (cr=ch_out//2):
-#       cross_gate Conv1x1: 2cr * 2cr = 2*cr^2 params removed
-#       Stage2(64): 2048, Stage3(128): 8192, Stage4(256): 32768, Stage5(512): 131072
-#       Total: ~174K params removed
+# Changes from original DSADOC_v11 (v10-based):
+#   - DSA: 5-branch (3,5,7,dilated3,Scharr) → 6-branch (1,3,5,7,9,11)
+#     Removed Scharr (fixed kernel, competes with learnable branches).
+#     Removed dilated DWConv (replaced by larger standard kernels DW9x9/DW11x11
+#     for cleaner multi-scale coverage without gridding artifacts).
+#   - DOC (DCC) preserved: HaarDWT → subband calibration → HaarIDWT → FiLM
+#   - Fusion preserved: cat([fdsa, fdcc]) → Conv1x1+BN+SiLU
+#   - DSA spatial-adaptive weights: 5-way → 6-way
 
 import torch
 import torch.nn as nn
@@ -60,33 +55,11 @@ class HaarIDWT(nn.Module):
         return out
 
 
-class ScharrEdge(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.channels = channels
-
-        scharr_x = torch.tensor(
-            [[-3, 0, 3], [-10, 0, 10], [-3, 0, 3]], dtype=torch.float32
-        ).reshape(1, 1, 3, 3) / 16.0
-        scharr_y = torch.tensor(
-            [[-3, -10, -3], [0, 0, 0], [3, 10, 3]], dtype=torch.float32
-        ).reshape(1, 1, 3, 3) / 16.0
-
-        self.register_buffer('kernel_x', scharr_x.repeat(channels, 1, 1, 1))
-        self.register_buffer('kernel_y', scharr_y.repeat(channels, 1, 1, 1))
-
-    def forward(self, x):
-        gx = F.conv2d(x, self.kernel_x, padding=1, groups=self.channels)
-        gy = F.conv2d(x, self.kernel_y, padding=1, groups=self.channels)
-        magnitude = torch.sqrt(gx * gx + gy * gy + 1e-8)
-        return magnitude
-
-
 class DSADOC_v11(nn.Module):
-    """DSADOC_v11: v10 with cross_gate removed.
+    """DSADOC_v11: DSA upgraded to 6-branch, DOC (DCC) preserved.
 
     Half-channel split design, replaces branch2a:
-    - First half  -> DSA (multi-scale spatial) + DCC (wavelet calibration + FiLM)
+    - First half  -> DSA (6-branch multi-scale DWConv) + DCC (wavelet calibration + FiLM)
     - Second half -> Conv3x3 for local feature extraction
     - DSA and DCC are concatenated directly into dsadoc_fusion (Conv1x1+BN+SiLU)
       without global gating, letting the fusion layer handle cross-channel interaction.
@@ -101,20 +74,19 @@ class DSADOC_v11(nn.Module):
         cr = half_dim
         self.cr = cr
 
-        # --- DSA: Multi-scale DWConv ---
+        # --- DSA: 6-branch multi-scale DWConv ---
+        self.dwconv1 = nn.Conv2d(cr, cr, 1, groups=cr, bias=False)
         self.dwconv3 = nn.Conv2d(cr, cr, 3, padding=1, groups=cr, bias=False)
         self.dwconv5 = nn.Conv2d(cr, cr, 5, padding=2, groups=cr, bias=False)
         self.dwconv7 = nn.Conv2d(cr, cr, 7, padding=3, groups=cr, bias=False)
-        self.dwconv_d4 = nn.Conv2d(cr, cr, 3, padding=4, dilation=4, groups=cr, bias=False)
-
-        # --- DSA: Scharr edge detection branch ---
-        self.scharr = ScharrEdge(cr)
+        self.dwconv9 = nn.Conv2d(cr, cr, 9, padding=4, groups=cr, bias=False)
+        self.dwconv11 = nn.Conv2d(cr, cr, 11, padding=5, groups=cr, bias=False)
 
         # --- DSA: Channel mixing ---
         self.channel_mix = nn.Conv2d(cr, cr, 1, bias=False)
 
-        # --- DSA: Spatial-adaptive weights (5-way) ---
-        self.weight_conv = nn.Conv2d(cr * 5, 5, 1, bias=False)
+        # --- DSA: Spatial-adaptive weights (6-way) ---
+        self.weight_conv = nn.Conv2d(cr * 6, 6, 1, bias=False)
 
         # --- DCC: Global pooling ---
         self.gap = nn.AdaptiveAvgPool2d(1)
@@ -161,7 +133,6 @@ class DSADOC_v11(nn.Module):
         self.film_scale = nn.Parameter(torch.zeros(1))
 
         # --- DSADOC internal fusion: Concat -> Conv1x1+BN+SiLU ---
-        # No cross_gate: fdsa and fdcc are concatenated directly
         self.dsadoc_fusion = Conv(cr * 2, half_dim, 1, 1)
 
         # --- Conv path: aligned with branch2a (Conv+BN+ReLU) ---
@@ -173,22 +144,23 @@ class DSADOC_v11(nn.Module):
         # === DSADOC path (first half) ===
         xs = x_dsadoc
 
-        # DSA branch
+        # DSA branch (6-branch)
+        f0 = self.dwconv1(xs)
         f1 = self.dwconv3(xs)
         f2 = self.dwconv5(xs)
         f3 = self.dwconv7(xs)
-        f4 = self.dwconv_d4(xs)
-        f_scharr = self.scharr(xs)
-        f_scharr = f_scharr - f_scharr.mean(dim=[2, 3], keepdim=True)
+        f4 = self.dwconv9(xs)
+        f5 = self.dwconv11(xs)
 
-        spatial_cat = torch.cat([f1, f2, f3, f4, f_scharr], dim=1)
+        spatial_cat = torch.cat([f0, f1, f2, f3, f4, f5], dim=1)
         spatial_weights = F.softmax(self.weight_conv(spatial_cat), dim=1)
 
-        fdsa = (spatial_weights[:, 0:1] * f1 +
-                spatial_weights[:, 1:2] * f2 +
-                spatial_weights[:, 2:3] * f3 +
-                spatial_weights[:, 3:4] * f4 +
-                spatial_weights[:, 4:5] * f_scharr)
+        fdsa = (spatial_weights[:, 0:1] * f0 +
+                spatial_weights[:, 1:2] * f1 +
+                spatial_weights[:, 2:3] * f2 +
+                spatial_weights[:, 3:4] * f3 +
+                spatial_weights[:, 4:5] * f4 +
+                spatial_weights[:, 5:6] * f5)
         fdsa = self.channel_mix(fdsa)
 
         # DCC branch
@@ -234,7 +206,7 @@ class DSADOC_v11(nn.Module):
 
         fdcc = xs * film_gamma + film_beta
 
-        # DSADOC internal fusion (no cross_gate)
+        # DSADOC internal fusion
         fused = torch.cat([fdsa, fdcc], dim=1)
         dsadoc_out = self.dsadoc_fusion(fused)
 
