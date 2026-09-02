@@ -12,17 +12,19 @@
 #     Equation (3): h_attn = Conv_h(AGAP(X)), v_attn = Conv_v(AGAP(X))
 #     Equation (4): A = Sigmoid(PWConv(DWConv(h_attn + v_attn)))
 #   - DPF (Dual-Path Fusion, Fig. 2(c)): output = Conv1x1(DSA(x) + DSA(x) * DCA(x))
-#   - SAAStage (Fig. 2(b)): DownSample -> Conv1x1 -> Split(Identity + DPF) -> Concat -> Conv1x1
+#   - SAA module (in SAABasicBlock): Split(Identity + DPF) -> Concat
 #     X_{l-1}^{(1)}: Identity branch (direct pass-through)
 #     X_{l-1}^{(2)}: DPF branch (DSA + DCA fusion)
+#   - SAABasicBlock: SAA replaces branch2a, branch2b + shortcut kept
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ..modules.block import BasicBlock
 from ..modules.conv import Conv
 
-__all__ = ['DSA', 'DCA', 'DPF', 'SAAStage']
+__all__ = ['DSA', 'DCA', 'DPF', 'SAA', 'SAABasicBlock', 'BlocksSAA']
 
 
 class DSA(nn.Module):
@@ -51,7 +53,7 @@ class DSA(nn.Module):
 
         self.weights = nn.Parameter(torch.zeros(n))
 
-        self.pw_conv = nn.Conv2d(channels, channels, 1, bias=False)
+        self.pw_conv = Conv(channels, channels, 1, 1)
 
     def forward(self, x):
         x = self.pre_conv(x)
@@ -130,43 +132,103 @@ class DPF(nn.Module):
         return self.conv_1x1(out)
 
 
-class SAAStage(nn.Module):
-    """Single SAA Stage (SME-DETR Fig. 2(b)).
+class SAA(nn.Module):
+    """Scale-Aware Attentional module replacing branch2a.
 
-    DownSample -> Conv1x1 -> Split(Identity + DPF) -> Concat -> Conv1x1
-
-    X_{l-1}^{(1)}: Identity branch (direct pass-through, no convolution)
-    X_{l-1}^{(2)}: DPF branch (DSA + DCA fusion)
+    Half-channel split design (Fig. 2(b)):
+    - X_{l-1}^{(1)}: Identity branch (direct pass-through, no convolution)
+    - X_{l-1}^{(2)}: DPF branch (DSA + DCA fusion)
 
     Args:
-        ch_in: Input channels.
-        ch_out: Output channels.
-        downsample: Whether to apply spatial downsampling (stride=2).
-            Set False for stage2 (MaxPool already downsampled).
-        n: DCA kernel size parameter (K = 11 + 2*n).
-            Stage 2 -> n=0 (K=11), Stage 3 -> n=1 (K=13),
-            Stage 4 -> n=2 (K=15), Stage 5 -> n=3 (K=17).
+        dim: Number of input/output channels (= ch_out of the block).
+        n: DCA kernel size parameter.
         scales: DSA multi-scale kernel sizes.
     """
 
-    def __init__(self, ch_in, ch_out, downsample=True, n=3, scales=(3, 5, 7, 9, 11)):
+    def __init__(self, dim, n=1, scales=(3, 5, 7, 9, 11)):
         super().__init__()
-
-        if downsample:
-            self.down = Conv(ch_in, ch_in, 3, 2)
-        else:
-            self.down = nn.Identity()
-
-        self.conv_pre = Conv(ch_in, ch_in, 1, 1)
-
-        self.dpf = DPF(ch_in // 2, n=n, scales=scales)
-
-        self.conv_post = Conv(ch_in, ch_out, 1, 1)
+        half_dim = dim // 2
+        self.dpf = DPF(half_dim, n=n, scales=scales)
 
     def forward(self, x):
-        x = self.down(x)
-        x = self.conv_pre(x)
-        x1, x2 = torch.chunk(x, chunks=2, dim=1)
+        x1, x2 = x.chunk(2, dim=1)
         x2 = self.dpf(x2)
         out = torch.cat([x1, x2], dim=1)
-        return self.conv_post(out)
+        return out
+
+
+class SAABasicBlock(BasicBlock):
+    """BasicBlock with SAA (DPF) replacing branch2a.
+
+    - branch2a: replaced by SAA (Identity + DPF split)
+    - branch2b: kept (Conv3x3)
+    - shortcut + residual: kept
+
+    Args:
+        n: DCA kernel size parameter (K = 11 + 2*n).
+    """
+    expansion = 1
+
+    def __init__(self, ch_in, ch_out, stride, shortcut, act='relu', variant='d', n=1):
+        super().__init__(ch_in, ch_out, stride, shortcut, act, variant)
+        del self.branch2a
+        self.saa = SAA(ch_out, n=n)
+
+    def forward(self, x):
+        out = self.saa(x)
+        out = self.branch2b(out)
+        if self.shortcut:
+            short = x
+        else:
+            short = self.short(x)
+        out = out + short
+        out = self.act(out)
+        return out
+
+
+class BlocksSAA(nn.Module):
+    """Stage container: vanilla BasicBlocks + last-block SAA (DPF).
+
+    Args:
+        n: DCA kernel size parameter for the SAA block (K = 11 + 2*n).
+            Per-stage design: deeper stages use larger n.
+            Stage 2 -> n=0 (K=11), Stage 3 -> n=1 (K=13),
+            Stage 4 -> n=2 (K=15), Stage 5 -> n=3 (K=17).
+    """
+
+    def __init__(self, ch_in, ch_out, block, count, stage_num, act='relu', variant='d', n=1):
+        super().__init__()
+
+        self.blocks = nn.ModuleList()
+        for i in range(count):
+            if i < count - 1:
+                self.blocks.append(
+                    block(
+                        ch_in,
+                        ch_out,
+                        stride=2 if i == 0 and stage_num != 2 else 1,
+                        shortcut=False if i == 0 else True,
+                        variant=variant,
+                        act=act,
+                    )
+                )
+            else:
+                self.blocks.append(
+                    SAABasicBlock(
+                        ch_in,
+                        ch_out,
+                        stride=2 if i == 0 and stage_num != 2 else 1,
+                        shortcut=False if i == 0 else True,
+                        variant=variant,
+                        act=act,
+                        n=n,
+                    )
+                )
+            if i == 0:
+                ch_in = ch_out * block.expansion
+
+    def forward(self, x):
+        out = x
+        for block in self.blocks:
+            out = block(out)
+        return out

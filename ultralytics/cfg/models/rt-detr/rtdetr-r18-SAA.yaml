@@ -1,10 +1,9 @@
 # RT-DETR-r18 with SAA (Scale-Aware Attentional) backbone from SME-DETR
-# New architecture: each stage = DownSample -> Conv1x1 -> Split(Identity + DPF) -> Concat -> Conv1x1
+# Architecture: BasicBlock-based with SAA (DPF) replacing branch2a in last block
 #   - DPF (Dual-Path Fusion) = DSA + DCA
 #   - DSA: Conv3x3 -> 5-branch multi-scale DWConv (3,5,7,9,11) + softmax weights -> Conv1x1
 #   - DCA: AGAP -> Conv1xK/ConvKx1 (K=11+2n) -> DWConv + PWConv + Sigmoid
-#   - X_{l-1}^{(1)}: Identity branch (direct pass-through)
-#   - X_{l-1}^{(2)}: DPF branch (DSA + DCA fusion)
+#   - SAA split: X_{l-1}^{(1)} Identity + X_{l-1}^{(2)} DPF
 #   - Per-stage n: deeper stages use larger n for longer channel dependency
 #     Stage 2: n=0 (K=11), Stage 3: n=1 (K=13), Stage 4: n=2 (K=15), Stage 5: n=3 (K=17)
 
@@ -18,10 +17,10 @@ backbone:
   - [-1, 1, ConvNormLayer, [64, 3, 1, None, False, 'relu']] # 2
   - [-1, 1, nn.MaxPool2d, [3, 2, 1]] # 3-P2/4
 
-  - [-1, 1, SAAStage, [64, False, 0]]   # 4        n=0, K=11, no downsample
-  - [-1, 1, SAAStage, [128, True, 1]]   # 5-P3/8   n=1, K=13
-  - [-1, 1, SAAStage, [256, True, 2]]   # 6-P4/16  n=2, K=15
-  - [-1, 1, SAAStage, [512, True, 3]]   # 7-P5/32  n=3, K=17
+  - [-1, 1, BlocksSAA, [64, BasicBlock, 2, 2, 'relu', 0]] # 4   n=0, K=11
+  - [-1, 1, BlocksSAA, [128, BasicBlock, 2, 3, 'relu', 1]] # 5-P3/8  n=1, K=13
+  - [-1, 1, BlocksSAA, [256, BasicBlock, 2, 4, 'relu', 2]] # 6-P4/16 n=2, K=15
+  - [-1, 1, BlocksSAA, [512, BasicBlock, 2, 5, 'relu', 3]] # 7-P5/32 n=3, K=17
 
 head:
   - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 8 input_proj.2
