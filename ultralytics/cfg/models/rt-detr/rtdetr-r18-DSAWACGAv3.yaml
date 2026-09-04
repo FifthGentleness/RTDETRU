@@ -1,23 +1,20 @@
-# RT-DETR with SAAv2 (CSFH framework + DPFBlock core block)
-# Backbone architecture (CSFH framework with DPFBlock replacing SFHF_Block):
-#   Conv(3→64, s=2) → Conv(64→128, s=2) → C2f_DPF(128, dpf_n=0, K=11)
-#   → Conv(128→256, s=2) → C2f_DPF(256, dpf_n=1, K=13)
-#   → Conv(256→384, s=2) → C2f_DPF(384, dpf_n=2, K=15)
-#   → Conv(384→384, s=2) → C2f_DPF(384, dpf_n=3, K=17)×3
+# RT-DETR with DSAWACGAv3 (CSFH framework + DSAWACGAv2Block core block)
+# Backbone architecture (CSFH framework with DSAWACGAv2Block replacing SFHF_Block):
+#   Conv(3→64, s=2) → Conv(64→128, s=2) → C2f_DSAWACGA(128)
+#   → Conv(128→256, s=2) → C2f_DSAWACGA(256)
+#   → Conv(256→384, s=2) → C2f_DSAWACGA(384)
+#   → Conv(384→384, s=2) → C2f_DSAWACGA(384)×3
 #
-# C2f_DPF = C2f with DPFBlock replacing Bottleneck:
-#   cv1(c1→2c, 1×1) → split(2 chunks) → [DPFBlock(c)×n] → cat → cv2(→c2, 1×1)
-# DPFBlock (Transformer-like block, mirrors SFHF_Block structure):
-#   Stage 1 (Attention):  x' = DPF(Norm1(x)) * β + x
+# C2f_DSAWACGA = C2f with DSAWACGAv2Block replacing Bottleneck:
+#   cv1(c1→2c, 1×1) → split(2 chunks) → [DSAWACGAv2Block(c)×n] → cat → cv2(→c2, 1×1)
+# DSAWACGAv2Block (Transformer-like block, mirrors SFHF_Block structure):
+#   Stage 1 (Attention):  x' = DSAWACGAv2(Norm1(x)) * β + x
 #   Stage 2 (FFN):        x'' = FFN(Norm2(x')) * γ + x'
-#   DPF = DSA + DCA fusion:
-#     - DSA: Conv3x3 → 5-branch multi-scale DWConv (3,5,7,9,11) + softmax weights → Conv1x1
-#     - DCA: AGAP → Conv1xK/ConvKx1 (K=11+2n) → DWConv + PWConv + Sigmoid
-#     - output = Conv1x1(DSA(x) + DSA(x) * DCA(x))
+#   DSAWACGAv2 = wavelet-modulated DSA:
+#     - DSA: 6-branch multi-scale DWConv (1,3,5,7,9,11) + softmax weighting
+#     - WaveletModulation: DWT → subband processing → spatial-channel attention map
+#     - Fusion: wavelet_attn ⊙ fdsa + fdsa
 #   FFN = Conv1x1→Split(4)→DWConv(3/5/7/9)→Cat→GELU→Conv1x1
-# Per-stage dpf_n: deeper stages use larger K for longer channel dependency
-#   Stage 2: dpf_n=0 (K=11), Stage 3: dpf_n=1 (K=13),
-#   Stage 4: dpf_n=2 (K=15), Stage 5: dpf_n=3 (K=17)
 
 nc: 10
 scales:
@@ -26,13 +23,13 @@ scales:
 backbone:
   - [-1, 1, Conv, [64, 3, 2]]        # 0-P1/2
   - [-1, 1, Conv, [128, 3, 2]]       # 1-P2/4
-  - [-1, 1, C2f_DPF, [128, 0]]       # 2, dpf_n=0, K=11
+  - [-1, 1, C2f_DSAWACGA, [128]]     # 2
   - [-1, 1, Conv, [256, 3, 2]]       # 3-P3/8
-  - [-1, 1, C2f_DPF, [256, 1]]       # 4, dpf_n=1, K=13
+  - [-1, 1, C2f_DSAWACGA, [256]]     # 4
   - [-1, 1, Conv, [384, 3, 2]]       # 5-P4/16
-  - [-1, 1, C2f_DPF, [384, 2]]       # 6, dpf_n=2, K=15
+  - [-1, 1, C2f_DSAWACGA, [384]]     # 6
   - [-1, 1, Conv, [384, 3, 2]]       # 7-P5/32
-  - [-1, 3, C2f_DPF, [384, 3]]       # 8, dpf_n=3, K=17, n=3
+  - [-1, 3, C2f_DSAWACGA, [384]]     # 8
 
 head:
   - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9 input_proj.2
