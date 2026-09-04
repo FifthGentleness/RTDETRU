@@ -20,6 +20,7 @@ from .dsawacga_v2 import *
 from .dsadoc_v10 import *
 from .dsadoc_v11 import *
 from .saa import *
+from .raav2 import *
 from .csfh import *
 from .hybrid_encoder_p2_spd_okm_fs_v6 import *
 from .hybrid_encoder_p2_spd_okm_fs_v5 import *

@@ -1036,6 +1036,9 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
         elif m is SNI:
             c2, up_f = ch[f], args[0]
             args = [up_f]
+        elif m is RAAStagev2:
+            c1, c2 = ch[f], args[0]
+            args = [c1, *args]
         elif m in {Blocks, BlocksDSAWACGA, BlocksDSAWACGAv2, BlocksDSADOCv10, BlocksDSADOCv11, BlocksSAA}:
             block_type = globals()[args[1]]
             c1, c2 = ch[f], args[0] * block_type.expansion
