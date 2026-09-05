@@ -1,0 +1,73 @@
+# RT-DETR with DSAWACGAv4 (CSFH framework + WaveletModulatedDSA local + FourierUnit global)
+# Backbone architecture (CSFH framework with DSAWACGAv4Block replacing SFHF_Block):
+#   Conv(3→64, s=2) → Conv(64→128, s=2) → C2f_DSAWACGA_v4(128)
+#   → Conv(128→256, s=2) → C2f_DSAWACGA_v4(256)
+#   → Conv(256→384, s=2) → C2f_DSAWACGA_v4(384)
+#   → Conv(384→384, s=2) → C2f_DSAWACGA_v4(384)×3
+#
+# C2f_DSAWACGA_v4 = C2f with DSAWACGAv4Block replacing Bottleneck:
+#   cv1(c1→2c, 1×1) → split(2 chunks) → [DSAWACGAv4Block(c)×n] → cat → cv2(→c2, 1×1)
+#
+# DSAWACGAv4Block (Transformer-like block, mirrors SFHF_Block structure):
+#   Stage 1 (Attention):  x' = DSAWACGA_v4_Mixer(Norm1(x)) * β + x
+#   Stage 2 (FFN):        x'' = FFN(Norm2(x')) * γ + x'
+#
+# DSAWACGA_v4_Mixer:
+#   conv_init(dim→2dim) → split(2 chunks)
+#     ├─ chunk1 → WaveletModulatedDSA(dim)
+#     │            DSA: 6-branch multi-scale DWConv (1,3,5,7,9,11) + softmax weighting
+#     │            WaveletModulation: DWT → subband processing → spatial-channel attention map
+#     │            Fusion: (1 + A) ⊙ fdsa   (v2 modulation paradigm)
+#     └─ chunk2 → TokenMixer_For_Global(dim)
+#                  conv_init(dim→2dim) → FourierUnit(2dim) → conv_fina(2dim→dim)
+#   → cat → GELU → SE(2dim) → ca_conv(2dim→dim)
+#
+# Key differences from DSAWACGAv3:
+#   - Local: WaveletModulatedDSA replaces standalone DSA
+#     (wavelet modulation provides tighter local interaction than parallel cat)
+#   - No internal split in local branch: DSA operates on full dim channels
+#   - Conv3×3 branch removed (redundant with DSA dwconv3 and FFN)
+#   - Global: FourierUnit (true global, H×W receptive field)
+#     replaces WaveletGlobal (DWT level=1, only 2×2 receptive field)
+#   - FFN: multi-scale DWConv (identity + DW3/5/7), same as CSFH's SFHF_FFN
+
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v4, [128]]      # 2
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v4, [256]]      # 4
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v4, [384]]      # 6
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v4, [384]]      # 8
+
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9 input_proj.2
+  - [-1, 1, AIFI, [1024, 8]]                       # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5, lateral_convs.0
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13 input_proj.1
+  - [[-2, -1], 1, Concat, [1]]                     # 14
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15, fpn_blocks.0
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4, lateral_convs.1
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 17
+  - [4, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 18 input_proj.0
+  - [[-2, -1], 1, Concat, [1]]                     # 19 cat backbone P3
+  - [-1, 3, RepC3, [256, 0.5]]                     # X3 (20), fpn_blocks.1
+
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21, downsample_convs.0
+  - [[-1, 16], 1, Concat, [1]]                     # 22 cat Y4
+  - [-1, 3, RepC3, [256, 0.5]]                     # F4 (23), pan_blocks.0
+
+  - [-1, 1, Conv, [256, 3, 2]]                     # 24, downsample_convs.1
+  - [[-1, 11], 1, Concat, [1]]                     # 25 cat Y5
+  - [-1, 3, RepC3, [256, 0.5]]                     # F5 (26), pan_blocks.1
+
+  - [[20, 23, 26], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # Detect(P3, P4, P5)

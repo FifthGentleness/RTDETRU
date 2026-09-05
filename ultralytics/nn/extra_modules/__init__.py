@@ -18,6 +18,7 @@ from .RepStem import RepStem
 from .dsawacga import *
 from .dsawacga_v2 import *
 from .dsawacga_v3 import *
+from .dsawacga_v4 import *
 from .dsadoc_v10 import *
 from .dsadoc_v11 import *
 from .saa import *
