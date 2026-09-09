@@ -20,6 +20,8 @@ from .dsawacga_v2 import *
 from .dsawacga_v3 import *
 from .dsawacga_v4 import *
 from .dsawacga_v5 import *
+from .dsawacga_v6 import *
+from .dsawacga_v7 import *
 from .dsadoc_v10 import *
 from .dsadoc_v11 import *
 from .saa import *
