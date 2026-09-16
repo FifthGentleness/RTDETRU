@@ -31,3 +31,4 @@ from .hybrid_encoder_p2_spd_okm_fs_v6 import *
 from .hybrid_encoder_p2_spd_okm_fs_v5 import *
 from .hybrid_encoder_p2_spd_okm import *
 from .hybrid_encoder_p2_spd_okm_v2 import *
+from .hybrid_encoder_p2_spd_okm_fs_v7 import *
