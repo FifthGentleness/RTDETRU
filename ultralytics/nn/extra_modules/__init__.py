@@ -1,4 +1,7 @@
 from .transformer import *
+from .aifi_agent_attention import *
+from .aifi_spectral import *
+from .aifi_boltzmann import *
 from .block import *
 from .attention import *
 from .dynamic_snake_conv import *
