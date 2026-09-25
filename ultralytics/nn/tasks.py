@@ -836,6 +836,10 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse):
+            # Single-input AIFI replacements: input/output shape equals AIFI.
+            c2 = ch[f]
+            args = [ch[f], *args]
         elif m in (HGStem, HGBlock, Ghost_HGBlock, Rep_HGBlock, HGBlock_Attention):
             c1, cm, c2 = ch[f], args[0], args[1]
             args = [c1, cm, c2, *args[2:]]
