@@ -1,4 +1,4 @@
-from .transformer import *
+﻿from .transformer import *
 from .aifi_agent_attention import *
 from .aifi_agent_attention_v2 import *
 from .aifi_spectral import *
@@ -7,6 +7,9 @@ from .aifi_muvit import *
 from .aifi_dfa import *
 from .aifi_binary_attention import *
 from .aifi_block_sparse import *
+from .aifi_differential import *
+from .aifi_neighborhood import *
+from .aifi_qknorm import *
 from .block import *
 from .attention import *
 from .dynamic_snake_conv import *

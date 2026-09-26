@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+﻿# Ultralytics YOLO 馃殌, AGPL-3.0 license
 
 from ultralytics.nn.backbone.lsnet import SKA
 import contextlib
@@ -105,7 +105,7 @@ class BaseModel(nn.Module):
 
     def _predict_augment(self, x):
         """Perform augmentations on input image x and return augmented inference."""
-        LOGGER.warning(f'WARNING ⚠️ {self.__class__.__name__} does not support augmented inference yet. '
+        LOGGER.warning(f'WARNING 鈿狅笍 {self.__class__.__name__} does not support augmented inference yet. '
                        f'Reverting to single-scale inference instead.')
         return self._predict_once(x)
 
@@ -627,12 +627,12 @@ def torch_safe_load(weight):
     except ModuleNotFoundError as e:  # e.name is missing module name
         if e.name == 'models':
             raise TypeError(
-                emojis(f'ERROR ❌️ {weight} appears to be an Ultralytics YOLOv5 model originally trained '
+                emojis(f'ERROR 鉂岋笍 {weight} appears to be an Ultralytics YOLOv5 model originally trained '
                        f'with https://github.com/ultralytics/yolov5.\nThis model is NOT forwards compatible with '
                        f'YOLOv8 at https://github.com/ultralytics/ultralytics.'
                        f"\nRecommend fixes are to train a new model using the latest 'ultralytics' package or to "
                        f"run a command with an official YOLOv8 model, i.e. 'yolo predict model=yolov8n.pt'")) from e
-        LOGGER.warning(f"WARNING ⚠️ {weight} appears to require '{e.name}', which is not in ultralytics requirements."
+        LOGGER.warning(f"WARNING 鈿狅笍 {weight} appears to require '{e.name}', which is not in ultralytics requirements."
                        f"\nAutoInstall will run now for '{e.name}' but this feature will be removed in the future."
                        f"\nRecommend fixes are to train a new model using the latest 'ultralytics' package or to "
                        f"run a command with an official YOLOv8 model, i.e. 'yolo predict model=yolov8n.pt'")
@@ -720,7 +720,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
         scale = d.get('scale')
         if not scale:
             scale = tuple(scales.keys())[0]
-            LOGGER.warning(f"WARNING ⚠️ no model scale passed. Assuming scale='{scale}'.")
+            LOGGER.warning(f"WARNING 鈿狅笍 no model scale passed. Assuming scale='{scale}'.")
         depth, width, max_channels = scales[scale]
 
     if act:
@@ -836,7 +836,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse):
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
@@ -1141,7 +1141,7 @@ def yaml_model_load(path):
     path = Path(path)
     if path.stem in (f'yolov{d}{x}6' for x in 'nsmlx' for d in (5, 8)):
         new_stem = re.sub(r'(\d+)([nslmx])6(.+)?$', r'\1\2-p6\3', path.stem)
-        LOGGER.warning(f'WARNING ⚠️ Ultralytics YOLO P6 models now use -p6 suffix. Renaming {path.stem} to {new_stem}.')
+        LOGGER.warning(f'WARNING 鈿狅笍 Ultralytics YOLO P6 models now use -p6 suffix. Renaming {path.stem} to {new_stem}.')
         path = path.with_name(new_stem + path.suffix)
 
     unified_path = re.sub(r'(\d+)([nslmx])(.+)?$', r'\1\3', str(path))  # i.e. yolov8x.yaml -> yolov8.yaml
@@ -1233,6 +1233,6 @@ def guess_model_task(model):
             return 'detect'
 
     # Unable to determine task from model
-    LOGGER.warning("WARNING ⚠️ Unable to automatically guess model task, assuming 'task=detect'. "
+    LOGGER.warning("WARNING 鈿狅笍 Unable to automatically guess model task, assuming 'task=detect'. "
                    "Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', or 'pose'.")
     return 'detect'  # assume detect
