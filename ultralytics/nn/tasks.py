@@ -841,7 +841,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet):
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
@@ -1241,4 +1241,3 @@ def guess_model_task(model):
     LOGGER.warning("WARNING 鈿狅笍 Unable to automatically guess model task, assuming 'task=detect'. "
                    "Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', or 'pose'.")
     return 'detect'  # assume detect
-
