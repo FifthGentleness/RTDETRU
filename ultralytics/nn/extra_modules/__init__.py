@@ -1,4 +1,4 @@
-﻿from .transformer import *
+from .transformer import *
 from .aifi_agent_attention import *
 from .aifi_uplift import *
 from .aifi_hops import *
@@ -12,6 +12,7 @@ from .aifi_binary_attention import *
 from .aifi_block_sparse import *
 from .aifi_block_sparse_v2 import *
 from .aifi_block_sparse_v3 import *
+from .aifi_block_sparse_v4 import *
 from .aifi_differential import *
 from .aifi_neighborhood import *
 from .aifi_qknorm import *
