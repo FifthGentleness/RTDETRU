@@ -448,6 +448,15 @@ class RTDETRDetectionModel(DetectionModel):
         """Initialize the loss criterion for the RTDETRDetectionModel."""
         from ultralytics.models.utils.loss import RTDETRDetectionLoss
 
+        # Optional custom detection loss, selected by 'loss_name' in the model yaml
+        # (registry: ultralytics/utils/loss_plugins). All other configs take the
+        # original path below, completely unchanged.
+        loss_name = self.yaml.get('loss_name', None)
+        if loss_name is not None:
+            from ultralytics.utils.loss_plugins import build_loss
+
+            return build_loss(loss_name, nc=self.nc, params=self.yaml.get('loss_params', None))
+
         return RTDETRDetectionLoss(nc=self.nc, use_vfl=True, use_sl=False, use_emasl=False, use_svfl=False, use_emasvfl=False, use_mal=False)
 
     def loss(self, batch, preds=None):
