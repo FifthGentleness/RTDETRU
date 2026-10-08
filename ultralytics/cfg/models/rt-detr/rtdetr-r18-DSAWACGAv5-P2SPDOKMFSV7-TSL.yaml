@@ -1,0 +1,90 @@
+﻿# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder + TriScale Loss
+#
+# Architecture: IDENTICAL to rtdetr-r18-DSAWACGAv5-P2SPDOKMFSV7.yaml (V7).
+# The only difference is the loss, selected through loss_name / loss_params
+# and resolved by RTDETRDetectionModel.init_criterion() ->
+# ultralytics/utils/loss_plugins.py -> TriScaleDetectionLoss.
+#
+# Tri-Scale Loss = three orthogonal, loss-only components (zero inference cost):
+#   [1] SD   (regression side):        area-adaptive scheduling of L1 x/y vs w/h
+#                                      + area-adaptive GIoU gain
+#                                      (idea: AAAI 2025, Scale-based Dynamic Loss)
+#   [2] PGDE (supervision density):    parameter-free multi-scale Gaussian
+#                                      distribution-map alignment
+#                                      (idea: CVPR 2025, PGDE)
+#   [3] SARD (supervision quality):    structure-importance weighted
+#                                      cross-layer self-distillation
+#                                      (idea: CVPR 2026, SARD)
+#
+# Ablation: flip use_sd / use_pgde / use_sard below (or override through
+# train_triscale.py CLI flags).
+
+loss_name: tri_scale
+loss_params:
+  use_sd: True
+  use_pgde: True
+  use_sard: True
+  # --- SD (regression side) ---
+  sd_strength: 1.0        # position/scale rescheduling strength k
+  sd_a_min: 1.0e-5        # log-schedule anchor: tiny (~8px @640)
+  sd_a_max: 0.05          # log-schedule anchor: large (~180px @640)
+  sd_area_ref: 0.01       # GIoU gain reference area (~80px @640)
+  sd_giou_gamma: 0.5      # GIoU gain exponent
+  sd_giou_max: 4.0        # GIoU gain clamp
+  # --- PGDE (supervision density) ---
+  pgde_grids: [64, 32, 16]  # multi-scale Gaussian map resolutions
+  pgde_sigma_scale: 0.25    # sigma = 0.25 * max(w, h)
+  pgde_sigma_cells: 2.5     # sigma floor (grid cells)
+  pgde_weight: 2.0          # loss_pgde gain
+  # --- SARD (distillation) ---
+  distill_weight: 1.0       # loss_distill gain
+  sard_T: 2.0               # teacher temperature
+  sard_ar_range: 4.0        # aspect-ratio range of complexity proxy
+  sard_alpha: 1.0           # importance: boundary salience
+  sard_beta: 1.0            # importance: geometric complexity
+  sard_gamma: 1.0           # importance: local structure variation
+  sard_imp_min: 0.3         # importance floor
+
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI, [1024, 8]]                       # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  # spd_out_ch=128: SPDConv outputs 128 instead of default 256
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24

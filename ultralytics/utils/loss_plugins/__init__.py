@@ -28,6 +28,7 @@ import importlib
 # name -> full dotted path of the loss class
 LOSS_REGISTRY = {
     'sd': 'ultralytics.utils.loss_plugins.sd_loss.RTDETRDetectionLossSD',
+    'tri_scale': 'ultralytics.models.utils.tri_scale_loss.TriScaleDetectionLoss',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
