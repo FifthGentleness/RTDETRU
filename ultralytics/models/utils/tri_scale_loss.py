@@ -87,7 +87,8 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
                  sard_alpha=1.0,       # weight: boundary salience proxy
                  sard_beta=1.0,        # weight: geometric complexity proxy
                  sard_gamma=1.0,       # weight: local structure variation proxy
-                 sard_imp_min=0.3):    # importance floor after normalization
+                 sard_imp_min=0.3,     # importance floor after normalization
+                 aux_warmup_iters=8000):  # ramp PGDE/SARD weights over this many train iters
         super().__init__(nc=nc,
                          loss_gain=loss_gain,
                          aux_loss=aux_loss,
@@ -121,6 +122,9 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         self.sard_beta = float(sard_beta)
         self.sard_gamma = float(sard_gamma)
         self.sard_imp_min = float(sard_imp_min)
+        self.aux_warmup_iters = max(int(aux_warmup_iters), 1)
+        self._iters = 0
+        self._aux_ramp = 1.0
 
     # ------------------------------------------------------------------
     # shared helpers
@@ -310,14 +314,20 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         match_indices = self.matcher(pred_bboxes[-1], pred_scores[-1], gt_bboxes, gt_cls,
                                      gt_groups, masks=None, gt_mask=None)
 
+        # aux-loss warmup: PGDE/SARD ramp in over aux_warmup_iters TRAIN iterations
+        # (val passes run under no_grad and do not advance the counter)
+        if torch.is_grad_enabled():
+            self._iters += 1
+        self._aux_ramp = min(1.0, self._iters / self.aux_warmup_iters)
+
         total_loss = DETRLoss.forward(self, pred_bboxes, pred_scores, batch, match_indices=match_indices)
 
         if self.use_pgde:
-            total_loss.update(
-                self._get_loss_pgde(pred_bboxes[-1], gt_bboxes, gt_groups, match_indices))
+            pgde = self._get_loss_pgde(pred_bboxes[-1], gt_bboxes, gt_groups, match_indices)
+            total_loss.update({k: v * self._aux_ramp for k, v in pgde.items()})
         if self.use_sard and self.aux_loss:
-            total_loss.update(
-                self._get_loss_distill(pred_bboxes, pred_scores, gt_bboxes, gt_groups, match_indices))
+            dist = self._get_loss_distill(pred_bboxes, pred_scores, gt_bboxes, gt_groups, match_indices)
+            total_loss.update({k: v * self._aux_ramp for k, v in dist.items()})
 
         if dn_meta is not None:
             dn_pos_idx, dn_num_group = dn_meta['dn_pos_idx'], dn_meta['dn_num_group']

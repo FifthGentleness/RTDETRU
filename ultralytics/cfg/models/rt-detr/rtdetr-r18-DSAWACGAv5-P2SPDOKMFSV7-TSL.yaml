@@ -25,12 +25,12 @@ loss_params:
   use_pgde: True
   use_sard: True
   # --- SD (regression side) ---
-  sd_strength: 1.0        # position/scale rescheduling strength k
+  sd_strength: 0.5        # position/scale rescheduling strength k (softened: VisDrone is tiny-object dominated)
   sd_a_min: 1.0e-5        # log-schedule anchor: tiny (~8px @640)
   sd_a_max: 0.05          # log-schedule anchor: large (~180px @640)
   sd_area_ref: 0.01       # GIoU gain reference area (~80px @640)
   sd_giou_gamma: 0.5      # GIoU gain exponent
-  sd_giou_max: 4.0        # GIoU gain clamp
+  sd_giou_max: 2.0        # GIoU gain clamp (softened from 4.0: was inflating early gradients ~3.7x)
   # --- PGDE (supervision density) ---
   pgde_grids: [64, 32, 16]  # multi-scale Gaussian map resolutions
   pgde_sigma_scale: 0.25    # sigma = 0.25 * max(w, h)
@@ -44,6 +44,7 @@ loss_params:
   sard_beta: 1.0            # importance: geometric complexity
   sard_gamma: 1.0           # importance: local structure variation
   sard_imp_min: 0.3         # importance floor
+  aux_warmup_iters: 8000    # PGDE/SARD weight ramp-in (~5 epochs @ batch4/VisDrone)
 
 nc: 10
 scales:

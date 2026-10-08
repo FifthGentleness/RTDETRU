@@ -1,5 +1,10 @@
 ﻿# Tri-Scale Loss（三尺度损失协同）设计与使用说明
 
+> **v1.1 修订（2026-10-08）**：首轮训练发现前期收敛过慢（epoch6 mAP50-95 0.031 vs baseline 0.116，
+> giou 梯度膨胀 ~3.7x）。修订：sd_strength 1.0→0.5、sd_giou_max 4.0→2.0、新增
+> ux_warmup_iters=8000（PGDE/SARD 权重在前 ~5 个 epoch 线性 ramp-in，val 的 no_grad
+> 前向不推进计数）。已训的早期 run 建议弃掉重跑。
+
 > 生成日期：2026-10-08 ｜ 基线：rtdetr-r18-DSAWACGAv5-P2SPDOKMFSV7（V7）
 
 ## 1. 总体设计
