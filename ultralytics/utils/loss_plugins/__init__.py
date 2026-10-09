@@ -28,7 +28,7 @@ import importlib
 # name -> full dotted path of the loss class
 LOSS_REGISTRY = {
     'sd': 'ultralytics.utils.loss_plugins.sd_loss.RTDETRDetectionLossSD',
-    'tri_scale': 'ultralytics.models.utils.tri_scale_loss.TriScaleDetectionLoss',
+    'tri_scale': 'ultralytics.utils.loss_plugins.tri_scale_loss.TriScaleDetectionLoss',
     'sual': 'ultralytics.utils.loss_plugins.sual_loss.RTDETRDetectionLossSUAL',
 }
 

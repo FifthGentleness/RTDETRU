@@ -38,11 +38,17 @@ Two sources, fused at the localization branch of matched queries:
         intentionally NOT replicated here.
 
 Total (per matched pair i):
-    L_SUAL = sum_i w_u_i * (1 - alpha_i * IoU_i)          # scale x uncertainty IoU
-           + lambda_L * L_loc_polar                        # SLS location penalty
+    L_SUAL = loss_gain['bbox'] * L1                        # baseline L1 (cx,cy,w,h)
+           + lambda_L * L_loc_polar                        # SLS polar location penalty
+           + loss_gain['giou'] * sum_i w_u_i*(1-alpha_i*IoU_i)  # scale x uncertainty IoU
            + lambda_c * L_SQCL                             # UGS-style classification loc
            + mu * L_UM                                     # variance minimization
     with w_u_i = 1 + rho * u_hat_i, u_hat in [0, 1].
+
+    Note: L1 is preserved from the baseline so that all four box coordinates
+    (cx, cy, w, h) receive strong direct gradients throughout training.
+    The polar location penalty is added ON TOP of L1 (not replacing it),
+    providing extra directional discriminability for center localization.
 
 Registered as loss_name: 'sual' in ultralytics/utils/loss_plugins.
 """
@@ -119,13 +125,24 @@ class RTDETRDetectionLossSUAL(RTDETRDetectionLoss):
     # [1] SLS scale branch + polar location penalty (box form)
     # ------------------------------------------------------------------
     def _get_loss_bbox(self, pred_bboxes, gt_bboxes, postfix=''):
-        """L_SUAL localization terms for matched pairs ([M, 4] xywh normalized)."""
+        """L_SUAL localization terms for matched pairs ([M, 4] xywh normalized).
+
+        loss_bbox = gain_bbox * L1  +  sls_loc_weight * polar_loc
+        loss_giou = gain_giou * (1 - alpha * IoU) * (1 + rho * u_hat)
+
+        L1 is preserved from the baseline so that all four coordinates
+        (cx, cy, w, h) receive strong direct gradients. The polar location
+        penalty is added on top of L1, not replacing it.
+        """
         name_bbox = f'loss_bbox{postfix}'
         name_giou = f'loss_giou{postfix}'
         if len(gt_bboxes) == 0:
             zero = torch.tensor(0., device=self.device)
             return {name_bbox: zero, name_giou: zero}
         n = len(gt_bboxes)
+
+        # ---- baseline L1 regression (cx, cy, w, h) ----
+        l1 = F.l1_loss(pred_bboxes, gt_bboxes, reduction='sum') / n
 
         # ---- scale-sensitive weight (SLS Eq.3, box-area form) ----
         a_p = (pred_bboxes[:, 2] * pred_bboxes[:, 3]).clamp_min(1e-8)
@@ -156,7 +173,7 @@ class RTDETRDetectionLossSUAL(RTDETRDetectionLoss):
         loc = ((1.0 - length_ratio + angle_loss).sum()) / n
 
         return {
-            name_bbox: self.loss_gain['bbox'] * self.sls_loc_weight * loc,
+            name_bbox: self.loss_gain['bbox'] * l1 + self.sls_loc_weight * loc,
             name_giou: loss_giou,
         }
 

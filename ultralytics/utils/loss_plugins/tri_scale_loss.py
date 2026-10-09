@@ -1,4 +1,4 @@
-﻿# Ultralytics AGPL-3.0 license
+# Ultralytics AGPL-3.0 license
 """
 Tri-Scale Loss: a loss-side synergy for small-object detection in RT-DETR.
 
@@ -25,12 +25,15 @@ Three orthogonal, loss-only components (zero inference cost):
    variation proxy measured on the PGDE Gaussian maps.
 
 Selected through the model yaml:
-    loss_name: TriScaleDetectionLoss
+    loss_name: tri_scale
     loss_params:
       use_sd: true
       use_pgde: true
       use_sard: true
       ...
+
+This file is registered in the loss plugin registry
+(`ultralytics/utils/loss_plugins/__init__.py`) under the name 'tri_scale'.
 """
 
 import math
@@ -38,9 +41,10 @@ import math
 import torch
 import torch.nn.functional as F
 
+from ultralytics.models.utils.loss import DETRLoss, RTDETRDetectionLoss
 from ultralytics.utils.metrics import bbox_iou
 
-from .loss import DETRLoss, RTDETRDetectionLoss
+__all__ = ('TriScaleDetectionLoss',)
 
 
 class TriScaleDetectionLoss(RTDETRDetectionLoss):
@@ -69,26 +73,26 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
                  use_pgde=True,
                  use_sard=True,
                  # ---- 1) SD: area-adaptive regression ----
-                 sd_strength=1.0,      # k: strength of the position/scale rescheduling
-                 sd_a_min=1e-5,        # normalized area of the log-schedule lower anchor (~8px @640)
-                 sd_a_max=0.05,        # normalized area of the log-schedule upper anchor (~180px @640)
-                 sd_area_ref=0.01,     # reference area for the GIoU gain (~80px @640)
-                 sd_giou_gamma=0.5,    # GIoU gain exponent
-                 sd_giou_max=4.0,      # GIoU gain clamp
+                 sd_strength=1.0,
+                 sd_a_min=1e-5,
+                 sd_a_max=0.05,
+                 sd_area_ref=0.01,
+                 sd_giou_gamma=0.5,
+                 sd_giou_max=4.0,
                  # ---- 2) PGDE: Gaussian distribution map alignment ----
-                 pgde_grids=(64, 32, 16),  # multi-scale raster grids
-                 pgde_sigma_scale=0.25,    # sigma = scale * max(w, h)
-                 pgde_sigma_cells=2.5,     # sigma floor in grid cells
-                 pgde_weight=2.0,          # loss gain for loss_pgde
+                 pgde_grids=(64, 32, 16),
+                 pgde_sigma_scale=0.25,
+                 pgde_sigma_cells=2.5,
+                 pgde_weight=2.0,
                  # ---- 3) SARD: importance-weighted distillation ----
-                 distill_weight=1.0,   # loss gain for loss_distill
-                 sard_T=2.0,           # teacher temperature for soft class targets
-                 sard_ar_range=4.0,    # aspect-ratio range for the complexity proxy
-                 sard_alpha=1.0,       # weight: boundary salience proxy
-                 sard_beta=1.0,        # weight: geometric complexity proxy
-                 sard_gamma=1.0,       # weight: local structure variation proxy
-                 sard_imp_min=0.3,     # importance floor after normalization
-                 aux_warmup_iters=8000):  # ramp PGDE/SARD weights over this many train iters
+                 distill_weight=1.0,
+                 sard_T=2.0,
+                 sard_ar_range=4.0,
+                 sard_alpha=1.0,
+                 sard_beta=1.0,
+                 sard_gamma=1.0,
+                 sard_imp_min=0.3,
+                 aux_warmup_iters=8000):
         super().__init__(nc=nc,
                          loss_gain=loss_gain,
                          aux_loss=aux_loss,
@@ -130,30 +134,23 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
     # shared helpers
     # ------------------------------------------------------------------
     def _area_schedule(self, area):
-        """Log-area schedule t in [0, 1]: 0 = tiny object, 1 = large object."""
         t = (torch.log(area.clamp_min(1e-8)) - math.log(self.sd_a_min)) / \
             (math.log(self.sd_a_max) - math.log(self.sd_a_min))
         return t.clamp(0.0, 1.0)
 
     def _gauss_map(self, boxes, grid):
-        """
-        Rasterize xywh-normalized boxes [N, 4] into an amplitude-1 Gaussian
-        mixture map [grid, grid]. Scale-invariant: small objects are not
-        dwarfed by large ones.
-        """
         dev = boxes.device
         axis = torch.linspace(0.0, 1.0, grid, device=dev)
-        ys, xs = torch.meshgrid(axis, axis, indexing='ij')  # [G, G]
+        ys, xs = torch.meshgrid(axis, axis, indexing='ij')
         cx = boxes[:, 0][:, None, None]
         cy = boxes[:, 1][:, None, None]
         sigma = (self.pgde_sigma_scale * torch.maximum(boxes[:, 2], boxes[:, 3]))
         sigma = sigma.clamp(self.pgde_sigma_cells / grid, 0.25)[:, None, None]
         d2 = ((xs[None] - cx) ** 2 + (ys[None] - cy) ** 2) / (2.0 * sigma ** 2 + 1e-12)
-        return torch.exp(-d2).sum(0)  # [G, G]
+        return torch.exp(-d2).sum(0)
 
     @staticmethod
     def _soft_dice_loss(pred_map, gt_map):
-        """1 - soft Dice between two soft maps."""
         inter = (pred_map * gt_map).sum()
         denom = pred_map.sum() + gt_map.sum()
         return 1.0 - (2.0 * inter + 1e-6) / (denom + 1e-6)
@@ -162,7 +159,6 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
     # 1) SD loss: area-adaptive L1 (x, y) / (w, h) scheduling + GIoU gain
     # ------------------------------------------------------------------
     def _get_loss_bbox(self, pred_bboxes, gt_bboxes, postfix=''):
-        """Bounding box loss with area-adaptive scheduling (matched pairs, [M, 4] xywh)."""
         name_bbox = f'loss_bbox{postfix}'
         name_giou = f'loss_giou{postfix}'
         if len(gt_bboxes) == 0:
@@ -172,18 +168,16 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
             return super()._get_loss_bbox(pred_bboxes, gt_bboxes, postfix)
 
         n = len(gt_bboxes)
-        diff = (pred_bboxes - gt_bboxes).abs()  # [M, 4]
+        diff = (pred_bboxes - gt_bboxes).abs()
         area = gt_bboxes[:, 2] * gt_bboxes[:, 3]
         t = self._area_schedule(area)
 
-        # small objects -> stronger position supervision; large -> stronger scale
         w_pos = 1.0 + self.sd_strength * (1.0 - t)
         w_scale = 1.0 + self.sd_strength * t
         l1 = ((w_pos.unsqueeze(-1) * diff[:, :2]).sum() +
               (w_scale.unsqueeze(-1) * diff[:, 2:]).sum()) / n
 
-        # area-adaptive GIoU gain: counteract the weak IoU gradients of small boxes
-        giou = (1.0 - bbox_iou(pred_bboxes, gt_bboxes, xywh=True, GIoU=True)).squeeze(-1)  # [M]
+        giou = (1.0 - bbox_iou(pred_bboxes, gt_bboxes, xywh=True, GIoU=True)).squeeze(-1)
         g_w = ((self.sd_area_ref / area.clamp_min(1e-8)) ** self.sd_giou_gamma).clamp(1.0, self.sd_giou_max)
 
         return {
@@ -195,11 +189,6 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
     # 2) PGDE: multi-scale Gaussian map alignment (parameter-free)
     # ------------------------------------------------------------------
     def _get_loss_pgde(self, pred_bboxes, gt_bboxes, gt_groups, match_indices, postfix=''):
-        """
-        Align Gaussian distribution maps built from matched predicted boxes
-        against maps built from GT boxes, at multiple raster scales.
-        pred_bboxes: final decoder layer, [bs, nq, 4] xywh normalized.
-        """
         name = f'loss_pgde{postfix}'
         if sum(gt_groups) == 0:
             return {name: torch.tensor(0., device=self.device)}
@@ -207,7 +196,7 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         batch_idx, src_idx = idx
         if len(batch_idx) == 0:
             return {name: torch.tensor(0., device=self.device)}
-        pred_matched = pred_bboxes[batch_idx, src_idx]  # [M, 4]
+        pred_matched = pred_bboxes[batch_idx, src_idx]
 
         losses = []
         off = 0
@@ -228,9 +217,6 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
     # 3) SARD: structure-importance weighted cross-layer distillation
     # ------------------------------------------------------------------
     def _ring_variation(self, gt_bboxes, gt_groups, grid):
-        """Local structure variation proxy: std/mean of the GT Gaussian map
-        sampled on a ring around each box center (crowded/complex structures
-        give higher variation). Returns [N_total] in [0, 1]."""
         dev = gt_bboxes.device
         k = 8
         angles = torch.arange(k, device=dev, dtype=torch.float32) * (2 * math.pi / k)
@@ -245,22 +231,20 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
             gt_map = self._gauss_map(boxes, grid)
             cx, cy = boxes[:, 0], boxes[:, 1]
             r = 0.75 * torch.maximum(boxes[:, 2], boxes[:, 3])
-            px = (cx[:, None] + r[:, None] * cos[None]).clamp(0.0, 1.0 - 1e-6)  # [n, k]
+            px = (cx[:, None] + r[:, None] * cos[None]).clamp(0.0, 1.0 - 1e-6)
             py = (cy[:, None] + r[:, None] * sin[None]).clamp(0.0, 1.0 - 1e-6)
             ix = (px * grid).long().clamp(0, grid - 1)
             iy = (py * grid).long().clamp(0, grid - 1)
-            v = gt_map[iy, ix]  # [n, k]
+            v = gt_map[iy, ix]
             mean = v.mean(-1)
             std = v.std(-1) if n_i > 1 else torch.zeros_like(mean)
             vals.append((std / (mean + 1e-6)).clamp(0.0, 2.0) / 2.0)
         return torch.cat(vals) if vals else torch.zeros(0, device=dev)
 
     def _structure_importance(self, gt_bboxes, gt_groups):
-        """Per-GT structure importance in [sard_imp_min, 1]: boundary salience
-        + geometric complexity + local structure variation (SARD-inspired)."""
         area = gt_bboxes[:, 2] * gt_bboxes[:, 3]
         t = self._area_schedule(area)
-        s1 = 1.0 - t  # boundary salience proxy: smaller boxes are boundary-dominated
+        s1 = 1.0 - t
 
         ar = (gt_bboxes[:, 2] / gt_bboxes[:, 3].clamp_min(1e-8)).clamp_min(1e-4)
         s2 = (torch.log(ar).abs() / math.log(self.sard_ar_range)).clamp(0.0, 1.0)
@@ -272,11 +256,6 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         return self.sard_imp_min + (1.0 - self.sard_imp_min) * imp_norm
 
     def _get_loss_distill(self, pred_bboxes, pred_scores, gt_bboxes, gt_groups, match_indices, postfix=''):
-        """
-        Distill the final decoder layer (teacher, detached) into all auxiliary
-        layers, weighting each matched pair by the structure importance of its
-        assigned GT. Class: soft BCE with temperature; box: smooth L1.
-        """
         name = f'loss_distill{postfix}'
         n_layers = pred_bboxes.shape[0]
         if n_layers < 2 or sum(gt_groups) == 0:
@@ -287,7 +266,7 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
 
         t_boxes = pred_bboxes[-1][idx].detach()
         t_probs = torch.sigmoid(pred_scores[-1][idx].detach() / self.sard_T)
-        imp = self._structure_importance(gt_bboxes, gt_groups)[gt_idx]  # [M]
+        imp = self._structure_importance(gt_bboxes, gt_groups)[gt_idx]
 
         cls_part = pred_bboxes.new_tensor(0.0)
         box_part = pred_bboxes.new_tensor(0.0)
@@ -310,12 +289,9 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         self.device = pred_bboxes.device
         gt_cls, gt_bboxes, gt_groups = batch['cls'], batch['bboxes'], batch['gt_groups']
 
-        # match once on the final layer, share across main/aux/PGDE/SARD
         match_indices = self.matcher(pred_bboxes[-1], pred_scores[-1], gt_bboxes, gt_cls,
                                      gt_groups, masks=None, gt_mask=None)
 
-        # aux-loss warmup: PGDE/SARD ramp in over aux_warmup_iters TRAIN iterations
-        # (val passes run under no_grad and do not advance the counter)
         if torch.is_grad_enabled():
             self._iters += 1
         self._aux_ramp = min(1.0, self._iters / self.aux_warmup_iters)
