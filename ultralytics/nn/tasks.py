@@ -500,6 +500,22 @@ class RTDETRDetectionModel(DetectionModel):
                               dn_bboxes=dn_bboxes,
                               dn_scores=dn_scores,
                               dn_meta=dn_meta)
+        # Route self-distillation aux loss (AIFI_BlockSparseV8).
+        # Modules populate .route_distill_loss during the training forward;
+        # collected here and added to the total with a fixed weight.
+        if self.training:
+            if not hasattr(self, '_route_distill_modules'):
+                self._route_distill_modules = [
+                    m for m in self.modules() if hasattr(m, 'route_distill_loss')]
+            aux = None
+            for m in self._route_distill_modules:
+                if m.route_distill_loss is not None:
+                    aux = m.route_distill_loss if aux is None else aux + m.route_distill_loss
+                    m.route_distill_loss = None
+            if aux is not None:
+                if not hasattr(self, 'route_distill_weight'):
+                    self.route_distill_weight = 0.1
+                loss['loss_route_distill'] = self.route_distill_weight * aux
         # NOTE: There are like 12 losses in RTDETR, backward with all losses but only show the main three losses.
         return sum(loss.values()), torch.as_tensor([loss[k].detach() for k in ['loss_giou', 'loss_class', 'loss_bbox']],
                                                    device=img.device)
@@ -850,7 +866,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet):
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
