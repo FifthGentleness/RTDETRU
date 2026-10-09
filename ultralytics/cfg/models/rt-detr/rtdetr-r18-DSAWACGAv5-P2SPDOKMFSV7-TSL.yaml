@@ -37,7 +37,9 @@ loss_params:
   pgde_sigma_cells: 2.5     # sigma floor (grid cells)
   pgde_weight: 2.0          # loss_pgde gain
   # --- SARD (distillation) ---
-  distill_weight: 1.0       # loss_distill gain
+  distill_weight: 0.5       # loss_distill gain (v1.2: halved)
+  distill_class: False      # v1.2: class distill OFF (was dragging class scores down)
+  distill_target: 'max_teacher_gt'  # if enabled: never below IoU target
   sard_T: 2.0               # teacher temperature
   sard_ar_range: 4.0        # aspect-ratio range of complexity proxy
   sard_alpha: 1.0           # importance: boundary salience

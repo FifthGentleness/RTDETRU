@@ -1,4 +1,4 @@
-# Ultralytics AGPL-3.0 license
+﻿# Ultralytics AGPL-3.0 license
 """
 Tri-Scale Loss: a loss-side synergy for small-object detection in RT-DETR.
 
@@ -85,7 +85,9 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
                  pgde_sigma_cells=2.5,
                  pgde_weight=2.0,
                  # ---- 3) SARD: importance-weighted distillation ----
-                 distill_weight=1.0,
+                 distill_weight=0.5,
+                 distill_class=False,      # v1.2: class distillation OFF (teacher-target conflict)
+                 distill_target='max_teacher_gt',  # 'teacher' | 'max_teacher_gt'
                  sard_T=2.0,
                  sard_ar_range=4.0,
                  sard_alpha=1.0,
@@ -120,6 +122,8 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         self.pgde_gain = float(pgde_weight)
 
         self.distill_gain = float(distill_weight)
+        self.distill_class = bool(distill_class)
+        self.distill_target = str(distill_target)
         self.sard_T = float(sard_T)
         self.sard_ar_range = float(sard_ar_range)
         self.sard_alpha = float(sard_alpha)
@@ -255,7 +259,14 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         imp_norm = imp_raw / (imp_raw.max() + 1e-6)
         return self.sard_imp_min + (1.0 - self.sard_imp_min) * imp_norm
 
-    def _get_loss_distill(self, pred_bboxes, pred_scores, gt_bboxes, gt_groups, match_indices, postfix=''):
+    def _get_loss_distill(self, pred_bboxes, pred_scores, gt_bboxes, gt_cls, gt_groups, match_indices, postfix=''):
+        # v1.2: box distillation only by default. The original class BCE used the
+        # raw teacher probability as target -- in early/mid training the teacher's
+        # true-class confidence is far below the IoU-derived VFL target, so the
+        # BCE systematically dragged matched-query class scores DOWN (conflicting
+        # with the classification loss) => persistent mAP gap. When distill_class
+        # is enabled, targets are clamped to max(teacher_prob, IoU_target) so
+        # distillation can only reinforce, never regress.
         name = f'loss_distill{postfix}'
         n_layers = pred_bboxes.shape[0]
         if n_layers < 2 or sum(gt_groups) == 0:
@@ -264,21 +275,34 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
         if len(gt_idx) == 0:
             return {name: torch.tensor(0., device=self.device)}
 
-        t_boxes = pred_bboxes[-1][idx].detach()
-        t_probs = torch.sigmoid(pred_scores[-1][idx].detach() / self.sard_T)
         imp = self._structure_importance(gt_bboxes, gt_groups)[gt_idx]
+        norm = max(len(gt_idx), 1) * (n_layers - 1)
 
-        cls_part = pred_bboxes.new_tensor(0.0)
+        # box distillation (safe, GO-LSD-style deep-supervision coherence)
+        t_boxes = pred_bboxes[-1][idx].detach()
         box_part = pred_bboxes.new_tensor(0.0)
         for l in range(n_layers - 1):
-            s_logits = pred_scores[l][idx]
-            cls_part = cls_part + (F.binary_cross_entropy_with_logits(
-                s_logits, t_probs, reduction='none').mean(-1) * imp).sum()
             s_boxes = pred_bboxes[l][idx]
             box_part = box_part + (F.smooth_l1_loss(
                 s_boxes, t_boxes, reduction='none').mean(-1) * imp).sum()
+        loss = box_part / norm
 
-        loss = (cls_part + box_part) / (max(len(gt_idx), 1) * (n_layers - 1))
+        # optional class distillation with non-regressive targets
+        if self.distill_class:
+            t_probs = torch.sigmoid(pred_scores[-1][idx].detach() / self.sard_T)
+            if self.distill_target == 'max_teacher_gt':
+                iou_t = bbox_iou(pred_bboxes[-1][idx].detach(), gt_bboxes[gt_idx],
+                                 xywh=True).squeeze(-1).clamp(0.0, 1.0)
+                gt_target = torch.zeros_like(t_probs)
+                gt_target[torch.arange(len(gt_idx), device=t_probs.device), gt_cls[gt_idx]] = iou_t
+                t_probs = torch.maximum(t_probs, gt_target)
+            cls_part = pred_bboxes.new_tensor(0.0)
+            for l in range(n_layers - 1):
+                s_logits = pred_scores[l][idx]
+                cls_part = cls_part + (F.binary_cross_entropy_with_logits(
+                    s_logits, t_probs, reduction='none').mean(-1) * imp).sum()
+            loss = loss + cls_part / norm
+
         return {name: self.distill_gain * loss}
 
     # ------------------------------------------------------------------
@@ -302,7 +326,7 @@ class TriScaleDetectionLoss(RTDETRDetectionLoss):
             pgde = self._get_loss_pgde(pred_bboxes[-1], gt_bboxes, gt_groups, match_indices)
             total_loss.update({k: v * self._aux_ramp for k, v in pgde.items()})
         if self.use_sard and self.aux_loss:
-            dist = self._get_loss_distill(pred_bboxes, pred_scores, gt_bboxes, gt_groups, match_indices)
+            dist = self._get_loss_distill(pred_bboxes, pred_scores, gt_bboxes, gt_cls, gt_groups, match_indices)
             total_loss.update({k: v * self._aux_ramp for k, v in dist.items()})
 
         if dn_meta is not None:
