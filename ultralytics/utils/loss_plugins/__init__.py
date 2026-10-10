@@ -1,4 +1,4 @@
-﻿# Ultralytics YOLO 🐛, AGPL-3.0 license
+# Ultralytics YOLO 🐛, AGPL-3.0 license
 """
 Loss plugin registry for RT-DETR loss ablations.
 
@@ -30,6 +30,7 @@ LOSS_REGISTRY = {
     'sd': 'ultralytics.utils.loss_plugins.sd_loss.RTDETRDetectionLossSD',
     'tri_scale': 'ultralytics.utils.loss_plugins.tri_scale_loss.TriScaleDetectionLoss',
     'sual': 'ultralytics.utils.loss_plugins.sual_loss.RTDETRDetectionLossSUAL',
+    'sual_ur': 'ultralytics.utils.loss_plugins.sual_ur_loss.RTDETRDetectionLossSUALUR',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml

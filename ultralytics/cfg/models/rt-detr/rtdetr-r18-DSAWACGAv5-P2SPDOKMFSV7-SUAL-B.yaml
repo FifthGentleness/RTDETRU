@@ -1,0 +1,73 @@
+# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder + SUAL Probe B (UR-only)
+#
+# Architecture: IDENTICAL to rtdetr-r18-DSAWACGAv5-P2SPDOKMFSV7.yaml (V7).
+# Only the localization loss is replaced, selected through loss_name /
+# loss_params and resolved by RTDETRDetectionModel.init_criterion() ->
+# ultralytics/utils/loss_plugins -> RTDETRDetectionLossSUALUR.
+#
+# SUAL Probe B = single-factor isolation of the UR component:
+#   loss_giou_i = (1 - GIoU_i) * (1 + rho * u_hat_i)   [main branch only]
+#   - NO SLS alpha scale weight, NO polar location penalty
+#   - NO SQCL soft-quantized localization, NO UM variance minimization
+#   - F1: u_hat uses fixed-scale EMA normalization (not per-batch max)
+#   - F2: DN branch uses the plain baseline giou term (no misaligned weights)
+#
+# Everything else (L1, VFL cls loss, Hungarian matching, DN plumbing) is
+# identical to the baseline DETRLoss. No extra loss keys: results.csv columns
+# are directly comparable with the baseline run at the same epoch.
+#
+# Diagnosis rule:
+#   Probe B healthy (mAP follows the baseline curve)  -> UR implementation in
+#       the full SUAL was NOT the (only) culprit; next isolate SQCL/UM/SLS.
+#   Probe B breaks training                            -> the UR reweighting
+#       (even with fixed normalization) destabilizes the GIoU branch; reduce
+#       sual_rho or abandon UR.
+
+loss_name: sual_ur
+loss_params:
+  sual_rho: 1.0        # reweighting strength; giou weight in [1.0, 2.0]
+  u_ref_init: 0.02     # EMA seed for inter-layer std reference (normalized xywh units)
+  u_ref_momentum: 0.99 # EMA momentum of the std reference
+  u_log_every: 200     # log u_hat stats every N loss calls (0 = silent)
+
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI, [1024, 8]]                       # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24
