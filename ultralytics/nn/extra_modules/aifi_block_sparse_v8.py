@@ -57,6 +57,28 @@ class BlockSparseAttentionV8(nn.Module):
         # Aux loss populated during training forward; collected by tasks.py.
         self.route_distill_loss = None
 
+    def __deepcopy__(self, memo):
+        """Deepcopy that drops the stale routing aux-loss tensor.
+
+        Model construction runs a dummy forward (stride computation) which
+        stores a graph-carrying tensor in self.route_distill_loss. Non-leaf
+        tensors cannot be deep-copied (torch raises "Only Tensors created
+        explicitly by the user (graph leaves) support the deepcopy protocol"),
+        which breaks ModelEMA's deepcopy at training start. The aux loss is
+        transient per-iteration state, so the copy simply starts with None.
+        """
+        import copy as _copy
+
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == 'route_distill_loss':
+                new.route_distill_loss = None
+                continue
+            new.__dict__[k] = _copy.deepcopy(v, memo)
+        return new
+
     def forward(self, x):
         b, n, c = x.shape
         h, d = self.num_heads, self.head_dim
@@ -212,3 +234,4 @@ class AIFI_BlockSparseV8(nn.Module):
             src = self.norm2(src)
 
         return src.permute(0, 2, 1).view(b, c, h, w).contiguous()
+
