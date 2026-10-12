@@ -32,6 +32,8 @@ LOSS_REGISTRY = {
     'sual': 'ultralytics.utils.loss_plugins.sual_loss.RTDETRDetectionLossSUAL',
     'sual_ur': 'ultralytics.utils.loss_plugins.sual_ur_loss.RTDETRDetectionLossSUALUR',
     'shape_iou': 'ultralytics.utils.loss_plugins.shape_iou_loss.RTDETRDetectionLossShapeIoU',
+    'mal_shape': 'ultralytics.utils.loss_plugins.mal_shape_loss.RTDETRDetectionLossMalShape',
+    'inner_siou': 'ultralytics.utils.loss_plugins.inner_siou_loss.RTDETRDetectionLossInnerSIoU',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
