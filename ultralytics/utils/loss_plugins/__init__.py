@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🐛, AGPL-3.0 license
+﻿# Ultralytics YOLO 馃悰, AGPL-3.0 license
 """
 Loss plugin registry for RT-DETR loss ablations.
 
@@ -16,7 +16,7 @@ How to add a new loss (tasks.py NEVER needs to change again):
 
 Rules of thumb:
     - Plugins that replace the SAME loss term (e.g. the GIoU term) are mutually
-      exclusive — `loss_name` selects exactly one.
+      exclusive 鈥?`loss_name` selects exactly one.
     - Keep each plugin focused on a single override point (`_get_loss_bbox`,
       `_get_loss_class`, matcher, ...). For orthogonal losses that must be
       stacked, add a dedicated combined plugin class instead of multi-switching
@@ -35,6 +35,13 @@ LOSS_REGISTRY = {
     'mal_shape': 'ultralytics.utils.loss_plugins.mal_shape_loss.RTDETRDetectionLossMalShape',
     'inner_siou': 'ultralytics.utils.loss_plugins.inner_siou_loss.RTDETRDetectionLossInnerSIoU',
     'inner_mpdiou': 'ultralytics.utils.loss_plugins.inner_mpdiou_loss.RTDETRDetectionLossInnerMPDIoU',
+    # InterpIoU loss family (Liu & Watanabe, Neurocomputing 2026):
+    #   inner_interpiou    -> D-InterpIoU + Inner-IoU auxiliary box
+    #   focaler_interpiou  -> D-InterpIoU + Focaler interval-mapping auxiliary term
+    #   da_inner_interpiou -> D-InterpIoU + Dynamic-Adaptive Inner auxiliary box
+    'inner_interpiou': 'ultralytics.utils.loss_plugins.inner_interpiou_loss.RTDETRDetectionLossInnerInterpIoU',
+    'focaler_interpiou': 'ultralytics.utils.loss_plugins.focaler_interpiou_loss.RTDETRDetectionLossFocalerInterpIoU',
+    'da_inner_interpiou': 'ultralytics.utils.loss_plugins.da_inner_interpiou_loss.RTDETRDetectionLossDAInnerInterpIoU',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
@@ -74,3 +81,4 @@ def build_loss(name, nc, params=None):
     if params:
         kwargs.update(params)
     return cls(nc=nc, **kwargs)
+
