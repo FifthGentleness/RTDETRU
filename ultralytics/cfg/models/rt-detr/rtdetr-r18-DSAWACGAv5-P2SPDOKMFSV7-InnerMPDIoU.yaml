@@ -1,0 +1,75 @@
+# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder + Inner-MPDIoU Loss
+#
+# Inner-MPDIoU = MPDIoU + Inner-IoU  (from SFS-DETR / UAV-DETR)
+#
+# MPDIoU (Minimum Point Distance IoU, Ma et al., arXiv 2307.07952):
+#   - Instead of center-point distance (like DIoU), directly penalizes the
+#     distances between the top-left and bottom-right corner points:
+#       d1 = (x1_gt - x1_pred)^2 + (y1_gt - y1_pred)^2  (top-left)
+#       d2 = (x2_gt - x2_pred)^2 + (y2_gt - y2_pred)^2  (bottom-right)
+#       MPDIoU = IoU - d1/h_w - d2/h_w
+#   - Provides more direct supervision on corner alignment than center-based
+#     distances, and naturally captures both position and shape differences.
+#
+# Inner-IoU:
+#   - Scale both predicted and GT boxes by a ratio (center-fixed) before
+#     computing IoU. When ratio < 1 (default 0.7), the "inner" boxes are
+#     smaller, making IoU more sensitive to boundary alignment → faster
+#     high-IoU convergence. When ratio > 1, the "outer" boxes are larger,
+#     providing softer gradients for low-IoU predictions.
+#
+# Inner-MPDIoU: Replace IoU in MPDIoU with Inner-IoU:
+#   InnerMPDIoU = InnerIoU - d1/h_w - d2/h_w
+#
+# All architecture layers are identical to rtdetr-r18-DSAWACGAv5-P2SPDOKMFSV7.yaml.
+
+nc: 10
+# Loss selection (read by RTDETRDetectionModel.init_criterion; registry:
+# ultralytics/utils/loss_plugins). Remove both keys to use the original loss.
+loss_name: inner_mpdiou
+loss_params:
+  mpdiou_hw: 2          # normalization factor for point distance terms
+  inner_ratio: 0.7      # Inner-IoU scale ratio; <1=inner boxes, >1=outer boxes
+
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI, [1024, 8]]                       # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  # spd_out_ch=128: SPDConv outputs 128 instead of default 256
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24
