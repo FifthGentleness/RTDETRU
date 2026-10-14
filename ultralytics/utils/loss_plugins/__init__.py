@@ -42,6 +42,11 @@ LOSS_REGISTRY = {
     'inner_interpiou': 'ultralytics.utils.loss_plugins.inner_interpiou_loss.RTDETRDetectionLossInnerInterpIoU',
     'focaler_interpiou': 'ultralytics.utils.loss_plugins.focaler_interpiou_loss.RTDETRDetectionLossFocalerInterpIoU',
     'da_inner_interpiou': 'ultralytics.utils.loss_plugins.da_inner_interpiou_loss.RTDETRDetectionLossDAInnerInterpIoU',
+    # Mal-InterpIoU: DEIM MAL (CVPR 2025) classification + Dynamic-InterpIoU
+    # regression, with optional interpolation-refined matchability coupling.
+    # NOTE: unlike the pure-regression variants above, this changes the
+    # classification loss too.
+    'mal_interpiou': 'ultralytics.utils.loss_plugins.mal_interpiou_loss.RTDETRDetectionLossMalInterpIoU',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
@@ -81,4 +86,5 @@ def build_loss(name, nc, params=None):
     if params:
         kwargs.update(params)
     return cls(nc=nc, **kwargs)
+
 

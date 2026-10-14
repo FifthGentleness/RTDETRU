@@ -1,0 +1,76 @@
+﻿# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder
+# + Mal-InterpIoU loss (innovation #3, coupled variant)
+#
+# loss_name: mal_interpiou
+#   Classification : MALoss (DEIM, CVPR 2025) — replaces VFL
+#                    positives weight=1; negatives weight=sigmoid(pred)^gamma;
+#                    soft targets = localization quality^gamma
+#   Regression     : Dynamic InterpIoU (Liu & Watanabe, Neurocomputing 2026)
+#                    replaces the GIoU term; L1 unchanged
+#   Coupling (novel): MAL soft targets use the InterpIoU-refined quality
+#                    q = IoU(B_a, B_gt), a = 1 - IoU (detached):
+#                        score = couple_beta * IoU + (1 - couple_beta) * q
+#                    the classification channel is supervised by the same
+#                    refined localization quality the regression optimizes.
+#
+# NOTE: unlike the pure-regression InterpIoU variants, this changes the
+# classification loss too (that is what MAL is).
+#
+# Hyperparameters:
+#   mal_gamma      = 2.0  : DEIM default; ablation {1.5, 2.0}
+#   mal_alpha      = null : negative-weight scale off (DEIM default)
+#   couple_target  = true : interpolation-refined matchability target;
+#                           false = plain DEIM-style MAL + D-InterpIoU (ablation)
+#   couple_beta    = 0.5  : 0 = pure refined q, 1 = plain IoU; ablation {0.0, 0.5, 1.0}
+#   dynamic_interp = true : D-InterpIoU main term
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI, [1024, 8]]                       # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  # spd_out_ch=128: SPDConv outputs 128 instead of default 256
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24
+# ---- innovation #3: bbox + cls loss (coupled Mal-InterpIoU) -----------------
+loss_name: mal_interpiou
+loss_params:
+  mal_gamma: 2.0            # ablation: {1.5, 2.0}
+  mal_alpha: null           # null = off (DEIM default)
+  couple_target: true       # false = plain MAL + D-InterpIoU (ablation)
+  couple_beta: 0.5          # ablation: {0.0, 0.5, 1.0}
+  dynamic_interp: true
