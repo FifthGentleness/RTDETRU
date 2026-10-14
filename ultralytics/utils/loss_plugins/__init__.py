@@ -47,6 +47,11 @@ LOSS_REGISTRY = {
     # NOTE: unlike the pure-regression variants above, this changes the
     # classification loss too.
     'mal_interpiou': 'ultralytics.utils.loss_plugins.mal_interpiou_loss.RTDETRDetectionLossMalInterpIoU',
+    # Inner-PIoU: Powerful-IoU (Neural Networks 2024) + Inner-IoU auxiliary box.
+    #   inner_piou  -> PIoU v1 + Inner
+    #   inner_piou2 -> PIoU v2 (non-monotonic focusing) + Inner
+    'inner_piou': 'ultralytics.utils.loss_plugins.inner_piou_loss.RTDETRDetectionLossInnerPIoU',
+    'inner_piou2': 'ultralytics.utils.loss_plugins.inner_piou_loss.RTDETRDetectionLossInnerPIoU2',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
@@ -86,5 +91,6 @@ def build_loss(name, nc, params=None):
     if params:
         kwargs.update(params)
     return cls(nc=nc, **kwargs)
+
 
 
