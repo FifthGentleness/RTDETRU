@@ -50,8 +50,16 @@ LOSS_REGISTRY = {
     # Inner-PIoU: Powerful-IoU (Neural Networks 2024) + Inner-IoU auxiliary box.
     #   inner_piou  -> PIoU v1 + Inner
     #   inner_piou2 -> PIoU v2 (non-monotonic focusing) + Inner
+    # ThermalIoU (Li et al., IEEE SPL 2026) + Inner-IoU auxiliary box.
+    'thermal_inner_iou': 'ultralytics.utils.loss_plugins.thermal_inner_iou_loss.RTDETRDetectionLossThermalInnerIoU',
     'inner_piou': 'ultralytics.utils.loss_plugins.inner_piou_loss.RTDETRDetectionLossInnerPIoU',
     'inner_piou2': 'ultralytics.utils.loss_plugins.inner_piou_loss.RTDETRDetectionLossInnerPIoU2',
+    'inner_piou2': 'ultralytics.utils.loss_plugins.inner_piou_loss.RTDETRDetectionLossInnerPIoU2',
+    # ASIoU (Pan et al., Pattern Recognition Letters 2026) + Inner-IoU auxiliary box:
+    # third innovation point for rtdetr-r18-DSAWACGAv5-P2SPDOKMFSV7.
+    'asiou_inner': 'ultralytics.utils.loss_plugins.asiou_inner_loss.RTDETRDetectionLossASInnerIoU',
+    # AIoU (Adaptive IoU with Edge Alignment Penalty) + Inner-IoU auxiliary box:
+    'aiou_inner': 'ultralytics.utils.loss_plugins.aiou_inner_loss.RTDETRDetectionLossAInnerIoU',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
