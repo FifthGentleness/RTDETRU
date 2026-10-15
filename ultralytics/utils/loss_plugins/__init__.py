@@ -39,6 +39,9 @@ LOSS_REGISTRY = {
     #   inner_interpiou    -> D-InterpIoU + Inner-IoU auxiliary box
     #   focaler_interpiou  -> D-InterpIoU + Focaler interval-mapping auxiliary term
     #   da_inner_interpiou -> D-InterpIoU + Dynamic-Adaptive Inner auxiliary box
+    # Pure InterpIoU / D-InterpIoU (no Inner-IoU auxiliary term), official
+    # formulation: InterpIoU = IoU + IoU(B_interp, B_gt) - 1.
+    'interpiou': 'ultralytics.utils.loss_plugins.interpiou_loss.RTDETRDetectionLossInterpIoU',
     'inner_interpiou': 'ultralytics.utils.loss_plugins.inner_interpiou_loss.RTDETRDetectionLossInnerInterpIoU',
     'focaler_interpiou': 'ultralytics.utils.loss_plugins.focaler_interpiou_loss.RTDETRDetectionLossFocalerInterpIoU',
     'da_inner_interpiou': 'ultralytics.utils.loss_plugins.da_inner_interpiou_loss.RTDETRDetectionLossDAInnerInterpIoU',
