@@ -20,6 +20,8 @@ from .aifi_block_sparse_v8 import *
 from .aifi_block_sparse_v9 import *
 from .aifi_block_sparse_v10 import *
 from .aifi_block_sparse_v11 import *
+from .aifi_block_sparse_v12 import *
+from .aifi_block_sparse_v13 import *
 from .aifi_differential import *
 from .aifi_neighborhood import *
 from .aifi_qknorm import *
