@@ -63,3 +63,8 @@ from .hybrid_encoder_p2_spd_okm_fs_v7 import *
 from .aifi_block_sparse_v16 import *
 from .aifi_c import *
 from .aifi_block_sparse_v17 import *
+from .aifi_block_sparse_v18 import *
+from .aifi_block_sparse_v19 import *
+from .aifi_foreground_guided import *
+from .aifi_register_memory import *
+from .aifi_context_cluster import *

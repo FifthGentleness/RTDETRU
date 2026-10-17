@@ -516,6 +516,22 @@ class RTDETRDetectionModel(DetectionModel):
                 if not hasattr(self, 'route_distill_weight'):
                     self.route_distill_weight = 0.1
                 loss['loss_route_distill'] = self.route_distill_weight * aux
+        # FG-AIFI / RM-AIFI auxiliary grounding losses (GT-supervised).
+        # Modules implement compute_ground_loss(targets) and cache their
+        # training-only features during the forward pass.
+        if self.training:
+            if not hasattr(self, '_aux_ground_modules'):
+                self._aux_ground_modules = [
+                    m for m in self.modules() if hasattr(m, 'compute_ground_loss')]
+            ground_aux = None
+            for m in self._aux_ground_modules:
+                aux = m.compute_ground_loss(targets)
+                if aux is not None:
+                    ground_aux = aux if ground_aux is None else ground_aux + aux
+            if ground_aux is not None:
+                if not hasattr(self, 'ground_weight'):
+                    self.ground_weight = 1.0
+                loss['loss_ground'] = self.ground_weight * ground_aux
         # NOTE: There are like 12 losses in RTDETR, backward with all losses but only show the main three losses.
         return sum(loss.values()), torch.as_tensor([loss[k].detach() for k in ['loss_giou', 'loss_class', 'loss_bbox']],
                                                    device=img.device)
@@ -866,7 +882,12 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet):
+        elif m is AIFI_BlockSparseV18:
+            # Multi-input: [P4, P5] -> P5-shaped cross-scale block-sparse AIFI.
+            c1 = [ch[x] for x in f]
+            c2 = args[0]
+            args = [c1, *args]
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_ForegroundGuided, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
