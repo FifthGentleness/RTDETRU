@@ -91,7 +91,7 @@ class RegisterMemoryAttention(nn.Module):
             self._reg_feats = reg_out                         # (b, M, c)
         return self.proj_drop(self.proj(img_out))
 
-    def compute_ground_loss(self, targets):
+    def compute_ground_loss(self, targets, batch=None):
         """Multi-label BCE: registers predict image-level class presence."""
         if not self.training or self._reg_feats is None:
             return None
@@ -180,7 +180,7 @@ class AIFI_RegisterMemory(nn.Module):
 
         return src.permute(0, 2, 1).view(b, c, h, w).contiguous()
 
-    def compute_ground_loss(self, targets):
+    def compute_ground_loss(self, targets, batch=None):
         return self.attn.compute_ground_loss(targets)
 
     def extra_repr(self):

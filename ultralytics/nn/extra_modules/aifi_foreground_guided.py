@@ -95,7 +95,7 @@ class ForegroundGuidedAttention(nn.Module):
         out = out.permute(0, 2, 1, 3).reshape(b, n, c)
         return self.proj_drop(self.proj(out))
 
-    def compute_ground_loss(self, targets):
+    def compute_ground_loss(self, targets, batch=None):
         """BCE supervision of the scorer with GT boxes projected to the grid.
 
         Called by RTDETRDetectionModel.loss after the training forward.
@@ -205,7 +205,7 @@ class AIFI_ForegroundGuided(nn.Module):
 
         return src.permute(0, 2, 1).view(b, c, h, w).contiguous()
 
-    def compute_ground_loss(self, targets):
+    def compute_ground_loss(self, targets, batch=None):
         return self.attn.compute_ground_loss(targets)
 
     def extra_repr(self):
