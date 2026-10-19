@@ -532,6 +532,22 @@ class RTDETRDetectionModel(DetectionModel):
                 if not hasattr(self, 'ground_weight'):
                     self.ground_weight = 1.0
                 loss['loss_ground'] = self.ground_weight * ground_aux
+        # QGA (Query Gram Anchoring) auxiliary regularization.
+        # QGALoss modules cache per-layer query features during the training
+        # forward and expose the loss via .route_qga_loss; collected here.
+        if self.training:
+            if not hasattr(self, '_route_qga_modules'):
+                self._route_qga_modules = [
+                    m for m in self.modules() if hasattr(m, 'route_qga_loss')]
+            qga = None
+            for m in self._route_qga_modules:
+                if m.route_qga_loss is not None:
+                    qga = m.route_qga_loss if qga is None else qga + m.route_qga_loss
+                    m.route_qga_loss = None
+            if qga is not None:
+                if not hasattr(self, 'qga_weight'):
+                    self.qga_weight = 0.05
+                loss['loss_qga'] = self.qga_weight * qga
         # NOTE: There are like 12 losses in RTDETR, backward with all losses but only show the main three losses.
         return sum(loss.values()), torch.as_tensor([loss[k].detach() for k in ['loss_giou', 'loss_class', 'loss_bbox']],
                                                    device=img.device)
@@ -909,7 +925,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args[0] = d[args[0]]
             c1, c2 = [ch[x] for x in f], (sum([ch[x] for x in f]) if args[0] == 'concat' else ch[f[0]])
             args = [c1, args[0]]
-        elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
+        elif m in (RTDETRDecoder, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA):  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
         elif isinstance(m, str):
             t = m

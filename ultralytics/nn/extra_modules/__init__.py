@@ -1,4 +1,4 @@
-﻿from .transformer import *
+from .transformer import *
 from .aifi_agent_attention import *
 from .aifi_uplift import *
 from .aifi_hops import *
@@ -71,3 +71,9 @@ from .aifi_context_cluster import *
 from .aifi_retrieval_augmented import *
 from .aifi_foundation_distill import *
 from .aifi_selective_scan import *
+from .decoder_innov_common import *
+from .decoder_sqsm import *
+from .decoder_aggqa import *
+from .decoder_cldm import *
+from .decoder_nsq import *
+from .decoder_qga import *
