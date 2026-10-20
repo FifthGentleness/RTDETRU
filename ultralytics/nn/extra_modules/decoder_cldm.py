@@ -1,4 +1,4 @@
-﻿"""
+"""
 CLDM: Cross-Layer Detection Memory (RT-DETR decoder innovation).
 
 Inspired by:
@@ -60,14 +60,18 @@ class CLDMMemory(nn.Module):
         """
         if not bool(self.mem_valid.any()):
             return x
+        # clone before use: update() writes these buffers in place, and the
+        # copies saved for backward here must never alias the mutated buffers
+        mem_feat = self.mem_feat.clone()
+        mem_box = self.mem_box.clone()
         q = x + self.box_mlp(boxes)
-        k = self.mem_feat + self.box_mlp(self.mem_box)
+        k = mem_feat + self.box_mlp(mem_box)
         kpm = ~self.mem_valid
         empty = kpm.all(1)
         if bool(empty.any()):            # let empty samples attend a zero slot
             kpm = kpm.clone()
             kpm[empty, 0] = False
-        out = self.attn(q, k, self.mem_feat, key_padding_mask=kpm, need_weights=False)[0]
+        out = self.attn(q, k, mem_feat, key_padding_mask=kpm, need_weights=False)[0]
         return self.norm(x + torch.tanh(self.alpha) * out)
 
     @torch.no_grad()
