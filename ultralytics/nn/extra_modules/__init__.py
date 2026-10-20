@@ -77,3 +77,6 @@ from .decoder_aggqa import *
 from .decoder_cldm import *
 from .decoder_nsq import *
 from .decoder_qga import *
+from .decoder_sgm import *        
+from .decoder_drcr import *       
+from .decoder_lbca import *

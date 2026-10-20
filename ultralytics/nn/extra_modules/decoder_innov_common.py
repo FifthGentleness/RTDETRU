@@ -287,3 +287,76 @@ class _RTDETRDecoderInnov(RTDETRDecoder):
         self.decoder = self._rebuild_decoder(hd, nh, ndl, d_ffn, dropout, act, ndp,
                                              eval_idx, **innov_kwargs)
         self.forward = _innov_forward.__get__(self, type(self))
+
+# ---------------------------------------------------------------------------
+# token utilities for cross-attention innovations
+# ---------------------------------------------------------------------------
+
+def _token_centers(shapes, device, dtype=torch.float32):
+    """Flattened multi-scale token centers (x, y) in [0, 1].
+
+    Encoder features are concatenated level by level, row-major within each
+    level (see RTDETRDecoder._get_encoder_input), so token t of level (h, w)
+    maps to grid position (t // w, t % w).
+
+    Returns:
+        Tensor: [T, 2] token centers, x/y normalized to [0, 1].
+    """
+    centers = []
+    for h, w in shapes:
+        ys = (torch.arange(h, device=device, dtype=dtype) + 0.5) / h
+        xs = (torch.arange(w, device=device, dtype=dtype) + 0.5) / w
+        gy, gx = torch.meshgrid(ys, xs, indexing='ij')
+        centers.append(torch.stack([gx.reshape(-1), gy.reshape(-1)], -1))
+    return torch.cat(centers, 0)
+
+
+# ---------------------------------------------------------------------------
+# decoder layer base for cross-attention-replacing innovations
+# ---------------------------------------------------------------------------
+
+class _InnovCrossAttnLayer(DeformableTransformerDecoderLayer):
+    """Base for layers that replace the cross-attention of matching queries
+    with an innovation read. Self-attention stays the baseline masked attention
+    and denoising queries keep the original MSDeformAttn cross-attention, so
+    DN training semantics are unchanged."""
+
+    INNOV_KWARGS = True
+
+    def _innov_cross(self, q, embed, ref_boxes, feats, shapes, padding_mask=None):
+        """Cross-attention replacement for the matching-query part.
+
+        Args:
+            q (Tensor):      [B, N, C] query content + positional embedding.
+            embed (Tensor):  [B, N, C] query content (no positional embedding).
+            ref_boxes:       [B, N, 4] cxcywh reference boxes in [0, 1].
+            feats (Tensor):  [B, T, C] flattened multi-scale features.
+            shapes (List):   [(h, w), ...] per-level shapes.
+            padding_mask:    [B, T] or None.
+
+        Returns:
+            Tensor: [B, N, C] cross-attention output (pre-residual).
+        """
+        raise NotImplementedError
+
+    def forward(self, embed, refer_bbox, feats, shapes, padding_mask=None,
+                attn_mask=None, query_pos=None, dn_num=0, dec_boxes=None):
+        # self-attention (baseline; dn queries masked)
+        q = k = self.with_pos_embed(embed, query_pos)
+        tgt = self.self_attn(q.transpose(0, 1), k.transpose(0, 1), embed.transpose(0, 1),
+                             attn_mask=attn_mask)[0].transpose(0, 1)
+        embed = self.norm1(embed + self.dropout1(tgt))
+        # cross-attention: dn queries keep MSDeformAttn, matching queries innovate
+        if dn_num > 0:
+            tgt_dn = self.cross_attn(self.with_pos_embed(embed[:, :dn_num], query_pos[:, :dn_num]),
+                                     refer_bbox[:, :dn_num].unsqueeze(2), feats, shapes,
+                                     padding_mask)
+            tgt_mt = self._innov_cross(self.with_pos_embed(embed[:, dn_num:], query_pos[:, dn_num:]),
+                                       embed[:, dn_num:], refer_bbox[:, dn_num:], feats, shapes,
+                                       padding_mask)
+            tgt = torch.cat([tgt_dn, tgt_mt], dim=1)
+        else:
+            tgt = self._innov_cross(self.with_pos_embed(embed, query_pos), embed,
+                                    refer_bbox, feats, shapes, padding_mask)
+        embed = self.norm2(embed + self.dropout2(tgt))
+        return self.forward_ffn(embed)
