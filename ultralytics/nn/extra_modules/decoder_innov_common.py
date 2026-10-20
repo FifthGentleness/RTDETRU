@@ -1,4 +1,4 @@
-﻿"""
+"""
 Shared utilities / base classes for the 5 RT-DETR decoder innovations.
 
 Each innovation lives in its own module:
@@ -340,7 +340,8 @@ class _InnovCrossAttnLayer(DeformableTransformerDecoderLayer):
         raise NotImplementedError
 
     def forward(self, embed, refer_bbox, feats, shapes, padding_mask=None,
-                attn_mask=None, query_pos=None, dn_num=0, dec_boxes=None):
+                attn_mask=None, query_pos=None, dn_num=0, dec_boxes=None,
+                shared_states=None):
         # self-attention (baseline; dn queries masked)
         q = k = self.with_pos_embed(embed, query_pos)
         tgt = self.self_attn(q.transpose(0, 1), k.transpose(0, 1), embed.transpose(0, 1),
@@ -353,10 +354,10 @@ class _InnovCrossAttnLayer(DeformableTransformerDecoderLayer):
                                      padding_mask)
             tgt_mt = self._innov_cross(self.with_pos_embed(embed[:, dn_num:], query_pos[:, dn_num:]),
                                        embed[:, dn_num:], refer_bbox[:, dn_num:], feats, shapes,
-                                       padding_mask)
+                                       padding_mask, shared_states)
             tgt = torch.cat([tgt_dn, tgt_mt], dim=1)
         else:
             tgt = self._innov_cross(self.with_pos_embed(embed, query_pos), embed,
-                                    refer_bbox, feats, shapes, padding_mask)
+                                    refer_bbox, feats, shapes, padding_mask, shared_states)
         embed = self.norm2(embed + self.dropout2(tgt))
         return self.forward_ffn(embed)
