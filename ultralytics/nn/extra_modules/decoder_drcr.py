@@ -56,9 +56,12 @@ def _unit(x, eps=1e-6):
 
 
 def _tri_solve(A, B):
-    """Solve (I + A) X = B for strictly-lower-triangular A (float64 inside)."""
-    I = torch.eye(A.shape[-1], dtype=A.dtype, device=A.device)
-    return torch.linalg.solve_triangular(I + A, B, upper=False, left=True)
+    """Solve (I + A) X = B for strictly-lower-triangular A.
+    The solve runs in float64 (conditioning-sensitive) and returns float32;
+    all other scan math stays in float32 for GPU throughput."""
+    I = torch.eye(A.shape[-1], dtype=torch.float64, device=A.device)
+    X = torch.linalg.solve_triangular(I + A.double(), B.double(), upper=False, left=True)
+    return X.float()
 
 
 class DeltaRuleReader(nn.Module):
@@ -68,7 +71,7 @@ class DeltaRuleReader(nn.Module):
     layers) and read by every decoder layer through its own DRCRReadout head.
     """
 
-    def __init__(self, d_model=256, n_heads=4, grid=64, chunk_len=48):
+    def __init__(self, d_model=256, n_heads=4, grid=64, chunk_len=64):
         super().__init__()
         assert d_model % n_heads == 0
         self.n_heads = n_heads
@@ -169,17 +172,17 @@ class DeltaRuleReader(nn.Module):
             beta = torch.cat([beta, beta[:, :, -1:].expand(-1, -1, pad, 1)], 2)
             gamma = torch.cat([gamma, gamma[:, :, -1:].expand(-1, -1, pad, -1)], 2)
 
-        K = k.view(B, H, nc, chunk, D).double()
-        V = v.view(B, H, nc, chunk, D).double()
-        Bt = beta.view(B, H, nc, chunk, 1).double()
-        G = gamma.view(B, H, nc, chunk, 1).double()
+        K = k.view(B, H, nc, chunk, D)
+        V = v.view(B, H, nc, chunk, D)
+        Bt = beta.view(B, H, nc, chunk, 1)
+        G = gamma.view(B, H, nc, chunk, 1)
         g_chunk = G.clamp(min=1e-4).log().mean(3).exp()    # geometric-mean retention [B,H,nc,1]
 
         M_all, W_all, BK_all = self._chunk_terms(K, V, Bt)
         BK_sum = BK_all.sum(3)                             # [B,H,nc,D]
 
-        S = torch.zeros(B, H, D, D, dtype=torch.float64, device=k.device)
-        n = torch.zeros(B, H, D, dtype=torch.float64, device=k.device)
+        S = torch.zeros(B, H, D, D, dtype=k.dtype, device=k.device)
+        n = torch.zeros(B, H, D, dtype=k.dtype, device=k.device)
         S_list, n_list = [], []
         for c in range(nc):
             Mc, Wc, gc = M_all[:, :, c], W_all[:, :, c], g_chunk[:, :, c]
@@ -187,8 +190,8 @@ class DeltaRuleReader(nn.Module):
             n = gc * (n.unsqueeze(-2) @ Mc).squeeze(-2) + BK_sum[:, :, c]
             S_list.append(S)
             n_list.append(n)
-        S = torch.stack(S_list, 2).float()
-        n = torch.stack(n_list, 2).float()
+        S = torch.stack(S_list, 2)
+        n = torch.stack(n_list, 2)
         return S, n                                        # [B,H,nc,D,D], [B,H,nc,D]
 
 
@@ -304,11 +307,11 @@ class RTDETRDecoderDRCR(_RTDETRDecoderInnov):
 
     Extra yaml args (after the standard RTDETRDecoder args):
         scan_heads (int, default 4): heads of the delta-rule state.
-        chunk_len (int, default 48): Morton chunk length for the exact update.
+        chunk_len (int, default 64): Morton chunk length for the exact update.
     """
 
     def _rebuild_decoder(self, hd, nh, ndl, d_ffn, dropout, act, ndp, eval_idx,
-                         scan_heads=4, chunk_len=48, **_):
+                         scan_heads=4, chunk_len=64, **_):
         layer = DecoderLayerDRCR(hd, nh, d_ffn, dropout, act, self.nl, ndp, scan_heads)
         reader = DeltaRuleReader(hd, scan_heads, chunk_len=chunk_len)
         return DeformableTransformerDecoderDRCR(hd, layer, ndl, eval_idx, reader=reader)

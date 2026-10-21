@@ -43,7 +43,7 @@ __all__ = ('SurpriseMemoryBlock', 'DecoderLayerSGM', 'RTDETRDecoderSGM')
 class SurpriseMemoryBlock(nn.Module):
     """Block-recurrent surprise-gated neural memory over feature tokens."""
 
-    def __init__(self, d_model=256, n_slots=64, n_blocks=3, n_local=64, dropout=0.):
+    def __init__(self, d_model=256, n_slots=48, n_blocks=2, n_local=64, dropout=0.):
         super().__init__()
         self.n_slots = n_slots
         self.n_blocks = n_blocks
@@ -65,6 +65,7 @@ class SurpriseMemoryBlock(nn.Module):
         self.q_read = nn.MultiheadAttention(d_model, 4, dropout=dropout, batch_first=True)
         self.local_out = nn.Linear(d_model, d_model)
         self.local_gate = nn.Parameter(torch.zeros(1))
+        self.out_gate = nn.Parameter(torch.zeros(1))   # zero-init: SGM refines the deformable path
 
     def build_memory(self, feats, centers):
         """Build the surprise-gated memory from multi-scale tokens.
@@ -134,7 +135,7 @@ class SurpriseMemoryBlock(nn.Module):
         attn = torch.softmax(torch.einsum('bnc,bnkc->bnk', qn, ln) * self.tau, dim=-1)
         o_loc = self.local_out(torch.einsum('bnk,bnkc->bnc', attn, ln))
 
-        return o_mem + torch.tanh(self.local_gate) * o_loc
+        return torch.tanh(self.out_gate) * (o_mem + torch.tanh(self.local_gate) * o_loc)
 
 
 class DecoderLayerSGM(_InnovCrossAttnLayer):
@@ -142,26 +143,44 @@ class DecoderLayerSGM(_InnovCrossAttnLayer):
     by the SGM surprise-gated memory read."""
 
     def __init__(self, d_model=256, n_heads=8, d_ffn=1024, dropout=0., act=nn.ReLU(),
-                 n_levels=4, n_points=4, n_slots=64, n_blocks=3, n_local=64):
+                 n_levels=4, n_points=4, n_slots=48, n_blocks=2, n_local=64):
         super().__init__(d_model, n_heads, d_ffn, dropout, act, n_levels, n_points)
         self.sgm = SurpriseMemoryBlock(d_model, n_slots, n_blocks, n_local=n_local)
 
-    def _innov_cross(self, q, embed, ref_boxes, feats, shapes, padding_mask=None,
-                     shared_states=None):
-        return self.sgm(q, ref_boxes, feats, shapes, padding_mask)
+    def forward(self, embed, refer_bbox, feats, shapes, padding_mask=None,
+                attn_mask=None, query_pos=None, dn_num=0, dec_boxes=None,
+                shared_states=None):
+        # self-attention (baseline; dn queries masked)
+        q = k = self.with_pos_embed(embed, query_pos)
+        tgt = self.self_attn(q.transpose(0, 1), k.transpose(0, 1), embed.transpose(0, 1),
+                             attn_mask=attn_mask)[0].transpose(0, 1)
+        embed = self.norm1(embed + self.dropout1(tgt))
+        # cross-attention: baseline deformable EVERYWHERE + zero-init gated SGM
+        # refinement on the matching part (identical to baseline at init)
+        tgt = self.cross_attn(self.with_pos_embed(embed, query_pos), refer_bbox.unsqueeze(2),
+                              feats, shapes, padding_mask)
+        if dn_num > 0:
+            tgt_mt = self.sgm(self.with_pos_embed(embed[:, dn_num:], query_pos[:, dn_num:]),
+                              refer_bbox[:, dn_num:], feats, shapes, padding_mask)
+            tgt = torch.cat([tgt[:, :dn_num], tgt[:, dn_num:] + tgt_mt], dim=1)
+        else:
+            tgt = tgt + self.sgm(self.with_pos_embed(embed, query_pos), refer_bbox,
+                                 feats, shapes, padding_mask)
+        embed = self.norm2(embed + self.dropout2(tgt))
+        return self.forward_ffn(embed)
 
 
 class RTDETRDecoderSGM(_RTDETRDecoderInnov):
     """RT-DETR decoder + SGM (surprise-gated neural memory cross-attention).
 
     Extra yaml args (after the standard RTDETRDecoder args):
-        n_slots (int, default 64): memory slot count.
-        n_blocks (int, default 3): recurrent blocks for memory building.
+        n_slots (int, default 48): memory slot count.
+        n_blocks (int, default 2): recurrent blocks for memory building.
         n_local (int, default 64): local fine-read window size.
     """
 
     def _rebuild_decoder(self, hd, nh, ndl, d_ffn, dropout, act, ndp, eval_idx,
-                         n_slots=64, n_blocks=3, n_local=64, **_):
+                         n_slots=48, n_blocks=2, n_local=64, **_):
         layer = DecoderLayerSGM(hd, nh, d_ffn, dropout, act, self.nl, ndp,
                                 n_slots, n_blocks, n_local)
         return DeformableTransformerDecoderInnov(hd, layer, ndl, eval_idx)
