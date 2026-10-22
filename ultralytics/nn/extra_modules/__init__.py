@@ -1,4 +1,4 @@
-from .transformer import *
+﻿from .transformer import *
 from .aifi_agent_attention import *
 from .aifi_uplift import *
 from .aifi_hops import *
@@ -67,6 +67,7 @@ from .aifi_block_sparse_v18 import *
 from .aifi_block_sparse_v19 import *
 from .aifi_foreground_guided import *
 from .aifi_register_memory import *
+from .aifi_register_block_sparse import *
 from .aifi_context_cluster import *
 from .aifi_retrieval_augmented import *
 from .aifi_foundation_distill import *
