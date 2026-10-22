@@ -68,6 +68,8 @@ from .aifi_block_sparse_v19 import *
 from .aifi_foreground_guided import *
 from .aifi_register_memory import *
 from .aifi_register_block_sparse import *
+from .aifi_retrieval_block_sparse import *
+from .aifi_condpe_block_sparse import *
 from .aifi_context_cluster import *
 from .aifi_retrieval_augmented import *
 from .aifi_foundation_distill import *
