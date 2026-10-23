@@ -86,4 +86,6 @@ from .decoder_drcr import *
 from .decoder_lbca import *
 from .aifi_tg_hbsa import *
 from .aifi_rabsa import *
-
+from .aifi_dgmb import *
+from .aifi_asb import *
+from .aifi_cbk_ffn import *
