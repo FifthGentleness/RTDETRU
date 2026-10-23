@@ -903,7 +903,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_RegisterBlockSparse, AIFI_RetrievalBlockSparse, AIFI_CondPEBlockSparse, AIFI_ForegroundGuided, AIFI_RetrievalAugmented, AIFI_FoundationDistill, AIFI_SelectiveScan, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet, AIFI_TGHBSA):
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_RegisterBlockSparse, AIFI_RetrievalBlockSparse, AIFI_CondPEBlockSparse, AIFI_ForegroundGuided, AIFI_RetrievalAugmented, AIFI_FoundationDistill, AIFI_SelectiveScan, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet, AIFI_TGHBSA, AIFI_RABSA):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
