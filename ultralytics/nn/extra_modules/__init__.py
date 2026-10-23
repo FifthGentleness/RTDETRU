@@ -83,3 +83,4 @@ from .decoder_qga import *
 from .decoder_sgm import *        
 from .decoder_drcr import *       
 from .decoder_lbca import *
+from .aifi_tg_hbsa import *
