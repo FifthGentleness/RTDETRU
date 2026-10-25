@@ -90,6 +90,17 @@ from .decoder_pcs_sa import *
 from .aifi_laser import *
 from .aifi_sig_attn import *
 from .aifi_prep_bn import *
+from .aifi_xbase import *
+from .aifi_xhmix import *
+from .aifi_xaos import *
+from .decoder_xqid import *
+from .decoder_xdp import *
+from .aifi_xipc import *
+from .aifi_xlpe import *
+from .aifi_xzop import *
+from .decoder_xcfg import *
+from .aifi_xmisc import *
+from .decoder_xmisc import *
 from .aifi_tg_hbsa import *
 from .aifi_rabsa import *
 from .aifi_dgmb import *
