@@ -1,0 +1,52 @@
+# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder
+#
+# 方案一 HS-BS (Hetero-Scale Block-Sparse): S5 保留 AIFI_BlockSparse 冠军主干,
+# P4 input_proj 之后、FPN concat 之前插入一层同构块稀疏尺度内交互。
+#   - P4 = 40x40 = 1600 token, 400 个 1x4 条带块, top-4 路由(信息密度 ~1%)
+#   - pre-norm + 零初始化逐通道门 g1/g2 => step-0 与冠军拓扑逐位相等
+#   - 参数增量 ~0.79M(独立权重); GFLOPs ~+3.2G(+4.2%)
+#   - 注意力矩阵 [B,8,1600,1600] 约 330MB, 显存吃紧可将 batch 降至 2
+# AIFI_HSB args: [cm=1024, num_heads=8, anchor_grid=0]
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI_BlockSparse, [1024, 8]]           # 10  S5 交互(冠军主干, 不改动)
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12  Y5_up
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[12, 13], 1, AIFI_HSB, [1024, 8, 0]]          # 14  P4 块稀疏交互(anchor off)
+  - [[12, 14], 1, Concat, [1]]                     # 15  256+256=512 (CCFM 融合路径保持不变)
+  - [-1, 3, RepC3, [256, 0.5]]                     # 16
+  - [-1, 1, Conv, [256, 1, 1]]                     # 17, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  - [[2, 4, 17], 1, CCFFP2V7, [256, 128]]          # 18  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 19
+  - [[-1, 17], 1, Concat, [1]]                     # 20  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 21  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 22
+  - [[-1, 11], 1, Concat, [1]]                     # 23  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 24  f5
+
+  - [[18, 21, 24], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 25

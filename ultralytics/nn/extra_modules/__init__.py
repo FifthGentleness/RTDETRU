@@ -92,3 +92,4 @@ from .aifi_cbk_ffn import *
 from .aifi_as_conv_ffn import *
 from .aifi_sag_ffn import *
 from .aifi_cpa_ffn import *
+from .aifi_hetero_scale import *
