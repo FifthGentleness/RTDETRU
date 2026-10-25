@@ -76,6 +76,8 @@ LOSS_REGISTRY = {
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',
     'xbbr': 'ultralytics.utils.loss_plugins.xmisc_loss.RTDETRDetectionLossXBBR',
     'xvfla': 'ultralytics.utils.loss_plugins.xmisc_loss.RTDETRDetectionLossXVFLA',
+    'xgain': 'ultralytics.utils.loss_plugins.xgain_loss.RTDETRDetectionLossXGain',
+    'xdnw': 'ultralytics.utils.loss_plugins.xdnw_loss.RTDETRDetectionLossXDNW',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
