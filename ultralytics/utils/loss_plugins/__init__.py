@@ -67,6 +67,10 @@ LOSS_REGISTRY = {
     # + assignment-supervision aligned matcher). gamma/tau/nwd_const/align_matcher
     # via loss_params. tau=0.0 => exact pure-DEIM-MAL probe.
     'sr_mal': 'ultralytics.utils.loss_plugins.sr_mal_loss.RTDETRDetectionLossSRMAL',
+    # DSAW (DCNet, Pattern Recognition 2026): dynamic scale-aware supervision
+    # weighting. cls positives x (1+beta*lam*eta), geometry x (1-alpha*lam).
+    # beta=0 & alpha=0 => bit-exact baseline VFL. Params via loss_params.
+    'dsaw': 'ultralytics.utils.loss_plugins.dsaw_loss.RTDETRDetectionLossDSAW',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
