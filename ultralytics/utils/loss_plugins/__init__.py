@@ -63,6 +63,10 @@ LOSS_REGISTRY = {
     'asiou_inner': 'ultralytics.utils.loss_plugins.asiou_inner_loss.RTDETRDetectionLossASInnerIoU',
     # AIoU (Adaptive IoU with Edge Alignment Penalty) + Inner-IoU auxiliary box:
     'aiou_inner': 'ultralytics.utils.loss_plugins.aiou_inner_loss.RTDETRDetectionLossAInnerIoU',
+    # SR-MAL (CVPR 2025 DEIM MAL + scale-robust NWD/IoU blended quality target,
+    # + assignment-supervision aligned matcher). gamma/tau/nwd_const/align_matcher
+    # via loss_params. tau=0.0 => exact pure-DEIM-MAL probe.
+    'sr_mal': 'ultralytics.utils.loss_plugins.sr_mal_loss.RTDETRDetectionLossSRMAL',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
