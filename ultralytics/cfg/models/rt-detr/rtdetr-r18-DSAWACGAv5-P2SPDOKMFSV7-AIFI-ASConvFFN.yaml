@@ -1,0 +1,50 @@
+# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder
+#
+# 方案一 AS-ConvFFN: 各向异性条带互补卷积FFN (主位置5 + 配套位置4, 灵感: PKINet CVPR 2024)
+#   - FFN 隐层 GELU 后插入 3x1(垂直) + 1x3(水平) 深度卷积, 逐通道零初始化门控
+#   - BlockSparse 1x4 条带块缺失的垂直耦合由 3x1 确定性补齐, 感受野<=3, 零全局混合
+#   - 参数增量 ~8.2K; step-0 前向与 AIFI_BlockSparse 逐位相等
+# AIFI 变体: AIFI_ASConvFFN, [1024, 8] (args含义与 AIFI_BlockSparse 一致: cm=1024, num_heads=8)
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI_ASConvFFN, [1024, 8]]             # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  # spd_out_ch=128: SPDConv outputs 128 instead of default 256
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24

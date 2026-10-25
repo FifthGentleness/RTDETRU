@@ -89,3 +89,6 @@ from .aifi_rabsa import *
 from .aifi_dgmb import *
 from .aifi_asb import *
 from .aifi_cbk_ffn import *
+from .aifi_as_conv_ffn import *
+from .aifi_sag_ffn import *
+from .aifi_cpa_ffn import *

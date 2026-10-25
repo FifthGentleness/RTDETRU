@@ -1,0 +1,51 @@
+# RT-DETR-r18 + DSAWACGAv5 backbone + HybridEncoderP2SPDOKMFSV7 encoder
+#
+# 方案二 SAG-FFN: 显著性自适应门控FFN (纯主位置5, 灵感: Mixture-of-Depths ICLR 2025)
+#   - FFN 隐层逐 token 增益 g = 1 + tanh(w_s^T h) ∈ (0,2), 背景token语义更新被
+#     压缩、疑似目标token被放大; 无路由/无丢token/零分支, 全稠密并行
+#   - 无全局池化(区别于SE), 无隐层分裂门控(区别于SwiGLU/StarFFN)
+#   - 参数增量 ~1.0K; w_s 零初始化 => step-0 前向与 AIFI_BlockSparse 逐位相等
+# AIFI 变体: AIFI_SAGFFN, [1024, 8] (args含义与 AIFI_BlockSparse 一致: cm=1024, num_heads=8)
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI_SAGFFN, [1024, 8]]                # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  # spd_out_ch=128: SPDConv outputs 128 instead of default 256
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24
