@@ -933,7 +933,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args[0] = d[args[0]]
             c1, c2 = [ch[x] for x in f], (sum([ch[x] for x in f]) if args[0] == 'concat' else ch[f[0]])
             args = [c1, args[0]]
-        elif m in (RTDETRDecoder, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA, RTDETRDecoderSGM, RTDETRDecoderDRCR, RTDETRDecoderLBCA):  # special case, channels arg must be passed in index 1
+        elif m in (RTDETRDecoder, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA, RTDETRDecoderSGM, RTDETRDecoderDRCR, RTDETRDecoderLBCA, RTDETRDecoderFSGSA, RTDETRDecoderRGCSA, RTDETRDecoderPCSSA):  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
         elif isinstance(m, str):
             t = m

@@ -82,8 +82,11 @@ from .decoder_cldm import *
 from .decoder_nsq import *
 from .decoder_qga import *
 from .decoder_sgm import *        
-from .decoder_drcr import *       
+from .decoder_drcr import *
 from .decoder_lbca import *
+from .decoder_fsg_sa import *
+from .decoder_rgc_sa import *
+from .decoder_pcs_sa import *
 from .aifi_tg_hbsa import *
 from .aifi_rabsa import *
 from .aifi_dgmb import *
