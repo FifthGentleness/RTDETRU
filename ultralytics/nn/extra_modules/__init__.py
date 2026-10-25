@@ -94,3 +94,6 @@ from .aifi_sag_ffn import *
 from .aifi_cpa_ffn import *
 from .aifi_hetero_scale import *
 from .aifi_dhc_ffn import *
+from .aifi_cope_bs import *
+from .aifi_twc_bs import *
+from .aifi_dts_bs import *
