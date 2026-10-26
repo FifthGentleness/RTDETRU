@@ -104,6 +104,9 @@ from .decoder_xmisc import *
 from .aifi_xmoe import *
 from .aifi_xdora import *
 from .aifi_xreg import *
+from .aifi_xinit import *
+from .aifi_xdeep import *
+from .decoder_xdeep import *
 from .aifi_tg_hbsa import *
 from .aifi_rabsa import *
 from .aifi_dgmb import *
