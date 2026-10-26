@@ -107,6 +107,8 @@ from .aifi_xreg import *
 from .aifi_xinit import *
 from .aifi_xdeep import *
 from .decoder_xdeep import *
+from .aifi_xbatch8 import *
+from .decoder_xbatch8 import *
 from .aifi_tg_hbsa import *
 from .aifi_rabsa import *
 from .aifi_dgmb import *

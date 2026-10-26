@@ -82,6 +82,8 @@ LOSS_REGISTRY = {
     'xls': 'ultralytics.utils.loss_plugins.xb6_loss.RTDETRDetectionLossXLS',
     'xqclamp': 'ultralytics.utils.loss_plugins.xdeep_loss.RTDETRDetectionLossXQClamp',
     'xsl1': 'ultralytics.utils.loss_plugins.xdeep_loss.RTDETRDetectionLossXSL1',
+    'xfcwcas': 'ultralytics.utils.loss_plugins.xb8_loss.RTDETRDetectionLossXFCWCAS',
+    'xsizeq': 'ultralytics.utils.loss_plugins.xb8_loss.RTDETRDetectionLossXSizeQ',
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
