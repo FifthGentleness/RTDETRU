@@ -1,4 +1,4 @@
-﻿# Ultralytics YOLO 馃悰, AGPL-3.0 license
+# Ultralytics YOLO 馃悰, AGPL-3.0 license
 """
 Loss plugin registry for RT-DETR loss ablations.
 
@@ -71,6 +71,8 @@ LOSS_REGISTRY = {
     # weighting. cls positives x (1+beta*lam*eta), geometry x (1-alpha*lam).
     # beta=0 & alpha=0 => bit-exact baseline VFL. Params via loss_params.
     'dsaw': 'ultralytics.utils.loss_plugins.dsaw_loss.RTDETRDetectionLossDSAW',
+    # DSAW-v2: sharpened scale focus (lam^p) plus dynamic geometry annealing.
+    'dsaw_v2': 'ultralytics.utils.loss_plugins.dsaw_v2_loss.RTDETRDetectionLossDSAWV2',
     'xfcw': 'ultralytics.utils.loss_plugins.xfcw_loss.RTDETRDetectionLossXFCW',
     'xcas': 'ultralytics.utils.loss_plugins.xcas_loss.RTDETRDetectionLossXCAS',
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',
