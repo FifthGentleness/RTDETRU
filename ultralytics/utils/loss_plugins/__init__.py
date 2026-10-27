@@ -73,6 +73,8 @@ LOSS_REGISTRY = {
     'dsaw': 'ultralytics.utils.loss_plugins.dsaw_loss.RTDETRDetectionLossDSAW',
     # DSAW-v2: sharpened scale focus (lam^p) plus dynamic geometry annealing.
     'dsaw_v2': 'ultralytics.utils.loss_plugins.dsaw_v2_loss.RTDETRDetectionLossDSAWV2',
+    # InnerInterpIoU-DSAW3: DSAW-v2 weighting + Inner-InterpIoU geometry metric.
+    'inner_interpiou_dsaw3': 'ultralytics.utils.loss_plugins.inner_interpiou_dsaw3_loss.RTDETRDetectionLossInnerInterpIoUDSAW3',
     'xfcw': 'ultralytics.utils.loss_plugins.xfcw_loss.RTDETRDetectionLossXFCW',
     'xcas': 'ultralytics.utils.loss_plugins.xcas_loss.RTDETRDetectionLossXCAS',
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',
