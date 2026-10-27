@@ -1,4 +1,4 @@
-# Ultralytics YOLO 馃悰, AGPL-3.0 license
+﻿# Ultralytics YOLO 棣冩偘, AGPL-3.0 license
 """
 Loss plugin registry for RT-DETR loss ablations.
 
@@ -16,7 +16,7 @@ How to add a new loss (tasks.py NEVER needs to change again):
 
 Rules of thumb:
     - Plugins that replace the SAME loss term (e.g. the GIoU term) are mutually
-      exclusive 鈥?`loss_name` selects exactly one.
+      exclusive 閳?`loss_name` selects exactly one.
     - Keep each plugin focused on a single override point (`_get_loss_bbox`,
       `_get_loss_class`, matcher, ...). For orthogonal losses that must be
       stacked, add a dedicated combined plugin class instead of multi-switching
@@ -75,6 +75,9 @@ LOSS_REGISTRY = {
     'dsaw_v2': 'ultralytics.utils.loss_plugins.dsaw_v2_loss.RTDETRDetectionLossDSAWV2',
     # InnerInterpIoU-DSAW3: DSAW-v2 weighting + Inner-InterpIoU geometry metric.
     'inner_interpiou_dsaw3': 'ultralytics.utils.loss_plugins.inner_interpiou_dsaw3_loss.RTDETRDetectionLossInnerInterpIoUDSAW3',
+    # DSAW-v4: segmented geometry (IoU-gated GIoU/InnerInterpIoU blend) +
+    # decoupled weights (L1 softened, IoU branch unsoftened by default).
+    'dsaw_v4': 'ultralytics.utils.loss_plugins.dsaw_v4_loss.RTDETRDetectionLossDSAWV4',
     'xfcw': 'ultralytics.utils.loss_plugins.xfcw_loss.RTDETRDetectionLossXFCW',
     'xcas': 'ultralytics.utils.loss_plugins.xcas_loss.RTDETRDetectionLossXCAS',
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',
@@ -127,6 +130,7 @@ def build_loss(name, nc, params=None):
     if params:
         kwargs.update(params)
     return cls(nc=nc, **kwargs)
+
 
 
 
