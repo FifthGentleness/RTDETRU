@@ -78,6 +78,9 @@ LOSS_REGISTRY = {
     # DSAW-v4: segmented geometry (IoU-gated GIoU/InnerInterpIoU blend) +
     # decoupled weights (L1 softened, IoU branch unsoftened by default).
     'dsaw_v4': 'ultralytics.utils.loss_plugins.dsaw_v4_loss.RTDETRDetectionLossDSAWV4',
+    # DSAW-v5: matching-end intervention - scale-aware Hungarian cost
+    # (GIoU/NWD blend gated by the same focused lam as the loss), v4 loss kept.
+    'dsaw_v5': 'ultralytics.utils.loss_plugins.dsaw_v5_loss.RTDETRDetectionLossDSAWV5',
     'xfcw': 'ultralytics.utils.loss_plugins.xfcw_loss.RTDETRDetectionLossXFCW',
     'xcas': 'ultralytics.utils.loss_plugins.xcas_loss.RTDETRDetectionLossXCAS',
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',
@@ -130,6 +133,7 @@ def build_loss(name, nc, params=None):
     if params:
         kwargs.update(params)
     return cls(nc=nc, **kwargs)
+
 
 
 
