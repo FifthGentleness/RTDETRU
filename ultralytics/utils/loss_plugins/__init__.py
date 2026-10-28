@@ -81,6 +81,12 @@ LOSS_REGISTRY = {
     # DSAW-v5: matching-end intervention - scale-aware Hungarian cost
     # (GIoU/NWD blend gated by the same focused lam as the loss), v4 loss kept.
     'dsaw_v5': 'ultralytics.utils.loss_plugins.dsaw_v5_loss.RTDETRDetectionLossDSAWV5',
+    # DSAW-v6: matcher-side intervention redesigned after the v5 negative
+    # result - curricula (blend weight scaled by eta), no-overlap gating
+    # (NWD only for pairs with IoU < overlap_thresh), and a decoupled
+    # matcher-side scale gate (linear lam). v4 loss kept bit-exact.
+    # nwd_weight=0 => bit-exact v4.
+    'dsaw_v6': 'ultralytics.utils.loss_plugins.dsaw_v6_loss.RTDETRDetectionLossDSAWV6',
     'xfcw': 'ultralytics.utils.loss_plugins.xfcw_loss.RTDETRDetectionLossXFCW',
     'xcas': 'ultralytics.utils.loss_plugins.xcas_loss.RTDETRDetectionLossXCAS',
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',

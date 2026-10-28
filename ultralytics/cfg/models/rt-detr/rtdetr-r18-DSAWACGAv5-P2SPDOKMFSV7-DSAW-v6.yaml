@@ -1,0 +1,84 @@
+﻿# RT-DETR with DSAWACGAv5-P2SPDOKMFSV7 + DSAW-v6
+# === DSAW-v6: v4 loss + curricula no-overlap-gated NWD matcher ===
+# Loss branch (inherited from v4, bit-exact):
+#   - Segmented geometry: mu-gated GIoU/InnerInterpIoU blend
+#   - Decoupled weights: L1 softened (alpha_l1), IoU branch unsoftened
+#   - DSAW-v2 classification positive boost
+# Matcher branch (the ONLY change vs v4):
+#   lam_j  = clip(1 - sqrt(w*h)/matcher_tau, 0, 1) ** matcher_lam_pow
+#   eta_t  = 1 - q_ema                     (one-iteration delay, ~1000 iter EMA)
+#   gate_ij= 1[ IoU_raw(pred_i, gt_j) < overlap_thresh ]
+#   w_ij   = nwd_weight * lam_j * eta_t * gate_ij
+#   cost_giou = 1 - ((1 - w) * GIoU + w * NWD)
+#
+# v5 lessons -> v6 fixes:
+#   1. v5 dragged mid/late training  -> w decays with eta (curricula)
+#   2. v5 diluted shape supervision  -> NWD only for non-overlapping pairs
+#   3. v5 lam^2 covered ~nothing     -> independent linear matcher gate
+#   4. v5 entangled with loss lam    -> matcher_tau/matcher_lam_pow decoupled
+# Fallback: nwd_weight=0 => bit-exact v4.
+loss_name: dsaw_v6
+loss_params:
+  beta: 0.5
+  alpha: 0.25
+  alpha_l1: 0.25
+  alpha_iou: 0.0
+  tau: 0.03125
+  eta_momentum: 0.999
+  q_ema_init: 0.5
+  dynamic_eta: true
+  lam_pow: 2.0
+  dynamic_geo: true
+  blend_center: 0.45
+  blend_temp: 0.05
+  inner_ratio: 0.8
+  dynamic_interp: true
+  interp_alpha: 0.99
+  nwd_const: 0.02
+  nwd_weight: 0.5
+  overlap_thresh: 0.1
+  matcher_tau: 0.03125
+  matcher_lam_pow: 1.0
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]            # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]           # 1-P2/4
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]      # 2  P2: 128ch
+  - [-1, 1, Conv, [256, 3, 2]]           # 3-P3/8
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]      # 4  P3: 256ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 5-P4/16
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]      # 6  P4: 384ch
+  - [-1, 1, Conv, [384, 3, 2]]           # 7-P5/32
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]      # 8  P5: 384ch
+
+head:
+  # P5: 384->256 (input_proj.2)
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI, [1024, 8]]                       # 10
+  - [-1, 1, Conv, [256, 1, 1]]                     # 11, Y5
+
+  # FPN: Y5_up + P4_proj -> RepC3 -> Y4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]     # 12
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]   # 13  P4: 384->256
+  - [[-2, -1], 1, Concat, [1]]                     # 14  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 15
+  - [-1, 1, Conv, [256, 1, 1]]                     # 16, Y4: 256ch
+
+  # CCFFP2V7: [P2(128ch), P3(256ch), Y4(256ch)] -> f3(256ch)
+  # spd_out_ch=128: SPDConv outputs 128 instead of default 256
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]          # 17  f3
+
+  # PAN: f3->ds + Y4 -> f4
+  - [-1, 1, Conv, [256, 3, 2]]                     # 18
+  - [[-1, 16], 1, Concat, [1]]                     # 19  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 20  f4
+
+  # PAN: f4->ds + Y5 -> f5
+  - [-1, 1, Conv, [256, 3, 2]]                     # 21
+  - [[-1, 11], 1, Concat, [1]]                     # 22  256+256=512
+  - [-1, 3, RepC3, [256, 0.5]]                     # 23  f5
+
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24
