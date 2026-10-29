@@ -86,6 +86,7 @@ from .decoder_drcr import *
 from .decoder_lbca import *
 from .decoder_fsg_sa import *
 from .decoder_rgc_sa import *
+from .decoder_rgc_sa_v2 import *
 from .decoder_pcs_sa import *
 from .aifi_laser import *
 from .aifi_sig_attn import *
@@ -122,3 +123,4 @@ from .aifi_dhc_ffn import *
 from .aifi_cope_bs import *
 from .aifi_twc_bs import *
 from .aifi_dts_bs import *
+

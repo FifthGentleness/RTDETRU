@@ -933,7 +933,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args[0] = d[args[0]]
             c1, c2 = [ch[x] for x in f], (sum([ch[x] for x in f]) if args[0] == 'concat' else ch[f[0]])
             args = [c1, args[0]]
-        elif m in (RTDETRDecoder, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA, RTDETRDecoderSGM, RTDETRDecoderDRCR, RTDETRDecoderLBCA, RTDETRDecoderFSGSA, RTDETRDecoderRGCSA, RTDETRDecoderPCSSA, RTDETRDecoderXQID, RTDETRDecoderXND200, RTDETRDecoderXDP, RTDETRDecoderXLogN, RTDETRDecoderXLIQ, RTDETRDecoderXBN15, RTDETRDecoderXSD, RTDETRDecoderXHS, RTDETRDecoderXND50, RTDETRDecoderXDoRAH, RTDETRDecoderXNoDetach, RTDETRDecoderXND200BN, RTDETRDecoderXND300, RTDETRDecoderXSiLU, RTDETRDecoderXEncDoRA, RTDETRDecoderXQScale, RTDETRDecoderXCrossScale):  # special case, channels arg must be passed in index 1
+        elif m in (RTDETRDecoder, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA, RTDETRDecoderSGM, RTDETRDecoderDRCR, RTDETRDecoderLBCA, RTDETRDecoderFSGSA, RTDETRDecoderRGCSA, RTDETRDecoderRGCSAV2, RTDETRDecoderPCSSA, RTDETRDecoderXQID, RTDETRDecoderXND200, RTDETRDecoderXDP, RTDETRDecoderXLogN, RTDETRDecoderXLIQ, RTDETRDecoderXBN15, RTDETRDecoderXSD, RTDETRDecoderXHS, RTDETRDecoderXND50, RTDETRDecoderXDoRAH, RTDETRDecoderXNoDetach, RTDETRDecoderXND200BN, RTDETRDecoderXND300, RTDETRDecoderXSiLU, RTDETRDecoderXEncDoRA, RTDETRDecoderXQScale, RTDETRDecoderXCrossScale):  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
         elif isinstance(m, str):
             t = m
@@ -1316,3 +1316,4 @@ def guess_model_task(model):
     LOGGER.warning("WARNING 閳跨媴绗?Unable to automatically guess model task, assuming 'task=detect'. "
                    "Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', or 'pose'.")
     return 'detect'  # assume detect
+
