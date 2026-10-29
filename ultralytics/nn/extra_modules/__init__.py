@@ -99,6 +99,7 @@ from .decoder_xdp import *
 from .aifi_xipc import *
 from .aifi_xlpe import *
 from .aifi_xzop import *
+from .aifi_mita import *
 from .decoder_xcfg import *
 from .aifi_xmisc import *
 from .decoder_xmisc import *
@@ -123,4 +124,5 @@ from .aifi_dhc_ffn import *
 from .aifi_cope_bs import *
 from .aifi_twc_bs import *
 from .aifi_dts_bs import *
+
 

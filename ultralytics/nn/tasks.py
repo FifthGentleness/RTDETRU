@@ -911,7 +911,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = c1[-1]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_RegisterBlockSparse, AIFI_RetrievalBlockSparse, AIFI_CondPEBlockSparse, AIFI_ForegroundGuided, AIFI_RetrievalAugmented, AIFI_FoundationDistill, AIFI_SelectiveScan, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet, AIFI_TGHBSA, AIFI_RABSA, AIFI_DGMB, AIFI_ASB, AIFI_CBKFFN, AIFI_ASConvFFN, AIFI_SAGFFN, AIFI_CPAFFN, AIFI_Passthrough, AIFI_DHCFFN, AIFI_CoPEBS, AIFI_TWCBS, AIFI_DTSBS, AIFI_LASER, AIFI_SigAttn, AIFI_PRepBN, AIFI_XHMix, AIFI_XAOS, AIFI_XIPC, AIFI_XLPE, AIFI_XZOP, AIFI_XADrop, AIFI_XTemp, AIFI_XPre, AIFI_XMoE2, AIFI_XDoRA, AIFI_XDP01, AIFI_XFDrop, AIFI_XPEOff, AIFI_XPScale, AIFI_XQKV05, AIFI_XDoRA1, AIFI_XAttnLN, AIFI_XGLUFFN, AIFI_XHeadTemp, AIFI_XFFNSiLU):
+        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_RegisterBlockSparse, AIFI_RetrievalBlockSparse, AIFI_CondPEBlockSparse, AIFI_ForegroundGuided, AIFI_RetrievalAugmented, AIFI_FoundationDistill, AIFI_SelectiveScan, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet, AIFI_TGHBSA, AIFI_RABSA, AIFI_DGMB, AIFI_ASB, AIFI_CBKFFN, AIFI_ASConvFFN, AIFI_SAGFFN, AIFI_CPAFFN, AIFI_Passthrough, AIFI_DHCFFN, AIFI_CoPEBS, AIFI_TWCBS, AIFI_DTSBS, AIFI_LASER, AIFI_SigAttn, AIFI_PRepBN, AIFI_XHMix, AIFI_XAOS, AIFI_XIPC, AIFI_XLPE, AIFI_XZOP, AIFI_XADrop, AIFI_XTemp, AIFI_XPre, AIFI_XMoE2, AIFI_XDoRA, AIFI_XDP01, AIFI_XFDrop, AIFI_XPEOff, AIFI_XPScale, AIFI_XQKV05, AIFI_XDoRA1, AIFI_XAttnLN, AIFI_XGLUFFN, AIFI_XHeadTemp, AIFI_XFFNSiLU, AIFI_MiTA):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
@@ -1316,4 +1316,5 @@ def guess_model_task(model):
     LOGGER.warning("WARNING 閳跨媴绗?Unable to automatically guess model task, assuming 'task=detect'. "
                    "Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify', or 'pose'.")
     return 'detect'  # assume detect
+
 
