@@ -87,6 +87,7 @@ from .decoder_lbca import *
 from .decoder_fsg_sa import *
 from .decoder_rgc_sa import *
 from .decoder_rgc_sa_v2 import *
+from .decoder_cgqs import *
 from .decoder_pcs_sa import *
 from .aifi_laser import *
 from .aifi_sig_attn import *
