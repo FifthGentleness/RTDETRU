@@ -91,6 +91,12 @@ class RTDETRTrainer(DetectionTrainer):
             (dict): Preprocessed batch.
         """
         batch = super().preprocess_batch(batch)
+        # Actual epoch (including resume/DDP), never inferred from forward-call counts.
+        batch['_innovation_epoch'] = self.epoch
+        batch['_innovation_epochs'] = self.epochs
+        for module in self.model.modules():
+            if getattr(module, 'innovation_schedule', False):
+                module.set_epoch(self.epoch, self.epochs)
         bs = len(batch['img'])
         batch_idx = batch['batch_idx']
         gt_bbox, gt_class = [], []

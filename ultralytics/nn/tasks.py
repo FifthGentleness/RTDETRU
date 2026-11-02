@@ -443,6 +443,11 @@ class RTDETRDetectionModel(DetectionModel):
             verbose (bool, optional): Print additional information during initialization. Defaults to True.
         """
         super().__init__(cfg=cfg, ch=ch, nc=nc, verbose=verbose)
+        if 'fqrank_params' in self.yaml:
+            head = self.model[-1]
+            if not isinstance(head, RTDETRDecoderFQRank):
+                raise ValueError('fqrank_params requires RTDETRDecoderFQRank')
+            head.configure(self.yaml['fqrank_params'])
 
     def init_criterion(self):
         """Initialize the loss criterion for the RTDETRDetectionModel."""
@@ -476,6 +481,8 @@ class RTDETRDetectionModel(DetectionModel):
         if not hasattr(self, 'criterion'):
             self.criterion = self.init_criterion()
 
+        if getattr(self.criterion, 'innovation_schedule', False) and '_innovation_epoch' in batch:
+            self.criterion.set_epoch(batch['_innovation_epoch'], batch['_innovation_epochs'])
         img = batch['img']
         # NOTE: preprocess gt_bbox and gt_labels to list.
         bs = len(img)
@@ -485,7 +492,7 @@ class RTDETRDetectionModel(DetectionModel):
             'cls': batch['cls'].to(img.device, dtype=torch.long).view(-1),
             'bboxes': batch['bboxes'].to(device=img.device),
             'batch_idx': batch_idx.to(img.device, dtype=torch.long).view(-1),
-            'gt_groups': gt_groups}
+            'gt_groups': gt_groups, 'image_hw': tuple(img.shape[-2:])}
 
         preds = self.predict(img, batch=targets) if preds is None else preds
         dec_bboxes, dec_scores, enc_bboxes, enc_scores, dn_meta = preds if self.training else preds[1]
@@ -911,7 +918,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = c1[-1]
             args = [c1, *args]
-        elif m in (AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_RegisterBlockSparse, AIFI_RetrievalBlockSparse, AIFI_CondPEBlockSparse, AIFI_ForegroundGuided, AIFI_RetrievalAugmented, AIFI_FoundationDistill, AIFI_SelectiveScan, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet, AIFI_TGHBSA, AIFI_RABSA, AIFI_DGMB, AIFI_ASB, AIFI_CBKFFN, AIFI_ASConvFFN, AIFI_SAGFFN, AIFI_CPAFFN, AIFI_Passthrough, AIFI_DHCFFN, AIFI_CoPEBS, AIFI_TWCBS, AIFI_DTSBS, AIFI_LASER, AIFI_SigAttn, AIFI_PRepBN, AIFI_XHMix, AIFI_XAOS, AIFI_XIPC, AIFI_XLPE, AIFI_XZOP, AIFI_XADrop, AIFI_XTemp, AIFI_XPre, AIFI_XMoE2, AIFI_XDoRA, AIFI_XDP01, AIFI_XFDrop, AIFI_XPEOff, AIFI_XPScale, AIFI_XQKV05, AIFI_XDoRA1, AIFI_XAttnLN, AIFI_XGLUFFN, AIFI_XHeadTemp, AIFI_XFFNSiLU, AIFI_MiTA):
+        elif m in (AIFI_QHGate, AIFI_BlockSparseQHGate, AIFI_DFA, AIFI_BinaryAttention, AIFI_BlockSparse, AIFI_BlockSparseV2, AIFI_BlockSparseV3, AIFI_BlockSparseV4, AIFI_BlockSparseV5, AIFI_BlockSparseV6, AIFI_BlockSparseV7, AIFI_BlockSparseV8, AIFI_BlockSparseV9, AIFI_BlockSparseV10, AIFI_BlockSparseV11, AIFI_BlockSparseV12, AIFI_BlockSparseV13, AIFI_BlockSparseV14, AIFI_BlockSparseV15, AIFI_BlockSparseV16, AIFI_BlockSparseV17, AIFI_BlockSparseV19, AIFI_ContextCluster, AIFI_RegisterMemory, AIFI_RegisterBlockSparse, AIFI_RetrievalBlockSparse, AIFI_CondPEBlockSparse, AIFI_ForegroundGuided, AIFI_RetrievalAugmented, AIFI_FoundationDistill, AIFI_SelectiveScan, AIFI_DiffAttn, AIFI_Neighborhood, AIFI_QKNorm, AIFI_HOPS, AIFI_InvDet, AIFI_TGHBSA, AIFI_RABSA, AIFI_DGMB, AIFI_ASB, AIFI_CBKFFN, AIFI_ASConvFFN, AIFI_SAGFFN, AIFI_CPAFFN, AIFI_Passthrough, AIFI_DHCFFN, AIFI_CoPEBS, AIFI_TWCBS, AIFI_DTSBS, AIFI_LASER, AIFI_SigAttn, AIFI_PRepBN, AIFI_XHMix, AIFI_XAOS, AIFI_XIPC, AIFI_XLPE, AIFI_XZOP, AIFI_XADrop, AIFI_XTemp, AIFI_XPre, AIFI_XMoE2, AIFI_XDoRA, AIFI_XDP01, AIFI_XFDrop, AIFI_XPEOff, AIFI_XPScale, AIFI_XQKV05, AIFI_XDoRA1, AIFI_XAttnLN, AIFI_XGLUFFN, AIFI_XHeadTemp, AIFI_XFFNSiLU, AIFI_MiTA):
             # Single-input AIFI replacements: input/output shape equals AIFI.
             c2 = ch[f]
             args = [ch[f], *args]
@@ -933,7 +940,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args[0] = d[args[0]]
             c1, c2 = [ch[x] for x in f], (sum([ch[x] for x in f]) if args[0] == 'concat' else ch[f[0]])
             args = [c1, args[0]]
-        elif m in (RTDETRDecoder, RTDETRDecoderCGQS, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA, RTDETRDecoderSGM, RTDETRDecoderDRCR, RTDETRDecoderLBCA, RTDETRDecoderFSGSA, RTDETRDecoderRGCSA, RTDETRDecoderRGCSAV2, RTDETRDecoderPCSSA, RTDETRDecoderXQID, RTDETRDecoderXND200, RTDETRDecoderXDP, RTDETRDecoderXLogN, RTDETRDecoderXLIQ, RTDETRDecoderXBN15, RTDETRDecoderXSD, RTDETRDecoderXHS, RTDETRDecoderXND50, RTDETRDecoderXDoRAH, RTDETRDecoderXNoDetach, RTDETRDecoderXND200BN, RTDETRDecoderXND300, RTDETRDecoderXSiLU, RTDETRDecoderXEncDoRA, RTDETRDecoderXQScale, RTDETRDecoderXCrossScale):  # special case, channels arg must be passed in index 1
+        elif m in (RTDETRDecoderFQRank, RTDETRDecoder, RTDETRDecoderCGQS, RTDETRDecoderSQSM, RTDETRDecoderAGGQA, RTDETRDecoderCLDM, RTDETRDecoderNSQ, RTDETRDecoderQGA, RTDETRDecoderSGM, RTDETRDecoderDRCR, RTDETRDecoderLBCA, RTDETRDecoderFSGSA, RTDETRDecoderRGCSA, RTDETRDecoderRGCSAV2, RTDETRDecoderPCSSA, RTDETRDecoderXQID, RTDETRDecoderXND200, RTDETRDecoderXDP, RTDETRDecoderXLogN, RTDETRDecoderXLIQ, RTDETRDecoderXBN15, RTDETRDecoderXSD, RTDETRDecoderXHS, RTDETRDecoderXND50, RTDETRDecoderXDoRAH, RTDETRDecoderXNoDetach, RTDETRDecoderXND200BN, RTDETRDecoderXND300, RTDETRDecoderXSiLU, RTDETRDecoderXEncDoRA, RTDETRDecoderXQScale, RTDETRDecoderXCrossScale):  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
         elif isinstance(m, str):
             t = m

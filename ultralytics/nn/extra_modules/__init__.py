@@ -127,3 +127,6 @@ from .aifi_twc_bs import *
 from .aifi_dts_bs import *
 
 
+
+from .aifi_qhgate import *
+from .decoder_fqrank import *
