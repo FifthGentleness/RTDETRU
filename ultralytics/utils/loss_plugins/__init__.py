@@ -27,6 +27,7 @@ import importlib
 
 # name -> full dotted path of the loss class
 LOSS_REGISTRY = {
+    'bqg_vfl': 'ultralytics.utils.loss_plugins.bqg_vfl_loss.RTDETRDetectionLossBQGVFL',
     'peq_vfl': 'ultralytics.utils.loss_plugins.peq_vfl_loss.RTDETRDetectionLossPEQVFL',
     'sd': 'ultralytics.utils.loss_plugins.sd_loss.RTDETRDetectionLossSD',
     'tri_scale': 'ultralytics.utils.loss_plugins.tri_scale_loss.TriScaleDetectionLoss',

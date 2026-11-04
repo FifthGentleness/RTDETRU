@@ -130,3 +130,5 @@ from .aifi_dts_bs import *
 
 from .aifi_qhgate import *
 from .decoder_fqrank import *
+from .aifi_slgm import *
+from .decoder_cir import *
