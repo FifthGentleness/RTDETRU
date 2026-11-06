@@ -29,6 +29,7 @@ import importlib
 LOSS_REGISTRY = {
     'bqg_vfl': 'ultralytics.utils.loss_plugins.bqg_vfl_loss.RTDETRDetectionLossBQGVFL',
     'peq_vfl': 'ultralytics.utils.loss_plugins.peq_vfl_loss.RTDETRDetectionLossPEQVFL',
+    'neighbor_overlap': 'ultralytics.utils.loss_plugins.neighbor_overlap_loss.RTDETRDetectionLossNeighborOverlap',
     'sd': 'ultralytics.utils.loss_plugins.sd_loss.RTDETRDetectionLossSD',
     'tri_scale': 'ultralytics.utils.loss_plugins.tri_scale_loss.TriScaleDetectionLoss',
     'sual': 'ultralytics.utils.loss_plugins.sual_loss.RTDETRDetectionLossSUAL',

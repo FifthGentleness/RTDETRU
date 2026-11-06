@@ -132,3 +132,5 @@ from .aifi_qhgate import *
 from .decoder_fqrank import *
 from .aifi_slgm import *
 from .decoder_cir import *
+from .aifi_token_swap import *
+from .decoder_p3_edge_refine import *

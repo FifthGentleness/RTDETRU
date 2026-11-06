@@ -917,7 +917,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM):
+        elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap):
             c2 = ch[f]
             args = [ch[f], *args]
         elif m is AIFI_HSB:
@@ -943,7 +943,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args.append([ch[x] for x in f])
             if m is Segment:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-        elif m is RTDETRDecoderCIR:
+        elif m in (RTDETRDecoderCIR, RTDETRDecoderP3EdgeRefine):
             args.insert(1, [ch[x] for x in f])
         elif m is Fusion:
             args[0] = d[args[0]]

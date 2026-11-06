@@ -1,0 +1,45 @@
+# Standard-AIFI FSV7 + matched neighbor overlap loss (Point2RBox-v2, CVPR 2025).
+nc: 10
+scales:
+  l: [1.00, 1.00, 1024]
+
+loss_name: neighbor_overlap
+loss_params:
+  max_weight: 0.05
+  margin: 0.05
+  smooth_beta: 0.05
+  start_epoch: 0
+  full_epoch: 1
+  min_iou: 0.50
+  small_px: 32.0
+  max_distance: 2.5
+  ambiguous_iou: 0.80
+
+backbone:
+  - [-1, 1, Conv, [64, 3, 2]]
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [-1, 1, C2f_DSAWACGA_v5, [128]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [-1, 1, C2f_DSAWACGA_v5, [256]]
+  - [-1, 1, Conv, [384, 3, 2]]
+  - [-1, 1, C2f_DSAWACGA_v5, [384]]
+  - [-1, 1, Conv, [384, 3, 2]]
+  - [-1, 3, C2f_DSAWACGA_v5, [384]]
+
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 9
+  - [-1, 1, AIFI, [1024, 8]]  # 10, P5 AIFI
+  - [-1, 1, Conv, [256, 1, 1]]  # 11, Y5
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256, 0.5]]
+  - [-1, 1, Conv, [256, 1, 1]]  # 16, Y4
+  - [[2, 4, 16], 1, CCFFP2V7, [256, 128]]  # 17, f3
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 16], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256, 0.5]]  # 20, f4
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 11], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256, 0.5]]  # 23, f5
+  - [[17, 20, 23], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # 24
