@@ -943,7 +943,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args.append([ch[x] for x in f])
             if m is Segment:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
-        elif m in (RTDETRDecoderCIR, RTDETRDecoderP3EdgeRefine):
+        elif m in (RTDETRDecoderCIR, RTDETRDecoderP3EdgeRefine, RTDETRDecoderP3EdgeRead, RTDETRDecoderQuerySupplement):
             args.insert(1, [ch[x] for x in f])
         elif m is Fusion:
             args[0] = d[args[0]]

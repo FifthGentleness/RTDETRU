@@ -27,6 +27,8 @@ import importlib
 
 # name -> full dotted path of the loss class
 LOSS_REGISTRY = {
+    'query_supplement': 'ultralytics.utils.loss_plugins.query_supplement_loss.RTDETRDetectionLossQuerySupplement',
+    'query_supplement_decode': 'ultralytics.utils.loss_plugins.query_supplement_decode_loss.RTDETRDetectionLossQuerySupplementDecode',
     'bqg_vfl': 'ultralytics.utils.loss_plugins.bqg_vfl_loss.RTDETRDetectionLossBQGVFL',
     'peq_vfl': 'ultralytics.utils.loss_plugins.peq_vfl_loss.RTDETRDetectionLossPEQVFL',
     'neighbor_overlap': 'ultralytics.utils.loss_plugins.neighbor_overlap_loss.RTDETRDetectionLossNeighborOverlap',
