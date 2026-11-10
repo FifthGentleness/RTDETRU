@@ -892,7 +892,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
                      C2f_LGLB, C2f_ConverseB, C2f_Converse2D, Converse2DC3, C2f_GCConv, GCConvC3, C2f_CFBlock, C2f_FMABlock, C2f_LWGA, CSFH_Block, C2f_DPF, C2f_DSAWACGA, C2f_DSAWACGA_v4, C2f_DSAWACGA_v5, C2f_DSAWACGA_v6, C2f_DSAWACGA_v7):
                 args.insert(2, n)  # number of repeats
                 n = 1
-        elif m in (AIFI, PDSF_Attention, AIFI_AgentAttention, AIFI_AgentAttentionV2, AIFI_SET, AIFI_BA, AIFI_LPE, TransformerEncoderLayer_LocalWindowAttention, TransformerEncoderLayer_DAttention, TransformerEncoderLayer_HiLo,
+        elif m in (AIFI, PDSF_Attention, PDSF_BlockSparse, AIFI_AgentAttention, AIFI_AgentAttentionV2, AIFI_SET, AIFI_BA, AIFI_LPE, TransformerEncoderLayer_LocalWindowAttention, TransformerEncoderLayer_DAttention, TransformerEncoderLayer_HiLo,
                    TransformerEncoderLayer_EfficientAdditiveAttnetion, AIFI_RepBN, TransformerEncoderLayer_AdditiveTokenMixer,
                    TransformerEncoderLayer_MSMHSA, TransformerEncoderLayer_DHSA, TransformerEncoderLayer_DPB, DTAB, ETB, FDT,
                    TransformerEncoderLayer_Pola, TransformerEncoderLayer_TSSA, TransformerEncoderLayer_ASSA, TransformerEncoderLayer_Pola_CGLU,
@@ -917,7 +917,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap):
+        elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap, AIFI_BlockSparsePola):
             c2 = ch[f]
             args = [ch[f], *args]
         elif m is AIFI_HSB:

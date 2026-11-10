@@ -10,6 +10,7 @@ from .aifi_muvit import *
 from .aifi_dfa import *
 from .aifi_binary_attention import *
 from .aifi_block_sparse import *
+from .aifi_block_sparse_pola import AIFI_BlockSparsePola
 from .aifi_block_sparse_v2 import *
 from .aifi_block_sparse_v3 import *
 from .aifi_block_sparse_v4 import *
@@ -137,3 +138,4 @@ from .decoder_p3_edge_refine import *
 from .decoder_p3_edge_read import *
 from ultralytics.utils.loss_plugins.query_supplement_loss import RTDETRDecoderQuerySupplement
 from .pdsf_attention import PDSF_Attention
+from .pdsf_block_sparse import PDSF_BlockSparse
