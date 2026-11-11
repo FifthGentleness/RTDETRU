@@ -40,6 +40,12 @@ LOSS_REGISTRY = {
     'mal_shape': 'ultralytics.utils.loss_plugins.mal_shape_loss.RTDETRDetectionLossMalShape',
     'inner_siou': 'ultralytics.utils.loss_plugins.inner_siou_loss.RTDETRDetectionLossInnerSIoU',
     'inner_mpdiou': 'ultralytics.utils.loss_plugins.inner_mpdiou_loss.RTDETRDetectionLossInnerMPDIoU',
+    'mgiou_hbb': 'ultralytics.utils.loss_plugins.mgiou_hbb_loss.RTDETRDetectionLossMGIoUHBB',
+    'gcd': 'ultralytics.utils.loss_plugins.gcd_loss.RTDETRDetectionLossGCD',
+    'jittering_iou': 'ultralytics.utils.loss_plugins.jittering_iou_loss.RTDETRDetectionLossJitteringIoU',
+    'inner_giou': 'ultralytics.utils.loss_plugins.inner_giou_loss.RTDETRDetectionLossInnerGIoU',
+    'mgiou_hbb_inner_iou': 'ultralytics.utils.loss_plugins.mgiou_hbb_inner_iou_loss.RTDETRDetectionLossMGIoUHBBInnerIoU',
+    'jittering_inner_iou': 'ultralytics.utils.loss_plugins.jittering_inner_iou_loss.RTDETRDetectionLossJitteringInnerIoU',
     # InterpIoU loss family (Liu & Watanabe, Neurocomputing 2026):
     #   inner_interpiou    -> D-InterpIoU + Inner-IoU auxiliary box
     #   focaler_interpiou  -> D-InterpIoU + Focaler interval-mapping auxiliary term
