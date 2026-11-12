@@ -43,6 +43,7 @@ LOSS_REGISTRY = {
     'mgiou_hbb': 'ultralytics.utils.loss_plugins.mgiou_hbb_loss.RTDETRDetectionLossMGIoUHBB',
     'mgiou_hbb_x2': 'ultralytics.utils.loss_plugins.mgiou_hbb_x2_loss.RTDETRDetectionLossMGIoUHBBX2',
     'mgiou_hbb_x4': 'ultralytics.utils.loss_plugins.mgiou_hbb_x4_loss.RTDETRDetectionLossMGIoUHBBX4',
+    'mgiou_hbb_iou_scale': 'ultralytics.utils.loss_plugins.mgiou_hbb_iou_scale_loss.RTDETRDetectionLossMGIoUHBBIoUScale',
     'gcd': 'ultralytics.utils.loss_plugins.gcd_loss.RTDETRDetectionLossGCD',
     'gcd_x2': 'ultralytics.utils.loss_plugins.gcd_x2_loss.RTDETRDetectionLossGCDX2',
     'jittering_iou': 'ultralytics.utils.loss_plugins.jittering_iou_loss.RTDETRDetectionLossJitteringIoU',
