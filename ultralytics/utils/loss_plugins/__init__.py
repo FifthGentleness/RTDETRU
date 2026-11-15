@@ -112,6 +112,7 @@ LOSS_REGISTRY = {
     # out late via the v6 eta curriculum. nwd_weight=0 => bit-exact v4;
     # q_warmup=0 => bit-exact v6.
     'dsaw_v7': 'ultralytics.utils.loss_plugins.dsaw_v7_loss.RTDETRDetectionLossDSAWV7',
+    'dsaw_v8_tcr': 'ultralytics.utils.loss_plugins.dsaw_v8_tcr_loss.RTDETRDetectionLossDSAWV8TCR',
     'xfcw': 'ultralytics.utils.loss_plugins.xfcw_loss.RTDETRDetectionLossXFCW',
     'xcas': 'ultralytics.utils.loss_plugins.xcas_loss.RTDETRDetectionLossXCAS',
     'xgbr': 'ultralytics.utils.loss_plugins.xgbr_loss.RTDETRDetectionLossXGBR',
