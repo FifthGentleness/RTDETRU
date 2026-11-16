@@ -1,4 +1,4 @@
-"""DSAWv4 with AP-threshold ranking and box correction on final regular queries."""
+"""AP-threshold ranking and box correction on final regular queries."""
 
 import math
 
@@ -7,11 +7,12 @@ import torch.nn.functional as F
 
 from ultralytics.utils.metrics import bbox_iou
 
+from .dsaw_v4_iou_only_loss import RTDETRDetectionLossDSAWV4IoUOnly
 from .dsaw_v4_loss import RTDETRDetectionLossDSAWV4
 
 
-class RTDETRDetectionLossDSAWV8TCR(RTDETRDetectionLossDSAWV4):
-    """Keep DSAWv4 assignments; use within-batch per-class score inversions as extra supervision."""
+class _TCRLossMixin:
+    """Use the base criterion's matches for extra supervision on final regular queries."""
 
     innovation_schedule = True
     thresholds = tuple(t / 100 for t in range(50, 100, 5))
@@ -213,3 +214,11 @@ class RTDETRDetectionLossDSAWV8TCR(RTDETRDetectionLossDSAWV4):
             stats['cross_boxes'] = (cross_target > 0).sum()
         self.last_tcr_stats = {**stats, 'rank': rank.detach(), 'cross': cross.detach()}
         return rank, cross
+
+
+class RTDETRDetectionLossDSAWV8TCR(_TCRLossMixin, RTDETRDetectionLossDSAWV4):
+    """Original TCR on complete DSAWv4, retained for existing experiments."""
+
+
+class RTDETRDetectionLossDSAWV4IoUOnlyTCR(_TCRLossMixin, RTDETRDetectionLossDSAWV4IoUOnly):
+    """TCR on native VFL, plain L1, and the DSAWv4 IoU blend."""
