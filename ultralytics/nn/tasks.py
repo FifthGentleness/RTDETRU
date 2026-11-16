@@ -498,7 +498,14 @@ class RTDETRDetectionModel(DetectionModel):
             'batch_idx': batch_idx.to(img.device, dtype=torch.long).view(-1),
             'gt_groups': gt_groups, 'image_hw': tuple(img.shape[-2:])}
 
-        preds = self.predict(img, batch=targets) if preds is None else preds
+        loss_kwargs = {}
+        if preds is None:
+            if self.training and getattr(self.criterion, 'needs_encoder_pool', False):
+                with self.criterion.capture_encoder(self.model[-1]) as encoder_pool:
+                    preds = self.predict(img, batch=targets)
+                loss_kwargs['encoder_pool'] = encoder_pool
+            else:
+                preds = self.predict(img, batch=targets)
         dec_bboxes, dec_scores, enc_bboxes, enc_scores, dn_meta = preds if self.training else preds[1]
         if dn_meta is None:
             dn_bboxes, dn_scores = None, None
@@ -513,7 +520,8 @@ class RTDETRDetectionModel(DetectionModel):
                               targets,
                               dn_bboxes=dn_bboxes,
                               dn_scores=dn_scores,
-                              dn_meta=dn_meta)
+                              dn_meta=dn_meta,
+                              **loss_kwargs)
         # Route self-distillation aux loss (AIFI_BlockSparseV8).
         # Modules populate .route_distill_loss during the training forward;
         # collected here and added to the total with a fixed weight.
