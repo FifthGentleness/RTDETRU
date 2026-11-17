@@ -8,6 +8,7 @@ from .aifi_spectral import *
 from .aifi_boltzmann import *
 from .aifi_muvit import *
 from .aifi_dfa import *
+from .aifi_dwsa import AIFI_DWSA
 from .aifi_binary_attention import *
 from .aifi_block_sparse import *
 from .aifi_block_sparse_pola import AIFI_BlockSparsePola

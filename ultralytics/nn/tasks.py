@@ -925,7 +925,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap, AIFI_BlockSparsePola):
+        elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap, AIFI_BlockSparsePola, AIFI_DWSA):
             c2 = ch[f]
             args = [ch[f], *args]
         elif m is AIFI_HSB:
