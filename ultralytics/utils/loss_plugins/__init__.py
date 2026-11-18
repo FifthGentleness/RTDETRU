@@ -27,6 +27,7 @@ import importlib
 
 # name -> full dotted path of the loss class
 LOSS_REGISTRY = {
+    'wh_ratio_aux': 'ultralytics.utils.loss_plugins.wh_ratio_aux_loss.RTDETRDetectionLossWHRatioAux',
     'sqa': 'ultralytics.utils.loss_plugins.sqa_loss.RTDETRDetectionLossSQA',
     'gbc': 'ultralytics.utils.loss_plugins.gbc_loss.RTDETRDetectionLossGBC',
     'query_supplement': 'ultralytics.utils.loss_plugins.query_supplement_loss.RTDETRDetectionLossQuerySupplement',
