@@ -96,6 +96,7 @@ LOSS_REGISTRY = {
     # DSAW-v4: segmented geometry (IoU-gated GIoU/InnerInterpIoU blend) +
     # decoupled weights (L1 softened, IoU branch unsoftened by default).
     'dsaw_v4': 'ultralytics.utils.loss_plugins.dsaw_v4_loss.RTDETRDetectionLossDSAWV4',
+    'dsaw_v4_giou': 'ultralytics.utils.loss_plugins.dsaw_v4_giou_loss.RTDETRDetectionLossDSAWV4GIoU',
     'dsaw_v4_iou_only': 'ultralytics.utils.loss_plugins.dsaw_v4_iou_only_loss.RTDETRDetectionLossDSAWV4IoUOnly',
     'dsaw_v4_edge': 'ultralytics.utils.loss_plugins.dsaw_v4_edge_loss.RTDETRDetectionLossDSAWV4Edge',
     # DSAW-v5: matching-end intervention - scale-aware Hungarian cost
