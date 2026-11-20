@@ -140,3 +140,4 @@ from .decoder_p3_edge_read import *
 from ultralytics.utils.loss_plugins.query_supplement_loss import RTDETRDecoderQuerySupplement
 from .pdsf_attention import PDSF_Attention
 from .pdsf_block_sparse import PDSF_BlockSparse
+from .aifi_p3_subcell import AIFI_P3Subcell
