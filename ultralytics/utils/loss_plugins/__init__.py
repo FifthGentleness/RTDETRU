@@ -29,6 +29,7 @@ import importlib
 LOSS_REGISTRY = {
     'wh_ratio_aux': 'ultralytics.utils.loss_plugins.wh_ratio_aux_loss.RTDETRDetectionLossWHRatioAux',
     'sqa': 'ultralytics.utils.loss_plugins.sqa_loss.RTDETRDetectionLossSQA',
+    'sqa_v2': 'ultralytics.utils.loss_plugins.sqa_v2_loss.RTDETRDetectionLossSQAv2',
     'gbc': 'ultralytics.utils.loss_plugins.gbc_loss.RTDETRDetectionLossGBC',
     'query_supplement': 'ultralytics.utils.loss_plugins.query_supplement_loss.RTDETRDetectionLossQuerySupplement',
     'query_supplement_decode': 'ultralytics.utils.loss_plugins.query_supplement_decode_loss.RTDETRDetectionLossQuerySupplementDecode',
