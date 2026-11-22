@@ -925,8 +925,8 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             c1 = [ch[x] for x in f]
             c2 = args[0]
             args = [c1, *args]
-        elif m is AIFI_P3Subcell:
-            c1 = [ch[x] for x in f]  # [P3, projected P5]
+        elif m in (AIFI_P3Subcell, AIFI_DirectionalRelation):
+            c1 = [ch[x] for x in f]  # [finer feature, projected P5]
             c2 = c1[-1]
             args = [c1, *args]
         elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap, AIFI_BlockSparsePola, AIFI_DWSA):
