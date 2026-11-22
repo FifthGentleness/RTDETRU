@@ -610,7 +610,7 @@ class RTDETRDetectionModel(DetectionModel):
             else:
                 x = m(x)  # run
                 y.append(x if m.i in self.save else None)  # save output
-            if visualize:
+            if visualize and isinstance(x, torch.Tensor):
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
         head = self.model[-1]
         x = head([y[j] for j in head.f], batch)  # head inference
@@ -928,6 +928,10 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
         elif m in (AIFI_P3Subcell, AIFI_DirectionalRelation):
             c1 = [ch[x] for x in f]  # [finer feature, projected P5]
             c2 = c1[-1]
+            args = [c1, *args]
+        elif m is AIFI_CoupledGraph:
+            c1 = [ch[x] for x in f]  # [P3, projected P5]
+            c2 = (c1[1], c1[0])  # [encoded P5, refined P3], unpacked by GetIndexOutput
             args = [c1, *args]
         elif m in (AIFI_SLGM, AIFI_BlockSparseSLGM, AIFI_BlockSparseTokenSwap, AIFI_BlockSparsePola, AIFI_DWSA):
             c2 = ch[f]

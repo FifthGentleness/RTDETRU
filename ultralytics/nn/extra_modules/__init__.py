@@ -142,3 +142,4 @@ from ultralytics.utils.loss_plugins.query_supplement_loss import RTDETRDecoderQu
 from .pdsf_attention import PDSF_Attention
 from .pdsf_block_sparse import PDSF_BlockSparse
 from .aifi_p3_subcell import AIFI_P3Subcell
+from .aifi_coupled_graph import AIFI_CoupledGraph
