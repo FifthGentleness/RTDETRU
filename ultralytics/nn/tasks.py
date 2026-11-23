@@ -907,7 +907,8 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
                    TransformerEncoderLayer_Pola_FMFFN, AIFI_SEFN, TransformerEncoderLayer_ASSA_SEFN, TransformerEncoderLayer_Pola_SEFN, AIFI_Mona,
                    TransformerEncoderLayer_Pola_SEFN_Mona, TransformerEncoderLayer_ASSA_SEFN_Mona, AIFI_DyT, TransformerEncoderLayer_ASSA_SEFN_Mona_DyT,
                    TransformerEncoderLayer_Pola_SEFN_Mona_DyT, AIFI_SEFFN, TransformerEncoderLayer_Pola_SEFFN_Mona_DyT, AIFI_EDFFN, TransformerEncoderLayer_Pola_EDFFN_Mona_DyT,
-                   TransformerEncoderLayer_MSLA, TransformerEncoderLayer_EPGO, TransformerEncoderLayer_SHSA, TransformerEncoderLayer_SHSA_EPGO, AIFI_DML):
+                   TransformerEncoderLayer_MSLA, TransformerEncoderLayer_EPGO, TransformerEncoderLayer_SHSA, TransformerEncoderLayer_SHSA_EPGO, AIFI_DML,
+                   AIFI_DualAxisEntmax):
             c2 = ch[f]
             args = [ch[f], *args]
         elif m is AIFI_MuViT:

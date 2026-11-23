@@ -144,3 +144,4 @@ from .pdsf_block_sparse import PDSF_BlockSparse
 from .aifi_p3_subcell import AIFI_P3Subcell
 from .aifi_coupled_graph import AIFI_CoupledGraph
 from .aifi_ess_attn import AIFI_ESSAttn
+from .aifi_dual_axis_entmax import AIFI_DualAxisEntmax
