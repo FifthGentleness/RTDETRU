@@ -11,6 +11,9 @@ import torch.nn as nn
 
 from ultralytics.nn.modules import *
 from ultralytics.nn.extra_modules import *
+from ultralytics.nn.extra_modules.aifi_magnitude import AIFI_MagnitudeAware
+from ultralytics.nn.extra_modules.backbone_repdown import BasicBlock_RepDown
+from ultralytics.nn.extra_modules.ccff_resfu import CCFFReSFU
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
 from ultralytics.utils.loss import v8ClassificationLoss, v8DetectionLoss, v8PoseLoss, v8SegmentationLoss
@@ -908,7 +911,7 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
                    TransformerEncoderLayer_Pola_SEFN_Mona, TransformerEncoderLayer_ASSA_SEFN_Mona, AIFI_DyT, TransformerEncoderLayer_ASSA_SEFN_Mona_DyT,
                    TransformerEncoderLayer_Pola_SEFN_Mona_DyT, AIFI_SEFFN, TransformerEncoderLayer_Pola_SEFFN_Mona_DyT, AIFI_EDFFN, TransformerEncoderLayer_Pola_EDFFN_Mona_DyT,
                    TransformerEncoderLayer_MSLA, TransformerEncoderLayer_EPGO, TransformerEncoderLayer_SHSA, TransformerEncoderLayer_SHSA_EPGO, AIFI_DML,
-                   AIFI_DualAxisEntmax):
+                   AIFI_DualAxisEntmax, AIFI_MagnitudeAware):
             c2 = ch[f]
             args = [ch[f], *args]
         elif m is AIFI_MuViT:
@@ -956,6 +959,10 @@ def parse_model(d, ch, verbose=True, warehouse_manager=None):  # model_dict, inp
             args = [ch[f]]
         elif m in {Concat}:
             c2 = sum(ch[x] for x in f)
+        elif m is CCFFReSFU:
+            channels = [ch[x] for x in f]
+            c2 = channels[0]
+            args = [channels, *args]
         elif m in (Detect, Segment, Pose):
             args.append([ch[x] for x in f])
             if m is Segment:
