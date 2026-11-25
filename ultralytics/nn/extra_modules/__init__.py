@@ -146,3 +146,4 @@ from .aifi_coupled_graph import AIFI_CoupledGraph
 from .aifi_ess_attn import AIFI_ESSAttn
 from .aifi_dual_axis_entmax import AIFI_DualAxisEntmax
 from .aifi_p5_routed_p3 import AIFI_P5RoutedP3
+from .aifi_mhc_pfbs import AIFI_mHCPFBSA
