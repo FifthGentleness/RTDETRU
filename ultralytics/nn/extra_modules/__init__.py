@@ -148,3 +148,4 @@ from .aifi_dual_axis_entmax import AIFI_DualAxisEntmax
 from .aifi_p5_routed_p3 import AIFI_P5RoutedP3
 from .aifi_p5_routed_p3_v2 import AIFI_P5RoutedP3V2
 from .aifi_mhc_pfbs import AIFI_mHCPFBSA
+from .aifi_leave_one_out_ridge import AIFI_LeaveOneOutRidge
