@@ -136,6 +136,9 @@ LOSS_REGISTRY = {
     'xfcwcas': 'ultralytics.utils.loss_plugins.xb8_loss.RTDETRDetectionLossXFCWCAS',
     'xsizeq': 'ultralytics.utils.loss_plugins.xb8_loss.RTDETRDetectionLossXSizeQ',
     'vbgk': 'ultralytics.utils.loss_plugins.vbgk_loss.RTDETRDetectionLossVBGK',
+    'cross_layer_box_distill': (
+        'ultralytics.utils.loss_plugins.cross_layer_box_distill_loss.RTDETRDetectionLossCrossLayerBoxDistill'
+    ),
 }
 
 # kwargs every plugin receives by default; `loss_params` from the model yaml
