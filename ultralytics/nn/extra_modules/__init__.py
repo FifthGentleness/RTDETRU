@@ -139,6 +139,7 @@ from .aifi_token_swap import *
 from .decoder_p3_edge_refine import *
 from .decoder_p3_edge_read import *
 from .decoder_p2_proposal import RTDETRDecoderP2Proposal
+from .decoder_p2_proposal_v2 import RTDETRDecoderP2ProposalV2
 from ultralytics.utils.loss_plugins.query_supplement_loss import RTDETRDecoderQuerySupplement
 from .pdsf_attention import PDSF_Attention
 from .pdsf_block_sparse import PDSF_BlockSparse
